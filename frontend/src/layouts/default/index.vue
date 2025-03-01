@@ -57,10 +57,19 @@ import {
   Aim,
   Monitor
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { onMounted } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 初始化时获取用户信息
+onMounted(async () => {
+  if (localStorage.getItem('token') && !userStore.userInfo) {
+    await userStore.getUserInfo()
+  }
+})
 
 const handleLogout = () => {
   userStore.logout()
