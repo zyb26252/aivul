@@ -1,39 +1,41 @@
 <template>
-  <div class="software-container">
-    <div class="header">
-      <h2>软件管理</h2>
+  <div class="page-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">软件管理</h2>
+        <div class="search-container">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索软件名称"
+            class="search-input"
+            clearable
+            @input="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          
+          <el-select
+            v-model="selectedArchitecture"
+            placeholder="选择架构"
+            clearable
+            @change="handleSearch"
+            class="architecture-select"
+          >
+            <el-option label="x86" value="x86" />
+            <el-option label="arm" value="arm" />
+          </el-select>
+        </div>
+      </div>
       <el-button type="primary" @click="handleAdd">
         添加软件
       </el-button>
     </div>
 
-    <div class="search-bar">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索软件名称或描述"
-        class="search-input"
-        clearable
-        @input="handleSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-select
-        v-model="selectedArchitecture"
-        placeholder="选择架构"
-        clearable
-        @change="handleSearch"
-        class="architecture-select"
-      >
-        <el-option label="x86" value="x86" />
-        <el-option label="arm" value="arm" />
-      </el-select>
-    </div>
-
     <el-table
       v-loading="loading"
-      :data="softwareList"
+      :data="filteredSoftwareList"
       style="width: 100%"
     >
       <el-table-column prop="name" label="名称" />
@@ -249,7 +251,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
@@ -475,114 +477,91 @@ const handleDetail = (row: Software) => {
   detailDialogVisible.value = true
 }
 
+// 根据搜索和架构筛选软件列表
+const filteredSoftwareList = computed(() => {
+  let result = softwareList.value
+  
+  const query = searchQuery.value.trim().toLowerCase()
+  if (query) {
+    result = result.filter(software => 
+      software.name.toLowerCase().includes(query)
+    )
+  }
+  
+  if (selectedArchitecture.value) {
+    result = result.filter(software => 
+      software.architecture === selectedArchitecture.value
+    )
+  }
+  
+  return result
+})
+
 onMounted(() => {
   fetchSoftware()
 })
 </script>
 
-<style scoped>
-.software-container {
-  padding: 20px;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.search-bar {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.search-input {
-  width: 300px;
-}
+<style lang="scss" scoped>
+@import '@/styles/common.scss';
 
 .architecture-select {
+  margin-left: 12px;
   width: 120px;
 }
 
 .port-tag {
-  margin-right: 8px;
+  margin-right: 6px;
   margin-bottom: 4px;
-}
-
-.port-input {
-  width: 100px;
-  margin-left: 8px;
-  vertical-align: bottom;
-}
-
-.button-new-port {
-  margin-left: 8px;
-  height: 32px;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 .command-container {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
 .command-main {
-  background-color: #409eff;
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
   color: white;
 }
 
 .command-input {
   width: 200px;
   margin-left: 8px;
-  vertical-align: bottom;
-}
-
-.button-new-command {
-  margin-left: 8px;
-  height: 32px;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.command-tips {
-  margin-top: 8px;
-  margin-left: 8px;
-  color: #909399;
 }
 
 .detail-container {
   padding: 20px;
-}
-
-.detail-item {
-  margin-bottom: 20px;
-}
-
-.detail-label {
-  font-weight: bold;
-  margin-right: 10px;
-  color: #606266;
-  display: inline-block;
-  width: 100px;
-  vertical-align: top;
-}
-
-.detail-content {
-  display: inline-block;
-  width: calc(100% - 110px);
-}
-
-.detail-text {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: inherit;
-  color: #606266;
+  
+  .detail-item {
+    margin-bottom: 20px;
+    
+    .detail-label {
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      width: 100px;
+      display: inline-block;
+      vertical-align: top;
+    }
+    
+    .detail-content {
+      display: inline-block;
+      width: calc(100% - 110px);
+    }
+    
+    .detail-text {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: monospace;
+      color: var(--el-text-color-regular);
+      background-color: var(--el-fill-color-light);
+      padding: 12px;
+      border-radius: 4px;
+    }
+  }
 }
 </style> 
