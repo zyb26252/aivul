@@ -29,4 +29,15 @@ export const deleteSoftware = (id: number) => {
     url: `/api/v1/software/${id}`,
     method: 'delete'
   })
+}
+
+export const checkCompatibility = (baseImageId: number, softwareIds: number[]) => {
+  return request<any>({
+    url: '/api/v1/ai/check-compatibility',
+    method: 'post',
+    data: {
+      base_image_id: baseImageId,
+      software_ids: softwareIds
+    }
+  })
 } 

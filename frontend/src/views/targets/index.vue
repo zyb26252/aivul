@@ -177,6 +177,16 @@
           <div class="form-tips" v-if="!selectedArchitecture">
             <el-text class="text-sm" type="info">请先选择基础镜像</el-text>
           </div>
+          <div class="compatibility-check" v-if="form.software_ids.length > 0">
+            <el-button
+              type="primary"
+              :loading="compatibilityLoading"
+              @click="checkSoftwareCompatibility"
+              link
+            >
+              检查软件兼容性
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="端口">
           <div class="ports-container">
@@ -252,16 +262,37 @@
         </template>
       </template>
     </el-dialog>
+
+    <!-- 兼容性分析对话框 -->
+    <el-dialog
+      v-model="compatibilityDialogVisible"
+      title="兼容性分析"
+      width="800px"
+      top="5vh"
+      class="compatibility-dialog"
+    >
+      <div class="compatibility-content markdown-body" v-html="renderedCompatibilityAnalysis" />
+      <template #footer>
+        <el-button @click="compatibilityDialogVisible = false">关闭</el-button>
+        <el-button
+          type="primary"
+          :loading="compatibilityLoading"
+          @click="handleConfirmCompatibility"
+        >
+          继续使用
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElDialog } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
 import { getImages } from '@/api/image'
-import { getSoftware } from '@/api/software'
+import { getSoftware, checkCompatibility } from '@/api/software'
 import { generateDescription } from '@/api/ai'
 import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
@@ -535,12 +566,100 @@ const selectedPorts = computed(() => {
 // 添加一个新的 ref 用于描述生成的加载状态
 const descriptionLoading = ref(false)
 
+// 添加防抖定时器
+let compatibilityCheckTimer: NodeJS.Timeout | null = null
+
+// 添加兼容性检查的加载状态
+const compatibilityLoading = ref(false)
+
+// 添加兼容性分析对话框的状态
+const compatibilityDialogVisible = ref(false)
+const compatibilityAnalysis = ref('')
+
+// 添加兼容性结果的类型定义
+interface CompatibilityResult {
+  has_compatibility_issues: boolean
+  analysis: string
+}
+
+// 添加兼容性结果的状态
+const compatibilityResult = ref<CompatibilityResult | null>(null)
+
+// 修改计算属性，优化 markdown 渲染
+const renderedCompatibilityAnalysis = computed(() => {
+  if (!compatibilityAnalysis.value) return ''
+  
+  const lines = compatibilityAnalysis.value.split('\n')
+  const result = []
+  let inCodeBlock = false
+  let listItems = []
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    
+    // 处理代码块
+    if (line.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true
+        result.push('<pre><code>')
+        continue
+      } else {
+        inCodeBlock = false
+        result.push('</code></pre>')
+        continue
+      }
+    }
+
+    if (inCodeBlock) {
+      result.push(line)
+      continue
+    }
+
+    // 处理加粗文本
+    line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+
+    // 处理标题
+    if (line.match(/^#{1,6}\s/)) {
+      const level = line.match(/^(#{1,6})\s/)[1].length
+      const text = line.slice(level + 1)
+      result.push(`<h${level}>${text}</h${level}>`)
+      continue
+    }
+
+    // 处理列表项
+    if (line.startsWith('- ')) {
+      listItems.push(`<li>${line.slice(2)}</li>`)
+      if (!lines[i + 1]?.startsWith('- ') || i === lines.length - 1) {
+        result.push('<ul>' + listItems.join('') + '</ul>')
+        listItems = []
+      }
+      continue
+    }
+
+    // 处理行内代码
+    if (line.includes('`')) {
+      line = line.replace(/`([^`]+)`/g, '<code>$1</code>')
+    }
+
+    // 处理空行
+    if (!line.trim()) {
+      result.push('<br>')
+      continue
+    }
+
+    // 处理普通段落
+    result.push(`<p>${line}</p>`)
+  }
+
+  return result.join('\n')
+})
+
 // 处理软件选择变化
 const handleSoftwareChange = async () => {
   // 更新端口列表
   form.value.ports = selectedPorts.value
 
-  // 如果已选择基础镜像和软件，则自动生成描述
+  // 如果已选择基础镜像和软件，则生成环境描述
   if (form.value.base_image_id && form.value.software_ids.length > 0) {
     try {
       const selectedImage = images.value.find(img => img.id === form.value.base_image_id)
@@ -548,34 +667,48 @@ const handleSoftwareChange = async () => {
         .map(id => softwareList.value.find(s => s.id === id))
         .filter(Boolean)
 
-      if (selectedImage && selectedSoftware.length > 0) {
-        const prompt = `这是一个基于 ${selectedImage.name} (${selectedImage.architecture}) 的靶标环境，`
-          + `包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。`
-          + `请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
+      if (!selectedImage || selectedSoftware.length === 0) {
+        return
+      }
 
-        try {
-          descriptionLoading.value = true
-          form.value.description = '正在生成描述，请稍候...'
-          const description = await generateDescription(prompt)
-          if (description) {
-            form.value.description = description
-          } else {
-            form.value.description = ''
-            ElMessage.warning('自动生成描述失败，请手动填写')
-          }
-        } catch (error) {
-          console.error('生成描述失败:', error)
-          form.value.description = ''
-          ElMessage.warning('自动生成描述失败，请手动填写')
-        } finally {
-          descriptionLoading.value = false
-        }
+      // 生成环境描述
+      descriptionLoading.value = true
+      try {
+        // 构建提示文本
+        const prompt = `这是一个基于 ${selectedImage.name} ${selectedImage.version} (${selectedImage.architecture}) 的靶标环境，包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
+        const description = await generateDescription(prompt)
+        form.value.description = description
+      } catch (error) {
+        console.error('生成描述失败:', error)
+        form.value.description = ''  // 清空描述，让用户手动填写
+      } finally {
+        descriptionLoading.value = false
       }
     } catch (error) {
-      console.error('处理软件变更失败:', error)
-      form.value.description = ''
-      ElMessage.warning('自动生成描述失败，请手动填写')
+      console.error('处理软件选择变化时发生错误:', error)
+      ElMessage.error('处理软件选择时发生错误')
     }
+  }
+}
+
+// 检查软件兼容性
+const checkSoftwareCompatibility = async () => {
+  if (!form.value.base_image_id || form.value.software_ids.length === 0) {
+    ElMessage.warning('请先选择基础镜像和软件')
+    return
+  }
+
+  compatibilityLoading.value = true
+  try {
+    const result = await checkCompatibility(form.value.base_image_id, form.value.software_ids)
+    compatibilityResult.value = result
+    compatibilityAnalysis.value = result.analysis
+    compatibilityDialogVisible.value = true
+  } catch (error) {
+    console.error('检查软件兼容性时发生错误:', error)
+    ElMessage.error('检查软件兼容性时发生错误')
+  } finally {
+    compatibilityLoading.value = false
   }
 }
 
@@ -591,6 +724,30 @@ const filteredTargets = computed(() => {
 // 处理搜索输入
 const handleSearch = () => {
   // 这里可以添加防抖逻辑如果需要
+}
+
+// 添加处理兼容性确认的函数
+const handleConfirmCompatibility = async () => {
+  compatibilityDialogVisible.value = false
+  // 如果没有兼容性问题，不需要进一步操作
+  if (!compatibilityResult.value?.has_compatibility_issues) {
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      '确定要继续使用这些软件吗？',
+      '确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+  } catch {
+    // 用户点击了取消，清空最后选择的软件
+    form.value.software_ids = form.value.software_ids.slice(0, -1)
+  }
 }
 
 onMounted(() => {
@@ -693,5 +850,92 @@ onMounted(() => {
 
 :deep(.monaco-editor) {
   min-height: 500px;
+}
+
+.compatibility-check {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.compatibility-dialog {
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+}
+
+.compatibility-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+  background-color: var(--el-bg-color);
+  border-radius: 4px;
+}
+
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: var(--el-fill-color-light);
+  border-radius: 3px;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--el-fill-color-light);
+  border-radius: 3px;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: var(--el-text-color-regular);
+  border-left: 0.25em solid var(--el-border-color);
+  margin: 0 0 16px;
 }
 </style> 
