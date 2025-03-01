@@ -1,7 +1,22 @@
 <template>
   <div class="targets-container">
     <div class="header">
-      <h2>靶标管理</h2>
+      <div class="header-left">
+        <h2>靶标管理</h2>
+        <div class="search-container">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索靶标名称"
+            class="search-input"
+            clearable
+            @input="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+      </div>
       <el-button type="primary" @click="handleAdd">
         添加靶标
       </el-button>
@@ -9,7 +24,7 @@
 
     <el-table
       v-loading="loading"
-      :data="targets"
+      :data="filteredTargets"
       style="width: 100%"
     >
       <el-table-column prop="name" label="名称" />
@@ -243,6 +258,7 @@ import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
 import MonacoEditor from '@/components/MonacoEditor.vue'
+import { Search } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const targets = ref<Target[]>([])
@@ -254,6 +270,7 @@ const submitLoading = ref(false)
 const generateLoading = ref(false)
 const formRef = ref<FormInstance>()
 const dockerfileFormRef = ref<FormInstance>()
+const searchQuery = ref('')
 
 const form = ref({
   id: 0,
@@ -511,6 +528,20 @@ const handleSoftwareChange = () => {
   form.value.ports = selectedPorts.value
 }
 
+// 根据搜索关键词过滤靶标列表
+const filteredTargets = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return targets.value
+  return targets.value.filter(target => 
+    target.name.toLowerCase().includes(query)
+  )
+})
+
+// 处理搜索输入
+const handleSearch = () => {
+  // 这里可以添加防抖逻辑如果需要
+}
+
 onMounted(() => {
   fetchTargets()
   fetchOptions()
@@ -529,8 +560,23 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .header h2 {
   margin: 0;
+}
+
+.search-container {
+  margin-top: 8px;
+}
+
+.search-input {
+  width: 200px;
 }
 
 .software-tag {
