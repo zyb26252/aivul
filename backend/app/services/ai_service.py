@@ -20,7 +20,7 @@ async def generate_description(prompt: str) -> str:
     try:
         print(f"Sending request to Qwen API with prompt: {prompt}")
         response = openai.ChatCompletion.create(
-            model="qwen-plus",
+            model="qwen-turbo",
             messages=[
                 {
                     "role": "system",

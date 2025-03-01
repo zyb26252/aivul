@@ -107,7 +107,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
-      width="600px"
+      width="800px"
+      top="5vh"
     >
       <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
         <el-step title="基本信息" />
@@ -195,8 +196,14 @@
           <el-input
             v-model="form.description"
             type="textarea"
+            :rows="6"
+            :autosize="{ minRows: 6, maxRows: 10 }"
             placeholder="请输入靶标描述"
+            :loading="descriptionLoading"
           />
+          <div class="form-tips" v-if="descriptionLoading">
+            <el-text class="text-sm" type="info">正在生成描述，请稍候...</el-text>
+          </div>
         </el-form-item>
       </el-form>
 
@@ -217,6 +224,7 @@
               scrollBeyondLastLine: false,
               automaticLayout: true,
             }"
+            style="height: 500px"
           />
         </el-form-item>
       </el-form>
@@ -524,6 +532,9 @@ const selectedPorts = computed(() => {
   return Array.from(ports).sort((a, b) => a - b)
 })
 
+// 添加一个新的 ref 用于描述生成的加载状态
+const descriptionLoading = ref(false)
+
 // 处理软件选择变化
 const handleSoftwareChange = async () => {
   // 更新端口列表
@@ -543,19 +554,26 @@ const handleSoftwareChange = async () => {
           + `请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
 
         try {
+          descriptionLoading.value = true
+          form.value.description = '正在生成描述，请稍候...'
           const description = await generateDescription(prompt)
           if (description) {
             form.value.description = description
           } else {
+            form.value.description = ''
             ElMessage.warning('自动生成描述失败，请手动填写')
           }
         } catch (error) {
           console.error('生成描述失败:', error)
+          form.value.description = ''
           ElMessage.warning('自动生成描述失败，请手动填写')
+        } finally {
+          descriptionLoading.value = false
         }
       }
     } catch (error) {
       console.error('处理软件变更失败:', error)
+      form.value.description = ''
       ElMessage.warning('自动生成描述失败，请手动填写')
     }
   }
@@ -661,5 +679,19 @@ onMounted(() => {
 .software-separator {
   margin: 0 2px;
   color: var(--el-text-color-regular);
+}
+
+:deep(.el-dialog) {
+  margin-top: 5vh !important;
+}
+
+:deep(.el-dialog__body) {
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: 20px 30px;
+}
+
+:deep(.monaco-editor) {
+  min-height: 500px;
 }
 </style> 
