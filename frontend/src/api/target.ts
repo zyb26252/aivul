@@ -43,12 +43,4 @@ export const generateDockerfile = (id: number) => {
     url: `/api/v1/targets/${id}/dockerfile`,
     method: 'get'
   })
-}
-
-export const generateDescription = (prompt: string) => {
-  return request<{ description: string }>({
-    url: '/api/v1/ai/generate',
-    method: 'post',
-    data: { prompt }
-  })
 } 

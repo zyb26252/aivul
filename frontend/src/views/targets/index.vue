@@ -340,7 +340,6 @@ const fetchTargets = async () => {
   loading.value = true
   try {
     const data = await getTargets()
-    console.log('Targets data:', data)
     targets.value = data.map(target => ({
       ...target,
       ports: target.software_list?.reduce((acc: number[], software) => {
@@ -676,16 +675,20 @@ const handleSoftwareChange = async () => {
       try {
         // 构建提示文本
         const prompt = `这是一个基于 ${selectedImage.name} ${selectedImage.version} (${selectedImage.architecture}) 的靶标环境，包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
-        const description = await generateDescription(prompt)
-        form.value.description = description
+        const response = await generateDescription(prompt)
+        if (response) {
+          form.value.description = response
+        } else {
+          form.value.description = ''
+          ElMessage.warning('生成的描述为空，请手动填写')
+        }
       } catch (error) {
-        console.error('生成描述失败:', error)
         form.value.description = ''  // 清空描述，让用户手动填写
+        ElMessage.error('生成描述失败，请手动填写')
       } finally {
         descriptionLoading.value = false
       }
     } catch (error) {
-      console.error('处理软件选择变化时发生错误:', error)
       ElMessage.error('处理软件选择时发生错误')
     }
   }
@@ -705,7 +708,6 @@ const checkSoftwareCompatibility = async () => {
     compatibilityAnalysis.value = result.analysis
     compatibilityDialogVisible.value = true
   } catch (error) {
-    console.error('检查软件兼容性时发生错误:', error)
     ElMessage.error('检查软件兼容性时发生错误')
   } finally {
     compatibilityLoading.value = false

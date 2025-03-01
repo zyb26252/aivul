@@ -17,15 +17,9 @@ service.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
-    // 添加请求数据日志
-    if (config.data) {
-      console.log('Request data:', config.data)
-      console.log('Request headers:', config.headers)
-    }
     return config
   },
   error => {
-    console.log(error)
     return Promise.reject(error)
   }
 )
@@ -33,8 +27,6 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    // 添加响应数据日志
-    console.log('Response data:', response.data)
     if (response.data && typeof response.data === 'object') {
       return response.data
     }
@@ -42,7 +34,6 @@ service.interceptors.response.use(
   },
   error => {
     if (error.response) {
-      console.log('Error response:', error.response.data)
       if (error.response.status === 401) {
         // 如果是登录接口返回401，说明用户名或密码错误
         if (error.config.url.includes('/auth/login')) {

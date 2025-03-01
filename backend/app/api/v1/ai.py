@@ -22,7 +22,7 @@ class CompatibilityCheckRequest(BaseModel):
     base_image_id: int
     software_ids: List[int]
 
-@router.post("/generate", response_model=GenerateResponse)
+@router.post("/generate_description", response_model=GenerateResponse)
 async def generate_description_api(request: GenerateRequest):
     """
     生成描述 API 端点

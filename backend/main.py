@@ -11,7 +11,11 @@ import uvicorn
 import logging
 
 # 配置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
 # 创建数据库表
@@ -54,4 +58,4 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboar
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug") 
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning") 

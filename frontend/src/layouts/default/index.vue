@@ -35,7 +35,7 @@
           <h2>容器化靶标管理系统</h2>
           <div class="user-info">
             <span>{{ userStore.userInfo?.username }}</span>
-            <el-button type="text" @click="handleLogout">退出</el-button>
+            <el-button link @click="handleLogout">退出</el-button>
           </div>
         </div>
       </el-header>

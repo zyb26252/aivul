@@ -111,6 +111,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { Picture, Monitor, Aim, Box } from '@element-plus/icons-vue'
 import { getDashboardStats } from '@/api/dashboard'
 import type { DashboardStats } from '@/api/dashboard'
+import { ElMessage } from 'element-plus'
 
 const stats = ref<DashboardStats>({
   totalImages: 0,
@@ -136,7 +137,7 @@ const fetchDashboardData = async () => {
     const data = await getDashboardStats()
     stats.value = data
   } catch (error) {
-    console.error('获取仪表盘数据失败:', error)
+    ElMessage.error('获取仪表盘数据失败')
   }
 }
 

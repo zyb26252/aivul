@@ -379,7 +379,6 @@ const fetchSoftware = async () => {
     }
     softwareList.value = await getSoftware(params)
   } catch (error) {
-    console.error('获取软件列表失败:', error)
     ElMessage.error('获取软件列表失败')
   } finally {
     loading.value = false

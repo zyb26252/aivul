@@ -3,11 +3,17 @@ FROM node:18-alpine as development
 
 WORKDIR /app
 
+# 设置环境变量以减少日志输出
+ENV NODE_ENV=development
+ENV VITE_LOGGER_LEVEL=warn
+ENV NODE_OPTIONS="--no-warnings"
+ENV NPM_CONFIG_LOGLEVEL=warn
+
 # 复制依赖文件
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install
+RUN npm install --quiet
 
 # 复制源代码
 COPY . .
