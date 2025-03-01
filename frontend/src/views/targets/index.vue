@@ -85,7 +85,14 @@
           </el-text>
         </template>
       </el-table-column>
-      <el-table-column prop="description" label="描述" show-overflow-tooltip />
+      <el-table-column prop="description" label="描述" :show-overflow-tooltip="{
+        effect: 'dark',
+        placement: 'top',
+        enterable: true,
+        popperClass: 'description-tooltip',
+        width: '300px',
+        showArrow: true
+      }" />
       <el-table-column prop="created_at" label="创建时间">
         <template #default="{ row }">
           {{ new Date(row.created_at).toLocaleString() }}
@@ -948,5 +955,13 @@ onMounted(() => {
   color: var(--el-text-color-regular);
   border-left: 0.25em solid var(--el-border-color);
   margin: 0 0 16px;
+}
+
+:deep(.description-tooltip) {
+  max-width: 300px !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  line-height: 1.5 !important;
+  padding: 8px 12px !important;
 }
 </style> 
