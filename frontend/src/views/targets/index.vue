@@ -253,7 +253,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
 import { getImages } from '@/api/image'
-import { getSoftwareList } from '@/api/software'
+import { getSoftware } from '@/api/software'
 import { generateDescription } from '@/api/ai'
 import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
@@ -321,7 +321,7 @@ const fetchOptions = async () => {
   try {
     const [imageRes, softwareRes] = await Promise.all([
       getImages(),
-      getSoftwareList()
+      getSoftware()
     ])
     images.value = imageRes
     softwareList.value = softwareRes

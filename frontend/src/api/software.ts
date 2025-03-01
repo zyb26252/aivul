@@ -1,17 +1,16 @@
 import request from '@/utils/request'
 import type { Software, SoftwareCreate, SoftwareUpdate } from '@/types/software'
 
-export const getSoftwareList = (params?: URLSearchParams) => {
+export const getSoftware = () => {
   return request<Software[]>({
-    url: '/software',
-    method: 'get',
-    params
+    url: '/api/v1/software',
+    method: 'get'
   })
 }
 
 export const createSoftware = (data: SoftwareCreate) => {
   return request<Software>({
-    url: '/software',
+    url: '/api/v1/software',
     method: 'post',
     data
   })
@@ -19,7 +18,7 @@ export const createSoftware = (data: SoftwareCreate) => {
 
 export const updateSoftware = (id: number, data: SoftwareUpdate) => {
   return request<Software>({
-    url: `/software/${id}`,
+    url: `/api/v1/software/${id}`,
     method: 'put',
     data
   })
@@ -27,7 +26,7 @@ export const updateSoftware = (id: number, data: SoftwareUpdate) => {
 
 export const deleteSoftware = (id: number) => {
   return request({
-    url: `/software/${id}`,
+    url: `/api/v1/software/${id}`,
     method: 'delete'
   })
 } 

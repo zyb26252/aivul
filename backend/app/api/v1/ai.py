@@ -11,12 +11,12 @@ class GenerateResponse(BaseModel):
     description: str
 
 @router.post("/generate", response_model=GenerateResponse)
-async def generate_description_api(request: GenerateRequest):
+def generate_description_api(request: GenerateRequest):
     """
     生成描述 API 端点
     """
     try:
-        description = await generate_description(request.prompt)
+        description = generate_description(request.prompt)
         return GenerateResponse(description=description)
     except Exception as e:
         raise HTTPException(

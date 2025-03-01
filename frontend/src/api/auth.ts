@@ -11,16 +11,20 @@ export interface RegisterData {
   password: string
 }
 
+export interface LoginResponse {
+  access_token: string
+  token_type: string
+}
+
 export const login = (data: LoginData) => {
-  const params = new URLSearchParams()
-  params.append('grant_type', 'password')
-  params.append('username', data.username)
-  params.append('password', data.password)
+  const formData = new URLSearchParams()
+  formData.append('username', data.username)
+  formData.append('password', data.password)
   
-  return request({
-    url: '/auth/login',
+  return request<LoginResponse>({
+    url: '/api/v1/auth/login',
     method: 'post',
-    data: params,
+    data: formData,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
@@ -29,7 +33,7 @@ export const login = (data: LoginData) => {
 
 export const register = (data: RegisterData) => {
   return request({
-    url: '/auth/register',
+    url: '/api/v1/auth/register',
     method: 'post',
     data
   })
@@ -37,7 +41,7 @@ export const register = (data: RegisterData) => {
 
 export const getUserInfo = () => {
   return request({
-    url: '/auth/me',
+    url: '/api/v1/auth/me',
     method: 'get'
   })
 } 

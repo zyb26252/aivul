@@ -3,8 +3,11 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 
 const service = axios.create({
-  baseURL: 'http://47.86.184.188:8000/api/v1',
-  timeout: 5000
+  baseURL: 'http://47.86.184.188:8000',
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
 
 // 请求拦截器
@@ -13,6 +16,11 @@ service.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
+    }
+    // 添加请求数据日志
+    if (config.data) {
+      console.log('Request data:', config.data)
+      console.log('Request headers:', config.headers)
     }
     return config
   },
@@ -29,6 +37,7 @@ service.interceptors.response.use(
   },
   error => {
     if (error.response) {
+      console.log('Error response:', error.response.data)
       if (error.response.status === 401) {
         // 如果是登录接口返回401，说明用户名或密码错误
         if (error.config.url.includes('/auth/login')) {

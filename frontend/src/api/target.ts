@@ -1,24 +1,31 @@
 import request from '@/utils/request'
-import type { Target, TargetCreate, TargetUpdate } from '@/types/target'
+import type { Target } from '@/types/target'
 
 export const getTargets = () => {
   return request<Target[]>({
-    url: '/targets',
+    url: '/api/v1/targets',
     method: 'get'
   })
 }
 
-export const createTarget = (data: TargetCreate) => {
+export const getTarget = (id: number) => {
   return request<Target>({
-    url: '/targets',
+    url: `/api/v1/targets/${id}`,
+    method: 'get'
+  })
+}
+
+export const createTarget = (data: Target) => {
+  return request({
+    url: '/api/v1/targets',
     method: 'post',
     data
   })
 }
 
-export const updateTarget = (id: number, data: TargetUpdate) => {
-  return request<Target>({
-    url: `/targets/${id}`,
+export const updateTarget = (id: number, data: Target) => {
+  return request({
+    url: `/api/v1/targets/${id}`,
     method: 'put',
     data
   })
@@ -26,14 +33,22 @@ export const updateTarget = (id: number, data: TargetUpdate) => {
 
 export const deleteTarget = (id: number) => {
   return request({
-    url: `/targets/${id}`,
+    url: `/api/v1/targets/${id}`,
     method: 'delete'
   })
 }
 
 export const generateDockerfile = (id: number) => {
-  return request<{ dockerfile: string }>({
-    url: `/targets/${id}/dockerfile`,
-    method: 'post'
+  return request({
+    url: `/api/v1/targets/${id}/dockerfile`,
+    method: 'get'
+  })
+}
+
+export const generateDescription = (prompt: string) => {
+  return request<{ description: string }>({
+    url: '/api/v1/ai/generate',
+    method: 'post',
+    data: { prompt }
   })
 } 

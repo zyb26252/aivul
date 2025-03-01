@@ -1,26 +1,30 @@
 import request from '@/utils/request'
 
+export interface Activity {
+  id: number
+  type: string
+  name: string
+  createdAt: string
+}
+
+export interface ResourceUsage {
+  cpuUsage: number
+  memoryUsage: number
+  diskUsage: number
+}
+
 export interface DashboardStats {
   totalImages: number
   totalInstances: number
   totalTargets: number
   totalSoftware: number
-  recentActivities: Array<{
-    id: number
-    type: string
-    name: string
-    createdAt: string
-  }>
-  resourceUsage: {
-    cpuUsage: number
-    memoryUsage: number
-    diskUsage: number
-  }
+  recentActivities: Activity[]
+  resourceUsage: ResourceUsage
 }
 
 export const getDashboardStats = () => {
   return request<DashboardStats>({
-    url: '/dashboard/stats',
+    url: '/api/v1/dashboard/stats',
     method: 'get'
   })
 } 

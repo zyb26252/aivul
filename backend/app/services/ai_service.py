@@ -1,11 +1,9 @@
-from openai import AsyncOpenAI
+import openai
 from app.core.config import settings
 
-# 配置 OpenAI 客户端
-client = AsyncOpenAI(
-    api_key=settings.DEEPSEEK_API_KEY,
-    base_url=settings.DEEPSEEK_API_BASE
-)
+# 配置 OpenAI
+openai.api_key = settings.DEEPSEEK_API_KEY
+openai.api_base = settings.DEEPSEEK_API_BASE
 
 async def generate_description(prompt: str) -> str:
     """
@@ -17,7 +15,7 @@ async def generate_description(prompt: str) -> str:
     Returns:
         str: 生成的描述文本
     """
-    response = await client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="deepseek-chat",
         messages=[
             {

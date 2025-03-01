@@ -253,7 +253,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
-import { getSoftwareList, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
+import { getSoftware, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
 import type { Software } from '@/types/software'
 
 const loading = ref(false)
@@ -367,7 +367,7 @@ const handleRemoveCommand = (command: string) => {
 }
 
 // 获取软件列表
-const fetchSoftwareList = async () => {
+const fetchSoftware = async () => {
   try {
     loading.value = true
     const params = new URLSearchParams()
@@ -377,8 +377,7 @@ const fetchSoftwareList = async () => {
     if (selectedArchitecture.value) {
       params.append('architecture', selectedArchitecture.value)
     }
-    const response = await getSoftwareList(params)
-    softwareList.value = response
+    softwareList.value = await getSoftware(params)
   } catch (error) {
     console.error('获取软件列表失败:', error)
     ElMessage.error('获取软件列表失败')
@@ -389,7 +388,7 @@ const fetchSoftwareList = async () => {
 
 // 处理搜索和筛选
 const handleSearch = () => {
-  fetchSoftwareList()
+  fetchSoftware()
 }
 
 // 添加软件
@@ -428,7 +427,7 @@ const handleDelete = async (row: Software) => {
     })
     await deleteSoftware(row.id)
     ElMessage.success('删除成功')
-    await fetchSoftwareList()
+    await fetchSoftware()
   } catch (error) {
     // 用户取消删除或删除失败
   }
@@ -450,7 +449,7 @@ const handleSubmit = async () => {
           ElMessage.success('更新成功')
         }
         dialogVisible.value = false
-        await fetchSoftwareList()
+        await fetchSoftware()
       } finally {
         submitLoading.value = false
       }
@@ -478,7 +477,7 @@ const handleDetail = (row: Software) => {
 }
 
 onMounted(() => {
-  fetchSoftwareList()
+  fetchSoftware()
 })
 </script>
 

@@ -3,15 +3,15 @@ import type { Image, ImageCreate, ImageUpdate } from '@/types/image'
 
 export const getImages = (params?: URLSearchParams) => {
   return request<Image[]>({
-    url: '/images',
+    url: '/api/v1/images',
     method: 'get',
-    params: params
+    params
   })
 }
 
 export const createImage = (data: ImageCreate) => {
   return request<Image>({
-    url: '/images',
+    url: '/api/v1/images',
     method: 'post',
     data
   })
@@ -19,7 +19,7 @@ export const createImage = (data: ImageCreate) => {
 
 export const updateImage = (id: number, data: ImageUpdate) => {
   return request<Image>({
-    url: `/images/${id}`,
+    url: `/api/v1/images/${id}`,
     method: 'put',
     data
   })
@@ -27,7 +27,7 @@ export const updateImage = (id: number, data: ImageUpdate) => {
 
 export const deleteImage = (id: number) => {
   return request({
-    url: `/images/${id}`,
+    url: `/api/v1/images/${id}`,
     method: 'delete'
   })
 } 
