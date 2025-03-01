@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.api import deps
 from app.schemas.image import Image, ImageCreate, ImageUpdate
 from app.models.image import Image as ImageModel
@@ -13,12 +14,32 @@ def list_images(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
+    architecture: Optional[str] = None,
     current_user: User = Depends(deps.get_current_user),
 ):
     """
     获取镜像列表
+    - search: 搜索关键词(名称或描述)
+    - architecture: 架构筛选
     """
-    images = db.query(ImageModel).offset(skip).limit(limit).all()
+    query = db.query(ImageModel)
+    
+    # 添加搜索条件
+    if search:
+        query = query.filter(
+            or_(
+                ImageModel.name.ilike(f"%{search}%"),
+                ImageModel.description.ilike(f"%{search}%")
+            )
+        )
+    
+    # 添加架构筛选
+    if architecture:
+        query = query.filter(ImageModel.architecture == architecture)
+    
+    # 分页
+    images = query.offset(skip).limit(limit).all()
     return images
 
 @router.post("/", response_model=Image)

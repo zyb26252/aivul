@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 import type { Image, ImageCreate, ImageUpdate } from '@/types/image'
 
-export const getImages = () => {
+export const getImages = (params?: URLSearchParams) => {
   return request<Image[]>({
     url: '/images',
-    method: 'get'
+    method: 'get',
+    params: params
   })
 }
 

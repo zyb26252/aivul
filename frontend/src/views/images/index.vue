@@ -7,6 +7,31 @@
       </el-button>
     </div>
 
+    <div class="search-bar">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索镜像名称或描述"
+        clearable
+        @input="handleSearch"
+        style="width: 300px; margin-right: 16px;"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      
+      <el-select
+        v-model="selectedArchitecture"
+        placeholder="选择架构"
+        clearable
+        @change="handleSearch"
+        style="width: 200px;"
+      >
+        <el-option label="x86" value="x86" />
+        <el-option label="arm" value="arm" />
+      </el-select>
+    </div>
+
     <el-table
       v-loading="loading"
       :data="images"
@@ -82,6 +107,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getImages, createImage, updateImage, deleteImage } from '@/api/image'
 import type { Image } from '@/types/image'
@@ -92,6 +118,8 @@ const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
+const searchQuery = ref('')
+const selectedArchitecture = ref('')
 
 const form = ref({
   id: 0,
@@ -122,10 +150,23 @@ const rules = {
 const fetchImages = async () => {
   loading.value = true
   try {
-    images.value = await getImages()
+    const params = new URLSearchParams()
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value)
+    }
+    if (selectedArchitecture.value) {
+      params.append('architecture', selectedArchitecture.value)
+    }
+    const response = await getImages(params)
+    images.value = response
   } finally {
     loading.value = false
   }
+}
+
+// 处理搜索和筛选
+const handleSearch = () => {
+  fetchImages()
 }
 
 // 添加镜像
@@ -202,6 +243,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.search-bar {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .header h2 {
