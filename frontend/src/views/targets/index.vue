@@ -122,6 +122,7 @@
         :model="form"
         :rules="rules"
         label-width="100px"
+        validate-on-rule-change="false"
       >
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入靶标名称" />
@@ -385,6 +386,10 @@ const handleAdd = () => {
     ports: []
   }
   dialogVisible.value = true
+  // 重置表单验证状态
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
 }
 
 // 编辑靶标
@@ -397,6 +402,10 @@ const handleEdit = (row: Target) => {
     ports: row.ports || []
   }
   dialogVisible.value = true
+  // 重置表单验证状态
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
 }
 
 // 删除靶标
