@@ -1,8 +1,8 @@
 <template>
-  <div class="targets-container">
-    <div class="header">
+  <div class="page-container">
+    <div class="page-header">
       <div class="header-left">
-        <h2>靶标管理</h2>
+        <h2 class="page-title">靶标管理</h2>
         <div class="search-container">
           <el-input
             v-model="searchQuery"
@@ -774,238 +774,79 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.targets-container {
-  padding: 20px;
-  background-color: var(--el-bg-color);
-  min-height: calc(100vh - 60px);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.header h2 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.search-container {
-  margin-top: 12px;
-}
-
-.search-input {
-  width: 240px;
-}
-
-:deep(.el-table) {
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-:deep(.el-table__header) {
-  background-color: var(--el-fill-color-light);
-}
-
-:deep(.el-table__header-wrapper th) {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-  font-weight: 500;
-  height: 48px;
-}
-
-:deep(.el-table__row) {
-  height: 56px;
-}
-
-:deep(.el-table__row td) {
-  padding: 12px 0;
-}
-
-.software-tag {
-  margin-right: 6px;
-  margin-bottom: 6px;
-}
-
-.software-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-}
+<style lang="scss" scoped>
+@import '@/styles/common.scss';
 
 .architecture-tag {
-  font-size: 12px;
-  background-color: var(--el-color-info-light-9);
-  border-color: var(--el-color-info-light-8);
-  color: var(--el-color-info);
   margin-left: 8px;
 }
 
-.image-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-}
-
-.form-tips {
-  margin-top: 8px;
+.version-tag {
   margin-left: 8px;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
+  background-color: var(--el-color-success-light-9);
+  border-color: var(--el-color-success-light-8);
+  color: var(--el-color-success);
 }
 
-.ports-container {
-  margin-bottom: 8px;
+.port-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
 .port-tag {
-  margin: 0;
-  background-color: var(--el-color-info-light-9);
-  border-color: var(--el-color-info-light-8);
-  color: var(--el-color-info);
+  margin-right: 6px;
+  margin-bottom: 4px;
 }
 
 .software-list {
-  line-height: 1.6;
-  color: var(--el-text-color-regular);
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  
+  .software-item {
+    color: var(--el-text-color-regular);
+  }
+  
+  .software-separator {
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.image-option,
+.software-option {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.software-item {
-  color: var(--el-color-primary);
-  cursor: pointer;
-  transition: color 0.3s;
-}
-
-.software-item:hover {
-  color: var(--el-color-primary-light-3);
-}
-
-.software-separator {
-  color: var(--el-text-color-secondary);
-}
-
-:deep(.el-dialog) {
-  margin-top: 8vh !important;
-  border-radius: 8px;
-}
-
-:deep(.el-dialog__header) {
-  margin: 0;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--el-border-color-light);
-}
-
-:deep(.el-dialog__title) {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-:deep(.el-dialog__body) {
-  max-height: 70vh;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 16px 24px;
-  border-top: 1px solid var(--el-border-color-light);
-}
-
-:deep(.monaco-editor) {
-  min-height: 500px;
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color);
+.ports-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .compatibility-check {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-:deep(.el-button--primary) {
-  --el-button-font-weight: 400;
-  --el-button-border-color: var(--el-color-primary);
-  --el-button-bg-color: var(--el-color-primary);
-  --el-button-hover-border-color: var(--el-color-primary-light-3);
-  --el-button-hover-bg-color: var(--el-color-primary-light-3);
-}
-
-:deep(.el-button--primary.is-link) {
-  --el-button-bg-color: transparent;
-  --el-button-border-color: transparent;
-  --el-button-hover-bg-color: var(--el-color-primary-light-9);
-  --el-button-hover-border-color: transparent;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 400;
-  color: var(--el-text-color-regular);
-}
-
-:deep(.el-input__wrapper),
-:deep(.el-textarea__wrapper) {
-  box-shadow: 0 0 0 1px var(--el-border-color) inset;
-}
-
-:deep(.el-input__wrapper:hover),
-:deep(.el-textarea__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--el-border-color-darker) inset;
-}
-
-:deep(.el-select__wrapper) {
-  border-radius: 4px;
+  margin-top: 8px;
 }
 
 .compatibility-dialog {
   :deep(.el-dialog__body) {
-    padding: 24px;
+    padding: 20px;
   }
 }
 
-.compatibility-content {
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 20px;
-  background-color: var(--el-fill-color-blank);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
-}
-
-:deep(.el-steps--simple) {
-  background-color: var(--el-fill-color-blank);
-  padding: 16px 0;
-}
-
-:deep(.description-tooltip) {
-  max-width: 300px !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  line-height: 1.6 !important;
-  padding: 12px 16px !important;
-  font-size: 13px !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1) !important;
+.command-preview {
+  font-family: monospace;
+  background-color: var(--el-fill-color-light);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style> 
