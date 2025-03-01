@@ -1,17 +1,55 @@
-# 使用 Node.js 官方 LTS 镜像
-FROM node:lts
+# 开发环境
+FROM node:18-alpine as development
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制 package.json 和 package-lock.json
+# 复制依赖文件
 COPY package*.json ./
 
-# 安装项目依赖
+# 安装依赖
 RUN npm install
 
-# 暴露应用运行的端口
+# 复制源代码
+COPY . .
+
+# 暴露开发服务器端口
 EXPOSE 3000
 
-# 启动应用
-CMD ["npm", "run", "dev"]
+# 启动开发服务器
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# 构建阶段
+FROM node:18-alpine as builder
+
+WORKDIR /app
+
+# 复制依赖文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm install
+
+# 复制源代码
+COPY . .
+
+# 构建应用
+RUN npm run build
+
+# 生产环境
+FROM nginx:alpine as production
+
+# 复制构建产物到Nginx目录
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制Nginx配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
+
+# 启动Nginx
+CMD ["nginx", "-g", "daemon off;"]
