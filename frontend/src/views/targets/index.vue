@@ -23,13 +23,12 @@
       </el-table-column>
       <el-table-column label="软件">
         <template #default="{ row }">
-          <el-tag
-            v-for="item in row.software_list"
-            :key="item.id"
-            class="software-tag"
-          >
-            {{ item.name }} {{ item.version }}
-          </el-tag>
+          <div class="software-list">
+            <template v-for="(item, index) in row.software_list" :key="item.id">
+              <span class="software-item">{{ item.name }}:{{ item.version }}</span>
+              <span v-if="index < row.software_list.length - 1" class="software-separator">, </span>
+            </template>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="端口">
@@ -130,11 +129,11 @@
             <el-option
               v-for="item in filteredSoftwareList"
               :key="item.id"
-              :label="`${item.name} ${item.version}`"
+              :label="`${item.name}:${item.version}`"
               :value="item.id"
             >
               <div class="software-option">
-                <span>{{ item.name }} {{ item.version }}</span>
+                <span>{{ item.name }}:{{ item.version }}</span>
                 <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
               </div>
             </el-option>
@@ -547,5 +546,18 @@ onMounted(() => {
 .port-tag {
   margin-right: 5px;
   margin-bottom: 5px;
+}
+
+.software-list {
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
+}
+
+.software-item {
+  color: var(--el-color-primary);
+}
+
+.software-separator {
+  margin: 0 2px;
 }
 </style> 
