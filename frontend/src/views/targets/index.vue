@@ -155,11 +155,15 @@
         label-width="100px"
       >
         <el-form-item label="Dockerfile" prop="dockerfile">
-          <el-input
+          <MonacoEditor
             v-model="form.dockerfile"
-            type="textarea"
-            :rows="15"
-            placeholder="请输入或生成 Dockerfile"
+            language="dockerfile"
+            :options="{
+              lineNumbers: 'on',
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+            }"
           />
         </el-form-item>
       </el-form>
@@ -200,6 +204,7 @@ import { getSoftwareList } from '@/api/software'
 import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
+import MonacoEditor from '@/components/MonacoEditor.vue'
 
 const loading = ref(false)
 const targets = ref<Target[]>([])
