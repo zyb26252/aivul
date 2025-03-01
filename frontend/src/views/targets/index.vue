@@ -66,29 +66,70 @@
           <el-input v-model="form.name" placeholder="请输入靶标名称" />
         </el-form-item>
         <el-form-item label="基础镜像" prop="image_id">
-          <el-select v-model="form.image_id" placeholder="请选择基础镜像" style="width: 100%">
-            <el-option
-              v-for="item in images"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            />
+          <el-select
+            v-model="form.image_id"
+            placeholder="请选择基础镜像"
+            style="width: 100%"
+            @change="handleImageChange"
+          >
+            <el-option-group
+              v-for="group in groupedImageList"
+              :key="group.architecture"
+              :label="group.architecture"
+            >
+              <el-option
+                v-for="item in group.items"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              >
+                <div class="image-option">
+                  <span>{{ item.name }}</span>
+                  <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
+                </div>
+              </el-option>
+            </el-option-group>
           </el-select>
         </el-form-item>
         <el-form-item label="软件" prop="software_ids">
           <el-select
             v-model="form.software_ids"
             multiple
+            filterable
             placeholder="请选择软件"
             style="width: 100%"
+            :disabled="!selectedArchitecture"
+            @change="handleSoftwareChange"
           >
             <el-option
-              v-for="item in softwareList"
+              v-for="item in filteredSoftwareList"
               :key="item.id"
               :label="`${item.name} ${item.version}`"
               :value="item.id"
-            />
+            >
+              <div class="software-option">
+                <span>{{ item.name }} {{ item.version }}</span>
+                <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
+              </div>
+            </el-option>
           </el-select>
+          <div class="form-tips" v-if="!selectedArchitecture">
+            <el-text class="text-sm" type="info">请先选择基础镜像</el-text>
+          </div>
+        </el-form-item>
+        <el-form-item label="端口">
+          <div class="ports-container">
+            <el-tag
+              v-for="port in selectedPorts"
+              :key="port"
+              class="port-tag"
+            >
+              {{ port }}
+            </el-tag>
+          </div>
+          <div class="form-tips">
+            <el-text class="text-sm" type="info">端口列表根据所选软件自动生成</el-text>
+          </div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input
@@ -125,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
@@ -151,7 +192,8 @@ const form = ref({
   description: '',
   dockerfile: '',
   image_id: undefined as number | undefined,
-  software_ids: [] as number[]
+  software_ids: [] as number[],
+  ports: [] as number[]
 })
 
 const rules = {
@@ -200,7 +242,8 @@ const handleAdd = () => {
     description: '',
     dockerfile: '',
     image_id: undefined,
-    software_ids: []
+    software_ids: [],
+    ports: []
   }
   dialogVisible.value = true
 }
@@ -210,7 +253,8 @@ const handleEdit = (row: Target) => {
   dialogType.value = 'edit'
   form.value = {
     ...row,
-    software_ids: row.software?.map(item => item.id) || []
+    software_ids: row.software?.map(item => item.id) || [],
+    ports: row.ports || []
   }
   dialogVisible.value = true
 }
@@ -245,12 +289,62 @@ const handleGenerate = async (row: Target) => {
 const handleGenerateDockerfile = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validateField(['image_id', 'software_ids'], async (valid) => {
-    if (valid && form.value.id) {
+  await formRef.value.validateField(['name', 'image_id', 'software_ids'], async (valid) => {
+    if (valid) {
       generateLoading.value = true
       try {
-        const res = await generateDockerfile(form.value.id)
-        form.value.dockerfile = res.dockerfile
+        // 获取选中的基础镜像和软件列表
+        const selectedImage = images.value.find(img => img.id === form.value.image_id)
+        const selectedSoftware = form.value.software_ids.map(id => 
+          softwareList.value.find(s => s.id === id)
+        ).filter(Boolean)
+
+        if (!selectedImage || selectedSoftware.length === 0) {
+          ElMessage.error('请选择基础镜像和软件')
+          return
+        }
+
+        // 生成 Dockerfile
+        let dockerfile = `FROM ${selectedImage.registry_path}:${selectedImage.version}\n\n`
+        dockerfile += `LABEL maintainer='${form.value.name}'\n\n`
+
+        // 添加软件安装命令
+        dockerfile += '# Install software\n'
+        for (const software of selectedSoftware) {
+          dockerfile += `# Install ${software.name} ${software.version}\n`
+          dockerfile += `RUN ${software.install_command}\n\n`
+        }
+
+        // 添加端口暴露
+        const ports = new Set<number>()
+        selectedSoftware.forEach(software => {
+          if (software?.ports) {
+            software.ports.forEach(port => ports.add(port))
+          }
+        })
+        if (ports.size > 0) {
+          dockerfile += '# Expose ports\n'
+          Array.from(ports).sort((a, b) => a - b).forEach(port => {
+            dockerfile += `EXPOSE ${port}\n`
+          })
+          dockerfile += '\n'
+        }
+
+        // 添加启动命令
+        dockerfile += '# Start commands\n'
+        const startCommands: string[] = []
+        selectedSoftware.forEach(software => {
+          if (software?.start_command) {
+            startCommands.push(...software.start_command)
+          }
+        })
+        if (startCommands.length > 0) {
+          const combinedCommand = startCommands.join(' & ')
+          dockerfile += `CMD ["bash", "-c", "${combinedCommand} & wait"]\n`
+        }
+
+        // 更新表单
+        form.value.dockerfile = dockerfile
         ElMessage.success('生成成功')
       } finally {
         generateLoading.value = false
@@ -267,8 +361,19 @@ const handleSubmit = async () => {
     if (valid) {
       submitLoading.value = true
       try {
+        // 如果是编辑模式且有 ID，先生成 Dockerfile
+        if (dialogType.value === 'edit' && form.value.id) {
+          const res = await generateDockerfile(form.value.id)
+          form.value.dockerfile = res.dockerfile
+        }
+
         if (dialogType.value === 'add') {
-          await createTarget(form.value)
+          // 创建靶标
+          const target = await createTarget(form.value)
+          // 生成 Dockerfile
+          const res = await generateDockerfile(target.id)
+          // 更新 Dockerfile
+          await updateTarget(target.id, { dockerfile: res.dockerfile })
           ElMessage.success('添加成功')
         } else {
           await updateTarget(form.value.id, form.value)
@@ -281,6 +386,61 @@ const handleSubmit = async () => {
       }
     }
   })
+}
+
+// 按架构对镜像进行分组
+const groupedImageList = computed(() => {
+  const groups: { [key: string]: Image[] } = {}
+  images.value.forEach(image => {
+    if (!groups[image.architecture]) {
+      groups[image.architecture] = []
+    }
+    groups[image.architecture].push(image)
+  })
+  
+  return Object.entries(groups).map(([architecture, items]) => ({
+    architecture,
+    items: items.sort((a, b) => a.name.localeCompare(b.name))
+  }))
+})
+
+// 当前选中的架构
+const selectedArchitecture = computed(() => {
+  if (!form.value.image_id) return ''
+  const selectedImage = images.value.find(img => img.id === form.value.image_id)
+  return selectedImage?.architecture || ''
+})
+
+// 根据架构过滤软件列表
+const filteredSoftwareList = computed(() => {
+  if (!selectedArchitecture.value) return []
+  return softwareList.value
+    .filter(software => software.architecture === selectedArchitecture.value)
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// 处理镜像选择变化
+const handleImageChange = () => {
+  // 清空已选软件
+  form.value.software_ids = []
+}
+
+// 获取选中软件的所有端口
+const selectedPorts = computed(() => {
+  const ports = new Set<number>()
+  form.value.software_ids.forEach(id => {
+    const software = softwareList.value.find(s => s.id === id)
+    if (software?.ports) {
+      software.ports.forEach(port => ports.add(port))
+    }
+  })
+  return Array.from(ports).sort((a, b) => a - b)
+})
+
+// 处理软件选择变化
+const handleSoftwareChange = () => {
+  // 更新端口列表
+  form.value.ports = selectedPorts.value
 }
 
 onMounted(() => {
@@ -306,6 +466,36 @@ onMounted(() => {
 }
 
 .software-tag {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+.software-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.architecture-tag {
+  font-size: 12px;
+}
+
+.image-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-tips {
+  margin-top: 8px;
+  margin-left: 8px;
+}
+
+.ports-container {
+  margin-bottom: 8px;
+}
+
+.port-tag {
   margin-right: 5px;
   margin-bottom: 5px;
 }
