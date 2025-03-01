@@ -37,7 +37,7 @@
       :data="images"
       style="width: 100%"
     >
-      <el-table-column prop="name" label="名称" />
+      <el-table-column prop="name" label="镜像名称" />
       <el-table-column prop="registry_path" label="镜像路径" />
       <el-table-column prop="architecture" label="架构" />
       <el-table-column prop="version" label="版本" />

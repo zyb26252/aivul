@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 import type { Software, SoftwareCreate, SoftwareUpdate } from '@/types/software'
 
-export const getSoftwareList = () => {
+export const getSoftwareList = (params?: URLSearchParams) => {
   return request<Software[]>({
     url: '/software',
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 

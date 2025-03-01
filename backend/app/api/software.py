@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
@@ -15,12 +15,29 @@ def list_software(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
+    architecture: Optional[str] = None,
     current_user: User = Depends(deps.get_current_user),
 ):
     """
     获取软件列表
+    - search: 搜索关键词(名称或描述)
+    - architecture: 架构筛选(x86/arm)
     """
-    software = db.query(SoftwareModel).offset(skip).limit(limit).all()
+    query = db.query(SoftwareModel)
+    
+    # 搜索条件
+    if search:
+        query = query.filter(
+            (SoftwareModel.name.ilike(f"%{search}%")) |
+            (SoftwareModel.description.ilike(f"%{search}%"))
+        )
+    
+    # 架构筛选
+    if architecture:
+        query = query.filter(SoftwareModel.architecture == architecture)
+    
+    software = query.offset(skip).limit(limit).all()
     return software
 
 @router.post("/", response_model=Software)
