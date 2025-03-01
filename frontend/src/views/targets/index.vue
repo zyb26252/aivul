@@ -542,11 +542,20 @@ const handleSoftwareChange = async () => {
           + `包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。`
           + `请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
 
-        const description = await generateDescription(prompt)
-        form.value.description = description
+        try {
+          const description = await generateDescription(prompt)
+          if (description) {
+            form.value.description = description
+          } else {
+            ElMessage.warning('自动生成描述失败，请手动填写')
+          }
+        } catch (error) {
+          console.error('生成描述失败:', error)
+          ElMessage.warning('自动生成描述失败，请手动填写')
+        }
       }
     } catch (error) {
-      console.error('生成描述失败:', error)
+      console.error('处理软件变更失败:', error)
       ElMessage.warning('自动生成描述失败，请手动填写')
     }
   }

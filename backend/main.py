@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import auth, images, software, targets, instances, dashboard
+from app.api.v1 import ai
 from app.models.user import Base
 from app.db.session import engine
 from app.db.init_db import init_db
@@ -50,6 +51,7 @@ app.include_router(instances.router, prefix="/api/v1/instances", tags=["instance
 app.include_router(software.router, prefix="/api/v1/software", tags=["software"])
 app.include_router(targets.router, prefix="/api/v1/targets", tags=["targets"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug") 

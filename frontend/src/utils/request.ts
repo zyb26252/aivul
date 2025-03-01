@@ -4,7 +4,7 @@ import router from '@/router'
 
 const service = axios.create({
   baseURL: 'http://47.86.184.188:8000',
-  timeout: 5000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -33,7 +33,12 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    return response.data
+    // 添加响应数据日志
+    console.log('Response data:', response.data)
+    if (response.data && typeof response.data === 'object') {
+      return response.data
+    }
+    return { data: response.data }
   },
   error => {
     if (error.response) {

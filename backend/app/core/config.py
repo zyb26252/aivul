@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from typing import Optional
 import os
 
@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     # SQLite配置
     SQLALCHEMY_DATABASE_URL: str = f"sqlite:///{BASE_DIR}/sql_app.db"
     
-    # DeepSeek API 配置
-    DEEPSEEK_API_KEY: str
-    DEEPSEEK_API_BASE: str = "https://api.deepseek.com/v1"
+    # AI API 配置
+    BAILIAN_API_KEY: str  # 通义千问的 API key
+    API_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     
     class Config:
         case_sensitive = True
