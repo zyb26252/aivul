@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.user import Base
@@ -13,6 +13,8 @@ class Software(Base):
     architecture = Column(String(20), nullable=False)
     os_type = Column(String(50), nullable=False)
     install_command = Column(Text, nullable=False)
+    start_command = Column(JSON, nullable=False)
+    ports = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by_id = Column(Integer, ForeignKey("users.id"))
     

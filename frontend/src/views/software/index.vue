@@ -128,11 +128,38 @@
           </el-button>
         </el-form-item>
         <el-form-item label="启动命令" prop="start_command">
-          <el-input
-            v-model="form.start_command"
-            type="textarea"
-            placeholder="请输入软件启动命令"
-          />
+          <div class="command-container">
+            <el-tag
+              v-for="(command, index) in form.start_command"
+              :key="command"
+              closable
+              :class="{ 'command-main': index === 0 }"
+              @close="handleRemoveCommand(command)"
+            >
+              {{ command }}
+            </el-tag>
+            <el-input
+              v-if="commandInputVisible"
+              ref="commandInputRef"
+              v-model="commandInputValue"
+              class="command-input"
+              :placeholder="form.start_command.length === 0 ? '输入主命令' : '输入命令参数'"
+              size="small"
+              @keyup.enter="handleAddCommand"
+              @blur="handleAddCommand"
+            />
+            <el-button
+              v-else
+              class="button-new-command"
+              size="small"
+              @click="showCommandInput"
+            >
+              {{ form.start_command.length === 0 ? '+ 添加主命令' : '+ 添加参数' }}
+            </el-button>
+          </div>
+          <div class="command-tips" v-if="form.start_command.length === 0">
+            <el-text class="text-sm" type="info">例如：httpd 作为主命令，-DFOREGROUND 作为参数</el-text>
+          </div>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input
@@ -178,7 +205,7 @@ const form = ref({
   os_type: 'linux',
   install_command: '',
   ports: [],
-  start_command: ''
+  start_command: []
 })
 
 const rules = {
@@ -200,7 +227,8 @@ const rules = {
     { type: 'array', min: 1, message: '请至少添加一个端口', trigger: 'change' }
   ],
   start_command: [
-    { required: true, message: '请输入启动命令', trigger: 'blur' }
+    { required: true, message: '请输入启动命令', trigger: 'change' },
+    { type: 'array', min: 1, message: '请至少输入主命令', trigger: 'change' }
   ]
 }
 
@@ -234,6 +262,38 @@ const handleRemovePort = (port: number) => {
   const index = form.value.ports.indexOf(port)
   if (index !== -1) {
     form.value.ports.splice(index, 1)
+  }
+}
+
+// 启动命令输入相关
+const commandInputRef = ref()
+const commandInputVisible = ref(false)
+const commandInputValue = ref('')
+
+// 显示命令输入框
+const showCommandInput = () => {
+  commandInputVisible.value = true
+  nextTick(() => {
+    commandInputRef.value?.input?.focus()
+  })
+}
+
+// 添加命令参数
+const handleAddCommand = () => {
+  if (commandInputValue.value) {
+    if (!form.value.start_command.includes(commandInputValue.value)) {
+      form.value.start_command.push(commandInputValue.value)
+    }
+  }
+  commandInputVisible.value = false
+  commandInputValue.value = ''
+}
+
+// 移除命令参数
+const handleRemoveCommand = (command: string) => {
+  const index = form.value.start_command.indexOf(command)
+  if (index !== -1) {
+    form.value.start_command.splice(index, 1)
   }
 }
 
@@ -275,7 +335,7 @@ const handleAdd = () => {
     os_type: 'linux',
     install_command: '',
     ports: [],
-    start_command: ''
+    start_command: []
   }
   dialogVisible.value = true
 }
@@ -283,7 +343,11 @@ const handleAdd = () => {
 // 编辑软件
 const handleEdit = (row: Software) => {
   dialogType.value = 'edit'
-  form.value = { ...row }
+  form.value = {
+    ...row,
+    ports: [...(row.ports || [])],
+    start_command: Array.isArray(row.start_command) ? [...row.start_command] : row.start_command ? [row.start_command] : []
+  }
   dialogVisible.value = true
 }
 
@@ -353,7 +417,7 @@ onMounted(() => {
 }
 
 .architecture-select {
-  width: 150px;
+  width: 120px;
 }
 
 .port-tag {
@@ -372,5 +436,37 @@ onMounted(() => {
   height: 32px;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.command-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.command-main {
+  background-color: #409eff;
+  color: white;
+}
+
+.command-input {
+  width: 200px;
+  margin-left: 8px;
+  vertical-align: bottom;
+}
+
+.button-new-command {
+  margin-left: 8px;
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.command-tips {
+  margin-top: 8px;
+  margin-left: 8px;
+  color: #909399;
 }
 </style> 

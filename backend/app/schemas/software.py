@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class SoftwareBase(BaseModel):
     name: str
@@ -9,6 +9,8 @@ class SoftwareBase(BaseModel):
     architecture: str
     os_type: str
     install_command: str
+    start_command: List[str]
+    ports: List[int]
 
 class SoftwareCreate(SoftwareBase):
     pass
