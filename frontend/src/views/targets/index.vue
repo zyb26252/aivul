@@ -15,10 +15,25 @@
       <el-table-column prop="name" label="名称" />
       <el-table-column label="基础镜像">
         <template #default="{ row }">
-          {{ row.base_image?.name }}
-          <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
-            {{ row.base_image.architecture }}
-          </el-tag>
+          <el-tooltip
+            v-if="row.base_image?.description"
+            :content="row.base_image.description"
+            placement="right"
+            effect="dark"
+          >
+            <span>
+              {{ row.base_image?.name }}
+              <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
+                {{ row.base_image.architecture }}
+              </el-tag>
+            </span>
+          </el-tooltip>
+          <span v-else>
+            {{ row.base_image?.name }}
+            <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
+              {{ row.base_image.architecture }}
+            </el-tag>
+          </span>
         </template>
       </el-table-column>
       <el-table-column label="软件">
