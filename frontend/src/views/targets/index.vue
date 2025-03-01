@@ -254,6 +254,7 @@ import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
 import { getImages } from '@/api/image'
 import { getSoftwareList } from '@/api/software'
+import { generateDescription } from '@/api/ai'
 import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
@@ -506,8 +507,9 @@ const filteredSoftwareList = computed(() => {
 
 // 处理镜像选择变化
 const handleImageChange = () => {
-  // 清空已选软件
+  // 清空已选软件和描述
   form.value.software_ids = []
+  form.value.description = ''
 }
 
 // 获取选中软件的所有端口
@@ -523,9 +525,31 @@ const selectedPorts = computed(() => {
 })
 
 // 处理软件选择变化
-const handleSoftwareChange = () => {
+const handleSoftwareChange = async () => {
   // 更新端口列表
   form.value.ports = selectedPorts.value
+
+  // 如果已选择基础镜像和软件，则自动生成描述
+  if (form.value.base_image_id && form.value.software_ids.length > 0) {
+    try {
+      const selectedImage = images.value.find(img => img.id === form.value.base_image_id)
+      const selectedSoftware = form.value.software_ids
+        .map(id => softwareList.value.find(s => s.id === id))
+        .filter(Boolean)
+
+      if (selectedImage && selectedSoftware.length > 0) {
+        const prompt = `这是一个基于 ${selectedImage.name} (${selectedImage.architecture}) 的靶标环境，`
+          + `包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。`
+          + `请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
+
+        const description = await generateDescription(prompt)
+        form.value.description = description
+      }
+    } catch (error) {
+      console.error('生成描述失败:', error)
+      ElMessage.warning('自动生成描述失败，请手动填写')
+    }
+  }
 }
 
 // 根据搜索关键词过滤靶标列表
