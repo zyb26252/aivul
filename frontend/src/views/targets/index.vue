@@ -15,18 +15,37 @@
       <el-table-column prop="name" label="名称" />
       <el-table-column label="基础镜像">
         <template #default="{ row }">
-          {{ row.image?.name }}
+          {{ row.base_image?.name }}
+          <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
+            {{ row.base_image.architecture }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="软件">
         <template #default="{ row }">
           <el-tag
-            v-for="item in row.software"
+            v-for="item in row.software_list"
             :key="item.id"
             class="software-tag"
           >
             {{ item.name }} {{ item.version }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="端口">
+        <template #default="{ row }">
+          <el-tag
+            v-for="port in row.ports"
+            :key="port"
+            class="port-tag"
+            type="info"
+            size="small"
+          >
+            {{ port }}
+          </el-tag>
+          <el-text v-if="!row.ports?.length" type="info" size="small">
+            无
+          </el-text>
         </template>
       </el-table-column>
       <el-table-column prop="description" label="描述" show-overflow-tooltip />
@@ -72,9 +91,9 @@
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入靶标名称" />
         </el-form-item>
-        <el-form-item label="基础镜像" prop="image_id">
+        <el-form-item label="基础镜像" prop="base_image_id">
           <el-select
-            v-model="form.image_id"
+            v-model="form.base_image_id"
             placeholder="请选择基础镜像"
             style="width: 100%"
             @change="handleImageChange"
@@ -222,7 +241,7 @@ const form = ref({
   name: '',
   description: '',
   dockerfile: '',
-  image_id: undefined as number | undefined,
+  base_image_id: undefined as number | undefined,
   software_ids: [] as number[],
   ports: [] as number[]
 })
@@ -232,7 +251,7 @@ const rules = {
     { required: true, message: '请输入靶标名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
-  image_id: [
+  base_image_id: [
     { required: true, message: '请选择基础镜像', trigger: 'change' }
   ],
   software_ids: [
@@ -244,7 +263,17 @@ const rules = {
 const fetchTargets = async () => {
   loading.value = true
   try {
-    targets.value = await getTargets()
+    const data = await getTargets()
+    console.log('Targets data:', data)
+    targets.value = data.map(target => ({
+      ...target,
+      ports: target.software_list?.reduce((acc: number[], software) => {
+        if (software.ports) {
+          acc.push(...software.ports)
+        }
+        return acc
+      }, []).sort((a, b) => a - b) || []
+    }))
   } finally {
     loading.value = false
   }
@@ -276,7 +305,7 @@ const handleAdd = () => {
     name: '',
     description: '',
     dockerfile: '',
-    image_id: undefined,
+    base_image_id: undefined,
     software_ids: [],
     ports: []
   }
@@ -289,7 +318,7 @@ const handleEdit = (row: Target) => {
   currentStep.value = 0
   form.value = {
     ...row,
-    software_ids: row.software?.map(item => item.id) || [],
+    software_ids: row.software_list.map(item => item.id),
     ports: row.ports || []
   }
   dialogVisible.value = true
@@ -330,7 +359,7 @@ const handleNextStep = async () => {
       generateLoading.value = true
       try {
         // 获取选中的基础镜像和软件列表
-        const selectedImage = images.value.find(img => img.id === form.value.image_id)
+        const selectedImage = images.value.find(img => img.id === form.value.base_image_id)
         const selectedSoftware = form.value.software_ids.map(id => 
           softwareList.value.find(s => s.id === id)
         ).filter(Boolean)
@@ -426,8 +455,8 @@ const groupedImageList = computed(() => {
 
 // 当前选中的架构
 const selectedArchitecture = computed(() => {
-  if (!form.value.image_id) return ''
-  const selectedImage = images.value.find(img => img.id === form.value.image_id)
+  if (!form.value.base_image_id) return ''
+  const selectedImage = images.value.find(img => img.id === form.value.base_image_id)
   return selectedImage?.architecture || ''
 })
 
