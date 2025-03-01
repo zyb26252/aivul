@@ -58,6 +58,9 @@
       </el-table-column>
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
+          <el-button type="primary" link @click="handleDetail(row)">
+            详情
+          </el-button>
           <el-button type="primary" link @click="handleEdit(row)">
             编辑
           </el-button>
@@ -67,6 +70,72 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="软件详情"
+      width="600px"
+    >
+      <div class="detail-container">
+        <div class="detail-item">
+          <span class="detail-label">名称：</span>
+          <span>{{ detailData.name }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">版本：</span>
+          <span>{{ detailData.version }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">架构：</span>
+          <span>{{ detailData.architecture }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">操作系统：</span>
+          <span>{{ detailData.os_type }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">端口：</span>
+          <div class="detail-content">
+            <el-tag
+              v-for="port in (detailData.ports || [])"
+              :key="port"
+              class="port-tag"
+            >
+              {{ port }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">安装命令：</span>
+          <div class="detail-content">
+            <pre class="detail-text">{{ detailData.install_command }}</pre>
+          </div>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">启动命令：</span>
+          <div class="detail-content command-container">
+            <el-tag
+              v-for="(command, index) in (detailData.start_command || [])"
+              :key="command"
+              :class="{ 'command-main': index === 0 }"
+            >
+              {{ command }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">描述：</span>
+          <div class="detail-content">
+            <pre class="detail-text">{{ detailData.description }}</pre>
+          </div>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">创建时间：</span>
+          <span>{{ new Date(detailData.created_at).toLocaleString() }}</span>
+        </div>
+      </div>
+    </el-dialog>
 
     <!-- 添加/编辑对话框 -->
     <el-dialog
@@ -389,6 +458,25 @@ const handleSubmit = async () => {
   })
 }
 
+const detailDialogVisible = ref(false)
+const detailData = ref<Software>({
+  id: 0,
+  name: '',
+  version: '',
+  description: '',
+  architecture: '',
+  os_type: 'linux',
+  install_command: '',
+  ports: [],
+  start_command: []
+})
+
+// 查看详情
+const handleDetail = (row: Software) => {
+  detailData.value = { ...row }
+  detailDialogVisible.value = true
+}
+
 onMounted(() => {
   fetchSoftwareList()
 })
@@ -468,5 +556,35 @@ onMounted(() => {
   margin-top: 8px;
   margin-left: 8px;
   color: #909399;
+}
+
+.detail-container {
+  padding: 20px;
+}
+
+.detail-item {
+  margin-bottom: 20px;
+}
+
+.detail-label {
+  font-weight: bold;
+  margin-right: 10px;
+  color: #606266;
+  display: inline-block;
+  width: 100px;
+  vertical-align: top;
+}
+
+.detail-content {
+  display: inline-block;
+  width: calc(100% - 110px);
+}
+
+.detail-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  color: #606266;
 }
 </style> 
