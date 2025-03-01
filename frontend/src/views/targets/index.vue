@@ -56,7 +56,14 @@
       :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
       width="600px"
     >
+      <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
+        <el-step title="基本信息" />
+        <el-step title="确认 Dockerfile" />
+      </el-steps>
+
+      <!-- 第一步：基本信息 -->
       <el-form
+        v-if="currentStep === 0"
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -138,28 +145,46 @@
             placeholder="请输入靶标描述"
           />
         </el-form-item>
+      </el-form>
+
+      <!-- 第二步：Dockerfile -->
+      <el-form
+        v-else
+        ref="dockerfileFormRef"
+        :model="form"
+        label-width="100px"
+      >
         <el-form-item label="Dockerfile" prop="dockerfile">
           <el-input
             v-model="form.dockerfile"
             type="textarea"
-            :rows="10"
+            :rows="15"
             placeholder="请输入或生成 Dockerfile"
           />
         </el-form-item>
       </el-form>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button
-          v-if="dialogVisible"
-          type="success"
-          :loading="generateLoading"
-          @click="handleGenerateDockerfile"
-        >
-          生成 Dockerfile
-        </el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
-        </el-button>
+        <template v-if="currentStep === 0">
+          <el-button
+            type="primary"
+            :loading="generateLoading"
+            @click="handleNextStep"
+          >
+            下一步
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button @click="currentStep = 0">上一步</el-button>
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            @click="handleSubmit"
+          >
+            确定
+          </el-button>
+        </template>
       </template>
     </el-dialog>
   </div>
@@ -185,6 +210,7 @@ const dialogType = ref<'add' | 'edit'>('add')
 const submitLoading = ref(false)
 const generateLoading = ref(false)
 const formRef = ref<FormInstance>()
+const dockerfileFormRef = ref<FormInstance>()
 
 const form = ref({
   id: 0,
@@ -233,9 +259,13 @@ const fetchOptions = async () => {
   }
 }
 
+// 添加步骤相关的状态
+const currentStep = ref(0)
+
 // 添加靶标
 const handleAdd = () => {
   dialogType.value = 'add'
+  currentStep.value = 0
   form.value = {
     id: 0,
     name: '',
@@ -251,6 +281,7 @@ const handleAdd = () => {
 // 编辑靶标
 const handleEdit = (row: Target) => {
   dialogType.value = 'edit'
+  currentStep.value = 0
   form.value = {
     ...row,
     software_ids: row.software?.map(item => item.id) || [],
@@ -286,10 +317,10 @@ const handleGenerate = async (row: Target) => {
 }
 
 // 生成 Dockerfile（表单操作）
-const handleGenerateDockerfile = async () => {
+const handleNextStep = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validateField(['name', 'image_id', 'software_ids'], async (valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
       generateLoading.value = true
       try {
@@ -345,7 +376,7 @@ const handleGenerateDockerfile = async () => {
 
         // 更新表单
         form.value.dockerfile = dockerfile
-        ElMessage.success('生成成功')
+        currentStep.value = 1
       } finally {
         generateLoading.value = false
       }
@@ -355,37 +386,21 @@ const handleGenerateDockerfile = async () => {
 
 // 提交表单
 const handleSubmit = async () => {
-  if (!formRef.value) return
-  
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      submitLoading.value = true
-      try {
-        // 如果是编辑模式且有 ID，先生成 Dockerfile
-        if (dialogType.value === 'edit' && form.value.id) {
-          const res = await generateDockerfile(form.value.id)
-          form.value.dockerfile = res.dockerfile
-        }
-
-        if (dialogType.value === 'add') {
-          // 创建靶标
-          const target = await createTarget(form.value)
-          // 生成 Dockerfile
-          const res = await generateDockerfile(target.id)
-          // 更新 Dockerfile
-          await updateTarget(target.id, { dockerfile: res.dockerfile })
-          ElMessage.success('添加成功')
-        } else {
-          await updateTarget(form.value.id, form.value)
-          ElMessage.success('更新成功')
-        }
-        dialogVisible.value = false
-        await fetchTargets()
-      } finally {
-        submitLoading.value = false
-      }
+  submitLoading.value = true
+  try {
+    if (dialogType.value === 'add') {
+      await createTarget(form.value)
+      ElMessage.success('添加成功')
+    } else {
+      await updateTarget(form.value.id, form.value)
+      ElMessage.success('更新成功')
     }
-  })
+    dialogVisible.value = false
+    currentStep.value = 0
+    await fetchTargets()
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 // 按架构对镜像进行分组
