@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     
     # AI API 配置
     BAILIAN_API_KEY: str  # 通义千问的 API key
-    API_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    API_BASE_URL: str  # API base URL
     
     class Config:
         case_sensitive = True
