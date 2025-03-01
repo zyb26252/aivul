@@ -76,13 +76,10 @@
           {{ new Date(row.created_at).toLocaleString() }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260">
+      <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button type="primary" link @click="handleEdit(row)">
             编辑
-          </el-button>
-          <el-button type="success" link @click="handleGenerate(row)">
-            生成Dockerfile
           </el-button>
           <el-button type="danger" link @click="handleDelete(row)">
             删除
