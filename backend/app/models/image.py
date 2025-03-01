@@ -10,6 +10,7 @@ class Image(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     architecture = Column(String(20), nullable=False)
+    version = Column(String(50), nullable=False)
     registry_path = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by_id = Column(Integer, ForeignKey("users.id"))

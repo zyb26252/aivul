@@ -32,7 +32,11 @@ def create_image(
     创建新镜像
     """
     image = ImageModel(
-        **image_in.dict(),
+        name=image_in.name,
+        description=image_in.description,
+        architecture=image_in.architecture,
+        version=image_in.version,
+        registry_path=image_in.registry_path,
         created_by_id=current_user.id
     )
     db.add(image)

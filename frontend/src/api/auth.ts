@@ -12,10 +12,18 @@ export interface RegisterData {
 }
 
 export const login = (data: LoginData) => {
+  const params = new URLSearchParams()
+  params.append('grant_type', 'password')
+  params.append('username', data.username)
+  params.append('password', data.password)
+  
   return request({
     url: '/auth/login',
     method: 'post',
-    data: new URLSearchParams(data)
+    data: params,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
   })
 }
 

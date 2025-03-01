@@ -37,7 +37,7 @@ except Exception as e:
 # 设置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 在生产环境中应该设置具体的源
+    allow_origins=["http://47.86.184.188:3000"],  # 明确允许前端域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

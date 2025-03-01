@@ -1,74 +1,67 @@
 <template>
   <div class="login-container">
+    <div class="login-header">
+      <h1>AI驱动的网络靶场自动化构建引擎</h1>
+    </div>
     <el-card class="login-card">
-      <h2>登录</h2>
+      <template #header>
+        <h2>登录</h2>
+      </template>
       <el-form
         ref="formRef"
-        :model="loginForm"
+        :model="form"
         :rules="rules"
-        label-width="0"
+        label-width="80px"
       >
-        <el-form-item prop="username">
-          <el-input
-            v-model="loginForm.username"
-            placeholder="用户名"
-            prefix-icon="User"
-          />
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="请输入用户名" />
         </el-form-item>
-        
-        <el-form-item prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input
-            v-model="loginForm.password"
+            v-model="form.password"
             type="password"
-            placeholder="密码"
-            prefix-icon="Lock"
-            show-password
+            placeholder="请输入密码"
+            @keyup.enter="handleSubmit"
           />
         </el-form-item>
-        
         <el-form-item>
-          <el-button
-            type="primary"
-            :loading="loading"
-            class="submit-btn"
-            @click="handleSubmit"
-          >
+          <el-button type="primary" :loading="loading" @click="handleSubmit">
             登录
           </el-button>
+          <el-button @click="$router.push('/register')">
+            注册
+          </el-button>
         </el-form-item>
-        
-        <div class="links">
-          <router-link to="/register">注册账号</router-link>
-        </div>
       </el-form>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
-import { useUserStore } from '@/stores/user'
 import type { FormInstance } from 'element-plus'
+import { login } from '@/api/auth'
 
 const router = useRouter()
-const userStore = useUserStore()
-const formRef = ref<FormInstance>()
+const route = useRoute()
 const loading = ref(false)
+const formRef = ref<FormInstance>()
 
-const loginForm = reactive({
+const form = ref({
   username: '',
   password: ''
 })
 
 const rules = {
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' }
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
   ]
 }
 
@@ -79,11 +72,14 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.login(loginForm)
-        if (success) {
-          ElMessage.success('登录成功')
-          router.push('/')
-        }
+        const res = await login(form.value)
+        localStorage.setItem('token', res.access_token)
+        ElMessage.success('登录成功')
+        // 获取重定向地址
+        const redirect = route.query.redirect as string
+        router.push(redirect || '/')
+      } catch (error) {
+        // 错误已在请求拦截器中处理
       } finally {
         loading.value = false
       }
@@ -96,31 +92,33 @@ const handleSubmit = async () => {
 .login-container {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
+}
+
+.login-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.login-header h1 {
+  color: #409EFF;
+  font-size: 2rem;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .login-card {
   width: 400px;
 }
 
-.login-card h2 {
+.login-card :deep(.el-card__header) {
   text-align: center;
-  margin-bottom: 30px;
 }
 
-.submit-btn {
-  width: 100%;
-}
-
-.links {
-  text-align: right;
-  margin-top: 10px;
-}
-
-.links a {
-  color: #409EFF;
-  text-decoration: none;
+.login-card h2 {
+  margin: 0;
 }
 </style> 

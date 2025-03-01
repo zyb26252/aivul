@@ -1,18 +1,14 @@
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 
 class ImageBase(BaseModel):
     name: str
-    description: Optional[str] = None
-    architecture: str
-    version: str
     registry_path: str
+    architecture: str
+    description: Optional[str] = ""
 
 class ImageCreate(ImageBase):
-    pass
-
-class ImageUpdate(ImageBase):
     pass
 
 class Image(ImageBase):

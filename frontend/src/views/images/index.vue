@@ -14,6 +14,8 @@
     >
       <el-table-column prop="name" label="名称" />
       <el-table-column prop="registry_path" label="镜像路径" />
+      <el-table-column prop="architecture" label="架构" />
+      <el-table-column prop="version" label="版本" />
       <el-table-column prop="description" label="描述" show-overflow-tooltip />
       <el-table-column prop="created_at" label="创建时间">
         <template #default="{ row }">
@@ -49,6 +51,15 @@
         </el-form-item>
         <el-form-item label="镜像路径" prop="registry_path">
           <el-input v-model="form.registry_path" placeholder="请输入镜像路径" />
+        </el-form-item>
+        <el-form-item label="架构" prop="architecture">
+          <el-select v-model="form.architecture" placeholder="请选择架构">
+            <el-option label="x86" value="x86" />
+            <el-option label="arm" value="arm" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="版本" prop="version">
+          <el-input v-model="form.version" placeholder="请输入版本号" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input
@@ -86,6 +97,8 @@ const form = ref({
   id: 0,
   name: '',
   registry_path: '',
+  architecture: '',
+  version: '',
   description: ''
 })
 
@@ -96,6 +109,12 @@ const rules = {
   ],
   registry_path: [
     { required: true, message: '请输入镜像路径', trigger: 'blur' }
+  ],
+  architecture: [
+    { required: true, message: '请选择架构', trigger: 'change' }
+  ],
+  version: [
+    { required: true, message: '请输入版本号', trigger: 'blur' }
   ]
 }
 
@@ -116,6 +135,8 @@ const handleAdd = () => {
     id: 0,
     name: '',
     registry_path: '',
+    architecture: '',
+    version: '',
     description: ''
   }
   dialogVisible.value = true

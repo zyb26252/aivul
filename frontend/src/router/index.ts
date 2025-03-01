@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -57,8 +58,17 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
+  document.title = to.meta.title ? `${to.meta.title} - 靶标管理系统` : '靶标管理系统'
+  
   if (to.meta.requiresAuth && !token) {
-    next('/login')
+    ElMessage.warning('请先登录')
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
+  } else if (token && (to.path === '/login' || to.path === '/register')) {
+    // 已登录用户访问登录或注册页面时重定向到首页
+    next('/')
   } else {
     next()
   }
