@@ -3,7 +3,7 @@
     <el-aside width="200px">
       <div class="logo-container">
         <el-icon class="logo-icon"><Aim /></el-icon>
-        <span class="logo-text">AI Target</span>
+        <span class="logo-text">AI Vul</span>
       </div>
       <el-menu
         :router="true"
