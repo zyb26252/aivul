@@ -1,252 +1,255 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">软件管理</h2>
-        <div class="search-container">
-          <el-input
-            v-model="searchQuery"
-            placeholder="搜索软件名称"
-            class="search-input"
-            clearable
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          
-          <el-select
-            v-model="selectedArchitecture"
-            placeholder="选择架构"
-            clearable
-            @change="handleSearch"
-            class="architecture-select"
-          >
-            <el-option label="x86" value="x86" />
-            <el-option label="arm" value="arm" />
-          </el-select>
+    <TableSkeleton v-if="loading" />
+    <template v-else>
+      <div class="page-header">
+        <div class="header-left">
+          <h2 class="page-title">软件管理</h2>
+          <div class="search-container">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索软件名称"
+              class="search-input"
+              clearable
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+            
+            <el-select
+              v-model="selectedArchitecture"
+              placeholder="选择架构"
+              clearable
+              @change="handleSearch"
+              class="architecture-select"
+            >
+              <el-option label="x86" value="x86" />
+              <el-option label="arm" value="arm" />
+            </el-select>
+          </div>
         </div>
+        <el-button type="primary" @click="handleAdd">
+          添加软件
+        </el-button>
       </div>
-      <el-button type="primary" @click="handleAdd">
-        添加软件
-      </el-button>
-    </div>
 
-    <el-table
-      v-loading="loading"
-      :data="filteredSoftwareList"
-      style="width: 100%"
-    >
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="version" label="版本" />
-      <el-table-column prop="description" label="描述" show-overflow-tooltip />
-      <el-table-column prop="architecture" label="架构" />
-      <el-table-column label="端口">
-        <template #default="{ row }">
-          <el-tag
-            v-for="port in (row.ports || [])"
-            :key="port"
-            class="port-tag"
-          >
-            {{ port }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="created_at" label="创建时间">
-        <template #default="{ row }">
-          {{ new Date(row.created_at).toLocaleString() }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleDetail(row)">
-            详情
-          </el-button>
-          <el-button type="primary" link @click="handleEdit(row)">
-            编辑
-          </el-button>
-          <el-button type="danger" link @click="handleDelete(row)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 详情对话框 -->
-    <el-dialog
-      v-model="detailDialogVisible"
-      title="软件详情"
-      width="600px"
-    >
-      <div class="detail-container">
-        <div class="detail-item">
-          <span class="detail-label">名称：</span>
-          <span>{{ detailData.name }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">版本：</span>
-          <span>{{ detailData.version }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">架构：</span>
-          <span>{{ detailData.architecture }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">操作系统：</span>
-          <span>{{ detailData.os_type }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">端口：</span>
-          <div class="detail-content">
+      <el-table
+        v-loading="loading"
+        :data="filteredSoftwareList"
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="名称" />
+        <el-table-column prop="version" label="版本" />
+        <el-table-column prop="description" label="描述" show-overflow-tooltip />
+        <el-table-column prop="architecture" label="架构" />
+        <el-table-column label="端口">
+          <template #default="{ row }">
             <el-tag
-              v-for="port in (detailData.ports || [])"
+              v-for="port in (row.ports || [])"
               :key="port"
               class="port-tag"
             >
               {{ port }}
             </el-tag>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">安装命令：</span>
-          <div class="detail-content">
-            <pre class="detail-text">{{ detailData.install_command }}</pre>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">启动命令：</span>
-          <div class="detail-content command-container">
-            <el-tag
-              v-for="(command, index) in (detailData.start_command || [])"
-              :key="command"
-              :class="{ 'command-main': index === 0 }"
-            >
-              {{ command }}
-            </el-tag>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">描述：</span>
-          <div class="detail-content">
-            <pre class="detail-text">{{ detailData.description }}</pre>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">创建时间：</span>
-          <span>{{ new Date(detailData.created_at).toLocaleString() }}</span>
-        </div>
-      </div>
-    </el-dialog>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="创建时间">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleDetail(row)">
+              详情
+            </el-button>
+            <el-button type="primary" link @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button type="danger" link @click="handleDelete(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogType === 'add' ? '添加软件' : '编辑软件'"
-      width="500px"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
+      <!-- 详情对话框 -->
+      <el-dialog
+        v-model="detailDialogVisible"
+        title="软件详情"
+        width="600px"
       >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入软件名称" />
-        </el-form-item>
-        <el-form-item label="版本" prop="version">
-          <el-input v-model="form.version" placeholder="请输入软件版本" />
-        </el-form-item>
-        <el-form-item label="架构" prop="architecture">
-          <el-select v-model="form.architecture" placeholder="请选择架构">
-            <el-option label="x86" value="x86" />
-            <el-option label="arm" value="arm" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="安装命令" prop="install_command">
-          <el-input
-            v-model="form.install_command"
-            type="textarea"
-            placeholder="请输入软件安装命令"
-          />
-        </el-form-item>
-        <el-form-item label="端口" prop="ports">
-          <el-tag
-            v-for="port in form.ports"
-            :key="port"
-            closable
-            class="port-tag"
-            @close="handleRemovePort(port)"
-          >
-            {{ port }}
-          </el-tag>
-          <el-input
-            v-if="portInputVisible"
-            ref="portInputRef"
-            v-model="portInputValue"
-            class="port-input"
-            size="small"
-            @keyup.enter="handleAddPort"
-            @blur="handleAddPort"
-          />
-          <el-button
-            v-else
-            class="button-new-port"
-            size="small"
-            @click="showPortInput"
-          >
-            + 添加端口
-          </el-button>
-        </el-form-item>
-        <el-form-item label="启动命令" prop="start_command">
-          <div class="command-container">
+        <div class="detail-container">
+          <div class="detail-item">
+            <span class="detail-label">名称：</span>
+            <span>{{ detailData.name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">版本：</span>
+            <span>{{ detailData.version }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">架构：</span>
+            <span>{{ detailData.architecture }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">操作系统：</span>
+            <span>{{ detailData.os_type }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">端口：</span>
+            <div class="detail-content">
+              <el-tag
+                v-for="port in (detailData.ports || [])"
+                :key="port"
+                class="port-tag"
+              >
+                {{ port }}
+              </el-tag>
+            </div>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">安装命令：</span>
+            <div class="detail-content">
+              <pre class="detail-text">{{ detailData.install_command }}</pre>
+            </div>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">启动命令：</span>
+            <div class="detail-content command-container">
+              <el-tag
+                v-for="(command, index) in (detailData.start_command || [])"
+                :key="command"
+                :class="{ 'command-main': index === 0 }"
+              >
+                {{ command }}
+              </el-tag>
+            </div>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">描述：</span>
+            <div class="detail-content">
+              <pre class="detail-text">{{ detailData.description }}</pre>
+            </div>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">创建时间：</span>
+            <span>{{ new Date(detailData.created_at).toLocaleString() }}</span>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 添加/编辑对话框 -->
+      <el-dialog
+        v-model="dialogVisible"
+        :title="dialogType === 'add' ? '添加软件' : '编辑软件'"
+        width="500px"
+      >
+        <el-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-width="100px"
+        >
+          <el-form-item label="名称" prop="name">
+            <el-input v-model="form.name" placeholder="请输入软件名称" />
+          </el-form-item>
+          <el-form-item label="版本" prop="version">
+            <el-input v-model="form.version" placeholder="请输入软件版本" />
+          </el-form-item>
+          <el-form-item label="架构" prop="architecture">
+            <el-select v-model="form.architecture" placeholder="请选择架构">
+              <el-option label="x86" value="x86" />
+              <el-option label="arm" value="arm" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="安装命令" prop="install_command">
+            <el-input
+              v-model="form.install_command"
+              type="textarea"
+              placeholder="请输入软件安装命令"
+            />
+          </el-form-item>
+          <el-form-item label="端口" prop="ports">
             <el-tag
-              v-for="(command, index) in form.start_command"
-              :key="command"
+              v-for="port in form.ports"
+              :key="port"
               closable
-              :class="{ 'command-main': index === 0 }"
-              @close="handleRemoveCommand(command)"
+              class="port-tag"
+              @close="handleRemovePort(port)"
             >
-              {{ command }}
+              {{ port }}
             </el-tag>
             <el-input
-              v-if="commandInputVisible"
-              ref="commandInputRef"
-              v-model="commandInputValue"
-              class="command-input"
-              :placeholder="form.start_command.length === 0 ? '输入主命令' : '输入命令参数'"
+              v-if="portInputVisible"
+              ref="portInputRef"
+              v-model="portInputValue"
+              class="port-input"
               size="small"
-              @keyup.enter="handleAddCommand"
-              @blur="handleAddCommand"
+              @keyup.enter="handleAddPort"
+              @blur="handleAddPort"
             />
             <el-button
               v-else
-              class="button-new-command"
+              class="button-new-port"
               size="small"
-              @click="showCommandInput"
+              @click="showPortInput"
             >
-              {{ form.start_command.length === 0 ? '+ 添加主命令' : '+ 添加参数' }}
+              + 添加端口
             </el-button>
-          </div>
-          <div class="command-tips" v-if="form.start_command.length === 0">
-            <el-text class="text-sm" type="info">例如：httpd 作为主命令，-DFOREGROUND 作为参数</el-text>
-          </div>
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            placeholder="请输入软件描述"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
+          </el-form-item>
+          <el-form-item label="启动命令" prop="start_command">
+            <div class="command-container">
+              <el-tag
+                v-for="(command, index) in form.start_command"
+                :key="command"
+                closable
+                :class="{ 'command-main': index === 0 }"
+                @close="handleRemoveCommand(command)"
+              >
+                {{ command }}
+              </el-tag>
+              <el-input
+                v-if="commandInputVisible"
+                ref="commandInputRef"
+                v-model="commandInputValue"
+                class="command-input"
+                :placeholder="form.start_command.length === 0 ? '输入主命令' : '输入命令参数'"
+                size="small"
+                @keyup.enter="handleAddCommand"
+                @blur="handleAddCommand"
+              />
+              <el-button
+                v-else
+                class="button-new-command"
+                size="small"
+                @click="showCommandInput"
+              >
+                {{ form.start_command.length === 0 ? '+ 添加主命令' : '+ 添加参数' }}
+              </el-button>
+            </div>
+            <div class="command-tips" v-if="form.start_command.length === 0">
+              <el-text class="text-sm" type="info">例如：httpd 作为主命令，-DFOREGROUND 作为参数</el-text>
+            </div>
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="form.description"
+              type="textarea"
+              placeholder="请输入软件描述"
+            />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </el-button>
+        </template>
+      </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -257,6 +260,7 @@ import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getSoftware, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
 import type { Software } from '@/types/software'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 
 const loading = ref(false)
 const softwareList = ref<Software[]>([])

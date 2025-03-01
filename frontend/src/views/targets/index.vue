@@ -1,300 +1,303 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">靶标管理</h2>
-        <div class="search-container">
-          <el-input
-            v-model="searchQuery"
-            placeholder="搜索靶标名称"
-            class="search-input"
-            clearable
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
+    <TableSkeleton v-if="loading" />
+    <template v-else>
+      <div class="page-header">
+        <div class="header-left">
+          <h2 class="page-title">靶标管理</h2>
+          <div class="search-container">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索靶标名称"
+              class="search-input"
+              clearable
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </div>
         </div>
+        <el-button type="primary" @click="handleAdd">
+          添加靶标
+        </el-button>
       </div>
-      <el-button type="primary" @click="handleAdd">
-        添加靶标
-      </el-button>
-    </div>
 
-    <el-table
-      v-loading="loading"
-      :data="filteredTargets"
-      style="width: 100%"
-    >
-      <el-table-column prop="name" label="名称" />
-      <el-table-column label="基础镜像">
-        <template #default="{ row }">
-          <el-tooltip
-            v-if="row.base_image?.description"
-            :content="row.base_image.description"
-            placement="right"
-            effect="dark"
-          >
-            <span>
+      <el-table
+        v-loading="loading"
+        :data="filteredTargets"
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="名称" />
+        <el-table-column label="基础镜像">
+          <template #default="{ row }">
+            <el-tooltip
+              v-if="row.base_image?.description"
+              :content="row.base_image.description"
+              placement="right"
+              effect="dark"
+            >
+              <span>
+                {{ row.base_image?.name }}
+                <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
+                  {{ row.base_image.architecture }}
+                </el-tag>
+              </span>
+            </el-tooltip>
+            <span v-else>
               {{ row.base_image?.name }}
               <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
                 {{ row.base_image.architecture }}
               </el-tag>
             </span>
-          </el-tooltip>
-          <span v-else>
-            {{ row.base_image?.name }}
-            <el-tag size="small" class="architecture-tag" v-if="row.base_image?.architecture">
-              {{ row.base_image.architecture }}
-            </el-tag>
-          </span>
-        </template>
-      </el-table-column>
-      <el-table-column label="软件">
-        <template #default="{ row }">
-          <div class="software-list">
-            <template v-for="(item, index) in row.software_list" :key="item.id">
-              <el-tooltip
-                v-if="item.description"
-                :content="item.description"
-                placement="right"
-                effect="dark"
-              >
-                <span class="software-item">{{ item.name }}:{{ item.version }}</span>
-              </el-tooltip>
-              <span v-else class="software-item">{{ item.name }}:{{ item.version }}</span>
-              <span v-if="index < row.software_list.length - 1" class="software-separator">, </span>
-            </template>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="端口">
-        <template #default="{ row }">
-          <el-tag
-            v-for="port in row.ports"
-            :key="port"
-            class="port-tag"
-            type="info"
-            size="small"
-          >
-            {{ port }}
-          </el-tag>
-          <el-text v-if="!row.ports?.length" type="info" size="small">
-            无
-          </el-text>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="300" show-overflow-tooltip="{
-        effect: 'dark',
-        placement: 'top',
-        enterable: true,
-        popperClass: 'description-tooltip',
-        width: '500px',
-        showArrow: true
-      }">
-        <template #default="{ row }">
-          <div class="description-cell">{{ row.description }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="created_at" label="创建时间">
-        <template #default="{ row }">
-          {{ new Date(row.created_at).toLocaleString() }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleEdit(row)">
-            编辑
-          </el-button>
-          <el-button type="danger" link @click="handleDelete(row)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
-      width="800px"
-      top="5vh"
-    >
-      <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
-        <el-step title="基本信息" />
-        <el-step title="确认 Dockerfile" />
-      </el-steps>
-
-      <!-- 第一步：基本信息 -->
-      <el-form
-        v-if="currentStep === 0"
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-        validate-on-rule-change="false"
-      >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入靶标名称" />
-        </el-form-item>
-        <el-form-item label="基础镜像" prop="base_image_id">
-          <el-select
-            v-model="form.base_image_id"
-            placeholder="请选择基础镜像"
-            style="width: 100%"
-            @change="handleImageChange"
-          >
-            <el-option-group
-              v-for="group in groupedImageList"
-              :key="group.architecture"
-              :label="group.architecture"
-            >
-              <el-option
-                v-for="item in group.items"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              >
-                <div class="image-option">
-                  <span>{{ item.name }}</span>
-                  <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
-                </div>
-              </el-option>
-            </el-option-group>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="软件" prop="software_ids">
-          <el-select
-            v-model="form.software_ids"
-            multiple
-            filterable
-            placeholder="请选择软件"
-            style="width: 100%"
-            :disabled="!selectedArchitecture"
-            @change="handleSoftwareChange"
-          >
-            <el-option
-              v-for="item in filteredSoftwareList"
-              :key="item.id"
-              :label="`${item.name}:${item.version}`"
-              :value="item.id"
-            >
-              <div class="software-option">
-                <span>{{ item.name }}:{{ item.version }}</span>
-                <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
-              </div>
-            </el-option>
-          </el-select>
-          <div class="form-tips" v-if="!selectedArchitecture">
-            <el-text class="text-sm" type="info">请先选择基础镜像</el-text>
-          </div>
-          <div class="compatibility-check" v-if="form.software_ids.length > 0">
-            <el-button
-              type="primary"
-              :loading="compatibilityLoading"
-              @click="checkSoftwareCompatibility"
-              link
-            >
-              检查软件兼容性
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item label="端口">
-          <div class="ports-container">
+          </template>
+        </el-table-column>
+        <el-table-column label="软件">
+          <template #default="{ row }">
+            <div class="software-list">
+              <template v-for="(item, index) in row.software_list" :key="item.id">
+                <el-tooltip
+                  v-if="item.description"
+                  :content="item.description"
+                  placement="right"
+                  effect="dark"
+                >
+                  <span class="software-item">{{ item.name }}:{{ item.version }}</span>
+                </el-tooltip>
+                <span v-else class="software-item">{{ item.name }}:{{ item.version }}</span>
+                <span v-if="index < row.software_list.length - 1" class="software-separator">, </span>
+              </template>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="端口">
+          <template #default="{ row }">
             <el-tag
-              v-for="port in selectedPorts"
+              v-for="port in row.ports"
               :key="port"
               class="port-tag"
+              type="info"
+              size="small"
             >
               {{ port }}
             </el-tag>
-          </div>
-          <div class="form-tips">
-            <el-text class="text-sm" type="info">端口列表根据所选软件自动生成</el-text>
-          </div>
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="6"
-            :autosize="{ minRows: 6, maxRows: 10 }"
-            placeholder="请输入靶标描述"
-            :loading="descriptionLoading"
-          />
-          <div class="form-tips" v-if="descriptionLoading">
-            <el-text class="text-sm" type="info">正在生成描述，请稍候...</el-text>
-          </div>
-        </el-form-item>
-      </el-form>
+            <el-text v-if="!row.ports?.length" type="info" size="small">
+              无
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="300" show-overflow-tooltip="{
+          effect: 'dark',
+          placement: 'top',
+          enterable: true,
+          popperClass: 'description-tooltip',
+          width: '500px',
+          showArrow: true
+        }">
+          <template #default="{ row }">
+            <div class="description-cell">{{ row.description }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="创建时间">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button type="danger" link @click="handleDelete(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-      <!-- 第二步：Dockerfile -->
-      <el-form
-        v-else
-        ref="dockerfileFormRef"
-        :model="form"
-        label-width="100px"
+      <!-- 添加/编辑对话框 -->
+      <el-dialog
+        v-model="dialogVisible"
+        :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
+        width="800px"
+        top="5vh"
       >
-        <el-form-item label="Dockerfile" prop="dockerfile">
-          <MonacoEditor
-            v-model="form.dockerfile"
-            language="dockerfile"
-            :options="{
-              lineNumbers: 'on',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }"
-            style="height: 500px"
-          />
-        </el-form-item>
-      </el-form>
+        <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
+          <el-step title="基本信息" />
+          <el-step title="确认 Dockerfile" />
+        </el-steps>
 
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <template v-if="currentStep === 0">
-          <el-button
-            type="primary"
-            :loading="generateLoading"
-            @click="handleNextStep"
-          >
-            下一步
-          </el-button>
-        </template>
-        <template v-else>
-          <el-button @click="currentStep = 0">上一步</el-button>
-          <el-button
-            type="primary"
-            :loading="submitLoading"
-            @click="handleSubmit"
-          >
-            确定
-          </el-button>
-        </template>
-      </template>
-    </el-dialog>
-
-    <!-- 兼容性分析对话框 -->
-    <el-dialog
-      v-model="compatibilityDialogVisible"
-      title="兼容性分析"
-      width="800px"
-      top="5vh"
-      class="compatibility-dialog"
-    >
-      <div class="compatibility-content markdown-body" v-html="renderedCompatibilityAnalysis" />
-      <template #footer>
-        <el-button @click="compatibilityDialogVisible = false">关闭</el-button>
-        <el-button
-          type="primary"
-          :loading="compatibilityLoading"
-          @click="handleConfirmCompatibility"
+        <!-- 第一步：基本信息 -->
+        <el-form
+          v-if="currentStep === 0"
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-width="100px"
+          validate-on-rule-change="false"
         >
-          继续使用
-        </el-button>
-      </template>
-    </el-dialog>
+          <el-form-item label="名称" prop="name">
+            <el-input v-model="form.name" placeholder="请输入靶标名称" />
+          </el-form-item>
+          <el-form-item label="基础镜像" prop="base_image_id">
+            <el-select
+              v-model="form.base_image_id"
+              placeholder="请选择基础镜像"
+              style="width: 100%"
+              @change="handleImageChange"
+            >
+              <el-option-group
+                v-for="group in groupedImageList"
+                :key="group.architecture"
+                :label="group.architecture"
+              >
+                <el-option
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                  <div class="image-option">
+                    <span>{{ item.name }}</span>
+                    <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
+                  </div>
+                </el-option>
+              </el-option-group>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="软件" prop="software_ids">
+            <el-select
+              v-model="form.software_ids"
+              multiple
+              filterable
+              placeholder="请选择软件"
+              style="width: 100%"
+              :disabled="!selectedArchitecture"
+              @change="handleSoftwareChange"
+            >
+              <el-option
+                v-for="item in filteredSoftwareList"
+                :key="item.id"
+                :label="`${item.name}:${item.version}`"
+                :value="item.id"
+              >
+                <div class="software-option">
+                  <span>{{ item.name }}:{{ item.version }}</span>
+                  <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
+                </div>
+              </el-option>
+            </el-select>
+            <div class="form-tips" v-if="!selectedArchitecture">
+              <el-text class="text-sm" type="info">请先选择基础镜像</el-text>
+            </div>
+            <div class="compatibility-check" v-if="form.software_ids.length > 0">
+              <el-button
+                type="primary"
+                :loading="compatibilityLoading"
+                @click="checkSoftwareCompatibility"
+                link
+              >
+                检查软件兼容性
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="端口">
+            <div class="ports-container">
+              <el-tag
+                v-for="port in selectedPorts"
+                :key="port"
+                class="port-tag"
+              >
+                {{ port }}
+              </el-tag>
+            </div>
+            <div class="form-tips">
+              <el-text class="text-sm" type="info">端口列表根据所选软件自动生成</el-text>
+            </div>
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="form.description"
+              type="textarea"
+              :rows="6"
+              :autosize="{ minRows: 6, maxRows: 10 }"
+              placeholder="请输入靶标描述"
+              :loading="descriptionLoading"
+            />
+            <div class="form-tips" v-if="descriptionLoading">
+              <el-text class="text-sm" type="info">正在生成描述，请稍候...</el-text>
+            </div>
+          </el-form-item>
+        </el-form>
+
+        <!-- 第二步：Dockerfile -->
+        <el-form
+          v-else
+          ref="dockerfileFormRef"
+          :model="form"
+          label-width="100px"
+        >
+          <el-form-item label="Dockerfile" prop="dockerfile">
+            <MonacoEditor
+              v-model="form.dockerfile"
+              language="dockerfile"
+              :options="{
+                lineNumbers: 'on',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }"
+              style="height: 500px"
+            />
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <template v-if="currentStep === 0">
+            <el-button
+              type="primary"
+              :loading="generateLoading"
+              @click="handleNextStep"
+            >
+              下一步
+            </el-button>
+          </template>
+          <template v-else>
+            <el-button @click="currentStep = 0">上一步</el-button>
+            <el-button
+              type="primary"
+              :loading="submitLoading"
+              @click="handleSubmit"
+            >
+              确定
+            </el-button>
+          </template>
+        </template>
+      </el-dialog>
+
+      <!-- 兼容性分析对话框 -->
+      <el-dialog
+        v-model="compatibilityDialogVisible"
+        title="兼容性分析"
+        width="800px"
+        top="5vh"
+        class="compatibility-dialog"
+      >
+        <div class="compatibility-content markdown-body" v-html="renderedCompatibilityAnalysis" />
+        <template #footer>
+          <el-button @click="compatibilityDialogVisible = false">关闭</el-button>
+          <el-button
+            type="primary"
+            :loading="compatibilityLoading"
+            @click="handleConfirmCompatibility"
+          >
+            继续使用
+          </el-button>
+        </template>
+      </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -311,6 +314,7 @@ import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
 import MonacoEditor from '@/components/MonacoEditor.vue'
 import { Search } from '@element-plus/icons-vue'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 
 const loading = ref(false)
 const targets = ref<Target[]>([])

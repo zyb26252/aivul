@@ -1,0 +1,216 @@
+// 页面容器
+.page-container {
+  padding: 20px;
+  background-color: var(--el-bg-color);
+  min-height: calc(100vh - 60px);
+}
+
+// 页面头部
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background-color: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 32px;
+}
+
+.search-container {
+  margin-top: 12px;
+}
+
+.search-input {
+  width: 240px;
+
+  :deep(.el-input__wrapper) {
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-border-color-darker) inset;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+    }
+  }
+
+  :deep(.el-input__inner) {
+    font-size: 13px;
+  }
+
+  :deep(.el-input__prefix-inner) {
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// 表格样式
+.el-table {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  margin-top: 16px;
+
+  :deep(th.el-table__cell) {
+    background-color: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+    height: 48px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(td.el-table__cell) {
+    padding: 12px 16px;
+    color: var(--el-text-color-regular);
+  }
+
+  :deep(.el-table__inner-wrapper::before) {
+    display: none;
+  }
+}
+
+// 标签样式
+.el-tag {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
+  font-size: 12px;
+
+  &.el-tag--info {
+    background-color: var(--el-fill-color-light);
+    border-color: var(--el-border-color-lighter);
+    color: var(--el-text-color-regular);
+  }
+}
+
+// 按钮样式
+.el-button {
+  font-weight: 400;
+  border-radius: 4px;
+  padding: 8px 16px;
+  height: 32px;
+  font-size: 13px;
+
+  &.el-button--primary {
+    --el-button-font-weight: 400;
+    --el-button-border-color: var(--el-color-primary);
+    --el-button-bg-color: var(--el-color-primary);
+    --el-button-hover-border-color: var(--el-color-primary-light-3);
+    --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  }
+
+  &.el-button--primary.is-link {
+    height: auto;
+    padding: 0;
+    --el-button-bg-color: transparent;
+    --el-button-border-color: transparent;
+    --el-button-hover-bg-color: transparent;
+    --el-button-hover-border-color: transparent;
+    --el-button-active-bg-color: transparent;
+    --el-button-active-border-color: transparent;
+
+    &:hover {
+      color: var(--el-color-primary-light-3);
+    }
+  }
+
+  &.el-button--danger.is-link {
+    height: auto;
+    padding: 0;
+    --el-button-bg-color: transparent;
+    --el-button-border-color: transparent;
+    --el-button-hover-bg-color: transparent;
+    --el-button-hover-border-color: transparent;
+    --el-button-active-bg-color: transparent;
+    --el-button-active-border-color: transparent;
+
+    &:hover {
+      color: var(--el-color-danger-light-3);
+    }
+  }
+}
+
+// 对话框样式
+.el-dialog {
+  border-radius: 8px;
+  box-shadow: 0 12px 32px 4px rgba(0, 0, 0, .04), 0 8px 20px rgba(0, 0, 0, .08);
+
+  .el-dialog__header {
+    margin: 0;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--el-border-color-light);
+
+    .el-dialog__title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-dialog__body {
+    padding: 24px;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-light);
+  }
+}
+
+// 表单样式
+.el-form {
+  .el-form-item__label {
+    font-weight: 400;
+    color: var(--el-text-color-regular);
+  }
+
+  .el-input__wrapper,
+  .el-textarea__wrapper {
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-border-color-darker) inset;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+    }
+  }
+}
+
+// 下拉选择框样式
+.el-select {
+  .el-select__tags {
+    padding: 3px 0;
+  }
+
+  .el-tag {
+    margin: 2px 4px 2px 0;
+  }
+}
+
+// 提示文本样式
+.form-tips {
+  margin-top: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+} 

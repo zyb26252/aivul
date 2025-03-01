@@ -1,106 +1,110 @@
 <template>
-  <div class="images-container">
-    <div class="header">
-      <h2>镜像管理</h2>
-      <el-button type="primary" @click="handleAdd">
-        添加镜像
-      </el-button>
-    </div>
-
-    <div class="search-bar">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索镜像名称或描述"
-        clearable
-        @input="handleSearch"
-        style="width: 300px; margin-right: 16px;"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      
-      <el-select
-        v-model="selectedArchitecture"
-        placeholder="选择架构"
-        clearable
-        @change="handleSearch"
-        style="width: 200px;"
-      >
-        <el-option label="x86" value="x86" />
-        <el-option label="arm" value="arm" />
-      </el-select>
-    </div>
-
-    <el-table
-      v-loading="loading"
-      :data="images"
-      style="width: 100%"
-    >
-      <el-table-column prop="name" label="镜像名称" />
-      <el-table-column prop="registry_path" label="镜像路径" />
-      <el-table-column prop="architecture" label="架构" />
-      <el-table-column prop="version" label="版本" />
-      <el-table-column prop="description" label="描述" show-overflow-tooltip />
-      <el-table-column prop="created_at" label="创建时间">
-        <template #default="{ row }">
-          {{ new Date(row.created_at).toLocaleString() }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="handleEdit(row)">
-            编辑
-          </el-button>
-          <el-button type="danger" link @click="handleDelete(row)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogType === 'add' ? '添加镜像' : '编辑镜像'"
-      width="500px"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-      >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入镜像名称" />
-        </el-form-item>
-        <el-form-item label="镜像路径" prop="registry_path">
-          <el-input v-model="form.registry_path" placeholder="请输入镜像路径" />
-        </el-form-item>
-        <el-form-item label="架构" prop="architecture">
-          <el-select v-model="form.architecture" placeholder="请选择架构">
-            <el-option label="x86" value="x86" />
-            <el-option label="arm" value="arm" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="版本" prop="version">
-          <el-input v-model="form.version" placeholder="请输入版本号" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            placeholder="请输入镜像描述"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
+  <div class="page-container">
+    <TableSkeleton v-if="loading" />
+    <template v-else>
+      <div class="page-header">
+        <div class="header-left">
+          <h2 class="page-title">镜像管理</h2>
+          <div class="search-container">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索镜像名称"
+              class="search-input"
+              clearable
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+            
+            <el-select
+              v-model="selectedArchitecture"
+              placeholder="选择架构"
+              clearable
+              @change="handleSearch"
+              class="architecture-select"
+            >
+              <el-option label="x86" value="x86" />
+              <el-option label="arm" value="arm" />
+            </el-select>
+          </div>
+        </div>
+        <el-button type="primary" @click="handleAdd">
+          添加镜像
         </el-button>
-      </template>
-    </el-dialog>
+      </div>
+
+      <el-table
+        v-loading="loading"
+        :data="images"
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="镜像名称" />
+        <el-table-column prop="registry_path" label="镜像路径" />
+        <el-table-column prop="architecture" label="架构" />
+        <el-table-column prop="version" label="版本" />
+        <el-table-column prop="description" label="描述" show-overflow-tooltip />
+        <el-table-column prop="created_at" label="创建时间">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button type="danger" link @click="handleDelete(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 添加/编辑对话框 -->
+      <el-dialog
+        v-model="dialogVisible"
+        :title="dialogType === 'add' ? '添加镜像' : '编辑镜像'"
+        width="500px"
+      >
+        <el-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-width="100px"
+        >
+          <el-form-item label="名称" prop="name">
+            <el-input v-model="form.name" placeholder="请输入镜像名称" />
+          </el-form-item>
+          <el-form-item label="镜像路径" prop="registry_path">
+            <el-input v-model="form.registry_path" placeholder="请输入镜像路径" />
+          </el-form-item>
+          <el-form-item label="架构" prop="architecture">
+            <el-select v-model="form.architecture" placeholder="请选择架构">
+              <el-option label="x86" value="x86" />
+              <el-option label="arm" value="arm" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="版本" prop="version">
+            <el-input v-model="form.version" placeholder="请输入版本号" />
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="form.description"
+              type="textarea"
+              placeholder="请输入镜像描述"
+            />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </el-button>
+        </template>
+      </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -111,6 +115,7 @@ import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getImages, createImage, updateImage, deleteImage } from '@/api/image'
 import type { Image } from '@/types/image'
+import TableSkeleton from '@/components/TableSkeleton.vue'
 
 const loading = ref(false)
 const images = ref<Image[]>([])
@@ -233,25 +238,29 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.images-container {
-  padding: 20px;
+<style lang="scss" scoped>
+@import '@/styles/common.scss';
+
+.architecture-select {
+  margin-left: 12px;
+  width: 120px;
 }
 
-.header {
+.image-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.search-bar {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.header h2 {
-  margin: 0;
+  flex-direction: column;
+  gap: 4px;
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+    
+    .label {
+      color: var(--el-text-color-secondary);
+    }
+  }
 }
 </style> 

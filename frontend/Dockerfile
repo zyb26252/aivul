@@ -13,7 +13,8 @@ ENV NPM_CONFIG_LOGLEVEL=warn
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install --quiet
+RUN npm install --quiet && \
+    npm install -D sass --quiet
 
 # 复制源代码
 COPY . .
@@ -33,7 +34,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install
+RUN npm install && \
+    npm install -D sass
 
 # 复制源代码
 COPY . .

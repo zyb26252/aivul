@@ -7,47 +7,47 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: () => import('@/views/login/index.vue'),
+      component: () => import('../views/login/index.vue'),
       meta: { title: '登录' }
     },
     {
       path: '/register',
       name: 'Register',
-      component: () => import('@/views/register/index.vue'),
+      component: () => import('../views/register/index.vue'),
       meta: { title: '注册' }
     },
     {
       path: '/',
-      component: () => import('@/layouts/default/index.vue'),
+      component: () => import('../layouts/default/index.vue'),
       children: [
         {
           path: '',
           name: 'Home',
-          component: () => import('@/views/home/index.vue'),
+          component: () => import('../views/home/index.vue'),
           meta: { title: '首页', requiresAuth: true }
         },
         {
           path: 'images',
           name: 'Images',
-          component: () => import('@/views/images/index.vue'),
+          component: () => import('../views/images/index.vue'),
           meta: { title: '镜像管理', requiresAuth: true }
         },
         {
           path: 'software',
           name: 'Software',
-          component: () => import('@/views/software/index.vue'),
+          component: () => import('../views/software/index.vue'),
           meta: { title: '软件管理', requiresAuth: true }
         },
         {
           path: 'targets',
           name: 'Targets',
-          component: () => import('@/views/targets/index.vue'),
+          component: () => import('../views/targets/index.vue'),
           meta: { title: '靶标管理', requiresAuth: true }
         },
         {
           path: 'instances',
           name: 'Instances',
-          component: () => import('@/views/instances/index.vue'),
+          component: () => import('../views/instances/index.vue'),
           meta: { title: '实例管理', requiresAuth: true }
         }
       ]
