@@ -40,7 +40,15 @@
         <template #default="{ row }">
           <div class="software-list">
             <template v-for="(item, index) in row.software_list" :key="item.id">
-              <span class="software-item">{{ item.name }}:{{ item.version }}</span>
+              <el-tooltip
+                v-if="item.description"
+                :content="item.description"
+                placement="right"
+                effect="dark"
+              >
+                <span class="software-item">{{ item.name }}:{{ item.version }}</span>
+              </el-tooltip>
+              <span v-else class="software-item">{{ item.name }}:{{ item.version }}</span>
               <span v-if="index < row.software_list.length - 1" class="software-separator">, </span>
             </template>
           </div>
@@ -566,13 +574,16 @@ onMounted(() => {
 .software-list {
   line-height: 1.5;
   color: var(--el-text-color-regular);
+  display: inline-block;
 }
 
 .software-item {
   color: var(--el-color-primary);
+  cursor: pointer;
 }
 
 .software-separator {
   margin: 0 2px;
+  color: var(--el-text-color-regular);
 }
 </style> 
