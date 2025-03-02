@@ -39,7 +39,9 @@
         v-loading="loading"
         :data="filteredSoftwareList"
         style="width: 100%"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="version" label="版本" />
         <el-table-column prop="description" label="描述" show-overflow-tooltip />
@@ -74,6 +76,11 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="selectedRows.length > 0" class="batch-operation">
+        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+      </div>
 
       <!-- 详情对话框 -->
       <el-dialog
@@ -270,6 +277,7 @@ const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 const searchQuery = ref('')
 const selectedArchitecture = ref('')
+const selectedRows = ref<Software[]>([])
 
 const form = ref({
   id: 0,
@@ -501,6 +509,42 @@ const filteredSoftwareList = computed(() => {
   return result
 })
 
+// 处理表格选择变化
+const handleSelectionChange = (rows: Software[]) => {
+  selectedRows.value = rows
+}
+
+// 批量删除
+const handleBatchDelete = async () => {
+  if (selectedRows.value.length === 0) return
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.value.length} 个软件吗？`, 
+      '批量删除确认', 
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+    
+    loading.value = true
+    try {
+      await Promise.all(selectedRows.value.map(row => deleteSoftware(row.id)))
+      ElMessage.success('批量删除成功')
+      await fetchSoftware()
+      selectedRows.value = []
+    } catch (error) {
+      ElMessage.error('批量删除失败')
+    } finally {
+      loading.value = false
+    }
+  } catch {
+    // 用户取消删除
+  }
+}
+
 onMounted(() => {
   fetchSoftware()
 })
@@ -566,6 +610,21 @@ onMounted(() => {
       padding: 12px;
       border-radius: 4px;
     }
+  }
+}
+
+.batch-operation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+  
+  .selected-count {
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
   }
 }
 </style> 

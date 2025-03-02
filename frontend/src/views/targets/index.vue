@@ -28,7 +28,9 @@
         v-loading="loading"
         :data="filteredTargets"
         style="width: 100%"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="name" label="名称" />
         <el-table-column label="基础镜像">
           <template #default="{ row }">
@@ -115,6 +117,11 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="selectedRows.length > 0" class="batch-operation">
+        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+      </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
@@ -327,6 +334,7 @@ const generateLoading = ref(false)
 const formRef = ref<FormInstance>()
 const dockerfileFormRef = ref<FormInstance>()
 const searchQuery = ref('')
+const selectedRows = ref<Target[]>([])
 
 const form = ref({
   id: 0,
@@ -776,6 +784,42 @@ const handleConfirmCompatibility = async () => {
   }
 }
 
+// 处理表格选择变化
+const handleSelectionChange = (rows: Target[]) => {
+  selectedRows.value = rows
+}
+
+// 批量删除
+const handleBatchDelete = async () => {
+  if (selectedRows.value.length === 0) return
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.value.length} 个靶标吗？`, 
+      '批量删除确认', 
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+    
+    loading.value = true
+    try {
+      await Promise.all(selectedRows.value.map(row => deleteTarget(row.id)))
+      ElMessage.success('批量删除成功')
+      await fetchTargets()
+      selectedRows.value = []
+    } catch (error) {
+      ElMessage.error('批量删除失败')
+    } finally {
+      loading.value = false
+    }
+  } catch {
+    // 用户取消删除
+  }
+}
+
 onMounted(() => {
   fetchTargets()
   fetchOptions()
@@ -862,5 +906,20 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.5;
+}
+
+.batch-operation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+  
+  .selected-count {
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+  }
 }
 </style> 
