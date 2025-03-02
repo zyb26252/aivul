@@ -21,8 +21,8 @@ class Target(TargetBase):
     created_at: datetime
     created_by_id: int
     dockerfile: Optional[str] = None
-    base_image: Image
-    software_list: List[Software]
+    base_image: Optional[Image] = None
+    software_list: List[Software] = []
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 
