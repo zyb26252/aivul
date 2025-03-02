@@ -39,7 +39,9 @@
         v-loading="loading"
         :data="images"
         style="width: 100%"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="name" label="镜像名称" />
         <el-table-column prop="registry_path" label="镜像路径" />
         <el-table-column prop="architecture" label="架构" />
@@ -61,6 +63,11 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="selectedRows.length > 0" class="batch-operation">
+        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+      </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
@@ -125,6 +132,7 @@ const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 const searchQuery = ref('')
 const selectedArchitecture = ref('')
+const selectedRows = ref<Image[]>([])
 
 const form = ref({
   id: 0,
@@ -233,6 +241,42 @@ const handleSubmit = async () => {
   })
 }
 
+// 处理表格选择变化
+const handleSelectionChange = (rows: Image[]) => {
+  selectedRows.value = rows
+}
+
+// 批量删除
+const handleBatchDelete = async () => {
+  if (selectedRows.value.length === 0) return
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.value.length} 个镜像吗？`, 
+      '批量删除确认', 
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+    
+    loading.value = true
+    try {
+      await Promise.all(selectedRows.value.map(row => deleteImage(row.id)))
+      ElMessage.success('批量删除成功')
+      await fetchImages()
+      selectedRows.value = []
+    } catch (error) {
+      ElMessage.error('批量删除失败')
+    } finally {
+      loading.value = false
+    }
+  } catch {
+    // 用户取消删除
+  }
+}
+
 onMounted(() => {
   fetchImages()
 })
@@ -262,5 +306,26 @@ onMounted(() => {
       color: var(--el-text-color-secondary);
     }
   }
+}
+
+.batch-operation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+  
+  .selected-count {
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+  }
+}
+
+.operation-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 </style> 
