@@ -87,6 +87,10 @@ pip install -r requirements.txt
 
 4. 启动开发服务器
 ```bash
+# 普通模式
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# 调试模式（自动重载）
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
