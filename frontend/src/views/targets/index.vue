@@ -274,7 +274,8 @@
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
                     readOnly: optimizedDockerfile !== '',
-                    wordWrap: 'on'
+                    wordWrap: 'on',
+                    theme: 'vs'
                   }"
                 />
               </div>
@@ -300,7 +301,8 @@
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
-                    wordWrap: 'on'
+                    wordWrap: 'on',
+                    theme: 'vs'
                   }"
                 />
               </div>
