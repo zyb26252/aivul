@@ -127,12 +127,13 @@
       <el-dialog
         v-model="dialogVisible"
         :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
-        width="800px"
+        width="1200px"
         top="5vh"
+        class="target-dialog"
       >
         <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
-          <el-step title="基本信息" />
-          <el-step title="确认 Dockerfile" />
+          <el-step title="基本信息" :class="{ 'is-current': currentStep === 0 }" />
+          <el-step title="确认 Dockerfile" :class="{ 'is-current': currentStep === 1 }" />
         </el-steps>
 
         <!-- 第一步：基本信息 -->
@@ -245,19 +246,77 @@
           :model="form"
           label-width="100px"
         >
-          <el-form-item label="Dockerfile" prop="dockerfile">
-            <MonacoEditor
-              v-model="form.dockerfile"
-              language="dockerfile"
-              :options="{
-                lineNumbers: 'on',
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }"
-              style="height: 500px"
-            />
-          </el-form-item>
+          <div class="dockerfile-header">
+            <el-form-item label="Dockerfile" />
+          </div>
+          
+          <div class="dockerfile-container">
+            <div class="dockerfile-column" :class="{ 'full-width': !optimizedDockerfile }">
+              <div class="dockerfile-title">
+                <span>原始版本</span>
+                <el-button
+                  v-if="!optimizedDockerfile"
+                  type="primary"
+                  link
+                  :loading="optimizingLoading"
+                  @click="handleOptimizeDockerfile"
+                >
+                  优化 Dockerfile
+                </el-button>
+              </div>
+              <div class="editor-wrapper">
+                <MonacoEditor
+                  v-model="form.dockerfile"
+                  language="dockerfile"
+                  :options="{
+                    lineNumbers: 'on',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    readOnly: optimizedDockerfile !== '',
+                    wordWrap: 'on'
+                  }"
+                />
+              </div>
+            </div>
+            <div v-if="optimizedDockerfile" class="dockerfile-column">
+              <div class="dockerfile-title">
+                <span>优化版本</span>
+                <el-button
+                  type="primary"
+                  link
+                  :loading="optimizingLoading"
+                  @click="handleOptimizeDockerfile"
+                >
+                  重新优化
+                </el-button>
+              </div>
+              <div class="editor-wrapper">
+                <MonacoEditor
+                  v-model="optimizedDockerfile"
+                  language="dockerfile"
+                  :options="{
+                    lineNumbers: 'on',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on'
+                  }"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="dockerfile-footer">
+            <el-button
+              type="primary"
+              link
+              :loading="optimizingLoading"
+              @click="handleOptimizeDockerfile"
+            >
+              优化 Dockerfile
+            </el-button>
+          </div>
         </el-form>
 
         <template #footer>
@@ -529,6 +588,11 @@ const handleNextStep = async () => {
 const handleSubmit = async () => {
   submitLoading.value = true
   try {
+    // 如果有优化后的版本，使用优化后的版本
+    if (optimizedDockerfile.value) {
+      form.value.dockerfile = optimizedDockerfile.value
+    }
+    
     if (dialogType.value === 'add') {
       await createTarget(form.value)
       ElMessage.success('添加成功')
@@ -820,6 +884,49 @@ const handleBatchDelete = async () => {
   }
 }
 
+// 添加优化相关的状态
+const optimizedDockerfile = ref('')
+const optimizingLoading = ref(false)
+
+// 处理 Dockerfile 优化
+const handleOptimizeDockerfile = async () => {
+  if (!form.value.dockerfile) {
+    ElMessage.warning('请先生成 Dockerfile')
+    return
+  }
+
+  optimizingLoading.value = true
+  try {
+    const prompt = `请优化以下 Dockerfile，使其更加高效和安全。主要考虑以下几个方面：
+1. 减小镜像大小
+2. 提高构建速度
+3. 增强安全性
+4. 改进可维护性
+5. 优化层次结构
+
+以下是原始的 Dockerfile：
+${form.value.dockerfile}
+
+请直接提供优化后的 Dockerfile 内容，不要添加任何 Markdown 格式或解释性文字。`
+
+    const response = await generateDescription(prompt)
+    if (response) {
+      // 移除可能存在的 Markdown 代码块标记
+      optimizedDockerfile.value = response
+        .replace(/^```dockerfile\n/, '')
+        .replace(/^```\n/, '')
+        .replace(/```$/, '')
+        .trim()
+    } else {
+      ElMessage.warning('优化失败，请稍后重试')
+    }
+  } catch (error) {
+    ElMessage.error('优化 Dockerfile 时发生错误')
+  } finally {
+    optimizingLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchTargets()
   fetchOptions()
@@ -920,6 +1027,94 @@ onMounted(() => {
   .selected-count {
     color: var(--el-text-color-secondary);
     font-size: 14px;
+  }
+}
+
+:deep(.el-steps) {
+  .el-step.is-current {
+    .el-step__title {
+      color: var(--el-color-primary);
+      font-weight: bold;
+    }
+  }
+}
+
+.dockerfile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dockerfile-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  height: 600px;
+}
+
+.dockerfile-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 4px;
+  overflow: hidden;
+  
+  &.full-width {
+    width: 100%;
+  }
+  
+  .dockerfile-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    padding: 12px;
+    background-color: var(--el-fill-color-light);
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+
+  .editor-wrapper {
+    flex: 1;
+    overflow: hidden;
+    
+    :deep(.monaco-editor) {
+      height: 100% !important;
+    }
+  }
+}
+
+.dockerfile-footer {
+  display: none;
+}
+
+.target-dialog {
+  :deep(.el-dialog) {
+    --el-dialog-margin-top: 5vh;
+    height: 90vh;
+    margin: var(--el-dialog-margin-top) auto 0;
+    display: flex;
+    flex-direction: column;
+    
+    .el-dialog__body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .el-dialog__header {
+      margin: 0;
+      padding: 20px 20px 0;
+    }
+
+    .el-dialog__footer {
+      margin: 0;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--el-border-color-light);
+    }
   }
 }
 </style> 
