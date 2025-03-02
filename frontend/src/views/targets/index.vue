@@ -374,7 +374,7 @@ import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
 import { getImages } from '@/api/image'
 import { getSoftware, checkCompatibility } from '@/api/software'
-import { generateDescription } from '@/api/ai'
+import { generateDescription, optimizeDockerfile } from '@/api/ai'
 import type { Target } from '@/types/target'
 import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
@@ -769,9 +769,7 @@ const handleSoftwareChange = async () => {
       // 生成环境描述
       descriptionLoading.value = true
       try {
-        // 构建提示文本
-        const prompt = `这是一个基于 ${selectedImage.name} ${selectedImage.version} (${selectedImage.architecture}) 的靶标环境，包含以下软件：${selectedSoftware.map(s => `${s.name} ${s.version}`).join('、')}。请生成一个简短的中文描述，说明这个靶标环境的主要用途和特点。`
-        const response = await generateDescription(prompt)
+        const response = await generateDescription(selectedImage, selectedSoftware)
         if (response) {
           form.value.description = response
         } else {
@@ -897,26 +895,9 @@ const handleOptimizeDockerfile = async () => {
 
   optimizingLoading.value = true
   try {
-    const prompt = `请优化以下 Dockerfile，使其更加高效和安全。主要考虑以下几个方面：
-1. 减小镜像大小
-2. 提高构建速度
-3. 增强安全性
-4. 改进可维护性
-5. 优化层次结构
-
-以下是原始的 Dockerfile：
-${form.value.dockerfile}
-
-请直接提供优化后的 Dockerfile 内容，不要添加任何 Markdown 格式或解释性文字。`
-
-    const response = await generateDescription(prompt)
-    if (response) {
-      // 移除可能存在的 Markdown 代码块标记
+    const response = await optimizeDockerfile(form.value.dockerfile)
+    if (response && typeof response === 'string') {
       optimizedDockerfile.value = response
-        .replace(/^```dockerfile\n/, '')
-        .replace(/^```\n/, '')
-        .replace(/```$/, '')
-        .trim()
     } else {
       ElMessage.warning('优化失败，请稍后重试')
     }
