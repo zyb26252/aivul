@@ -106,8 +106,11 @@
             {{ new Date(row.created_at).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="280">
           <template #default="{ row }">
+            <el-button type="primary" link @click="handleViewDockerfile(row)">
+              查看 Dockerfile
+            </el-button>
             <el-button type="primary" link @click="handleEdit(row)">
               编辑
             </el-button>
@@ -365,6 +368,39 @@
           </el-button>
         </template>
       </el-dialog>
+
+      <!-- 查看 Dockerfile 对话框 -->
+      <el-dialog
+        v-model="dockerfileDialogVisible"
+        title="Dockerfile"
+        width="800px"
+        class="dockerfile-dialog"
+      >
+        <div class="dockerfile-container">
+          <div class="dockerfile-column full-width">
+            <div class="editor-wrapper">
+              <MonacoEditor
+                v-model="currentDockerfile"
+                language="dockerfile"
+                :options="{
+                  lineNumbers: 'on',
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  wordWrap: 'on',
+                  theme: 'vs'
+                }"
+              />
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="dockerfileDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="handleSaveDockerfile">
+            保存
+          </el-button>
+        </template>
+      </el-dialog>
     </template>
   </div>
 </template>
@@ -396,6 +432,11 @@ const formRef = ref<FormInstance>()
 const dockerfileFormRef = ref<FormInstance>()
 const searchQuery = ref('')
 const selectedRows = ref<Target[]>([])
+
+// 添加查看 Dockerfile 相关的状态
+const dockerfileDialogVisible = ref(false)
+const currentDockerfile = ref('')
+const currentTarget = ref<Target | null>(null)
 
 const form = ref({
   id: 0,
@@ -578,6 +619,8 @@ const handleNextStep = async () => {
 
         // 更新表单
         form.value.dockerfile = dockerfile
+        optimizedDockerfile.value = '' // 重置优化后的版本
+
         currentStep.value = 1
       } finally {
         generateLoading.value = false
@@ -590,16 +633,18 @@ const handleNextStep = async () => {
 const handleSubmit = async () => {
   submitLoading.value = true
   try {
-    // 如果有优化后的版本，使用优化后的版本
-    if (optimizedDockerfile.value) {
-      form.value.dockerfile = optimizedDockerfile.value
+    // 使用优化后的版本（如果有）
+    const targetData = {
+      ...form.value,
+      dockerfile: form.value.dockerfile,
+      optimized_dockerfile: optimizedDockerfile.value || null
     }
     
     if (dialogType.value === 'add') {
-      await createTarget(form.value)
+      await createTarget(targetData)
       ElMessage.success('添加成功')
     } else {
-      await updateTarget(form.value.id, form.value)
+      await updateTarget(form.value.id, targetData)
       ElMessage.success('更新成功')
     }
     dialogVisible.value = false
@@ -900,6 +945,8 @@ const handleOptimizeDockerfile = async () => {
     const response = await optimizeDockerfile(form.value.dockerfile)
     if (response && typeof response === 'string') {
       optimizedDockerfile.value = response
+      form.value.optimized_dockerfile = response // 将优化后的版本保存到表单中
+      ElMessage.success('Dockerfile 优化成功')
     } else {
       ElMessage.warning('优化失败，请稍后重试')
     }
@@ -907,6 +954,33 @@ const handleOptimizeDockerfile = async () => {
     ElMessage.error('优化 Dockerfile 时发生错误')
   } finally {
     optimizingLoading.value = false
+  }
+}
+
+// 处理查看 Dockerfile
+const handleViewDockerfile = async (row: Target) => {
+  currentTarget.value = row
+  // 显示优化后的 Dockerfile（如果有），否则显示原始版本
+  currentDockerfile.value = row.optimized_dockerfile || row.dockerfile || ''
+  dockerfileDialogVisible.value = true
+}
+
+// 处理保存 Dockerfile
+const handleSaveDockerfile = async () => {
+  if (!currentTarget.value) return
+  
+  try {
+    // 保存修改后的 Dockerfile 到优化版本字段
+    await updateTarget(currentTarget.value.id, {
+      ...currentTarget.value,
+      optimized_dockerfile: currentDockerfile.value
+    })
+    // 刷新靶标列表
+    await fetchTargets()
+    ElMessage.success('Dockerfile 已保存')
+    dockerfileDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('保存 Dockerfile 失败')
   }
 }
 

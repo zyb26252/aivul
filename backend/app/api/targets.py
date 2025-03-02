@@ -51,7 +51,7 @@ def create_target(
             software_list.append(software)
         
         # 生成 Dockerfile
-        dockerfile = generate_dockerfile(base_image, software_list)
+        dockerfile = target_in.dockerfile or generate_dockerfile(base_image, software_list)
         
         # 创建靶标
         target = TargetModel(
@@ -59,6 +59,7 @@ def create_target(
             description=target_in.description,
             base_image_id=target_in.base_image_id,
             dockerfile=dockerfile,
+            optimized_dockerfile=target_in.optimized_dockerfile,
             created_by_id=current_user.id,
             status="draft"
         )
@@ -109,8 +110,8 @@ def update_target(
         raise HTTPException(status_code=404, detail="Target not found")
     
     # 更新基本信息
-    for field in ["name", "description", "base_image_id"]:
-        if hasattr(target_in, field):
+    for field in ["name", "description", "base_image_id", "dockerfile", "optimized_dockerfile"]:
+        if hasattr(target_in, field) and getattr(target_in, field) is not None:
             setattr(target, field, getattr(target_in, field))
     
     # 更新软件列表
@@ -123,9 +124,10 @@ def update_target(
             software_list.append(software)
         target.software_list = software_list
         
-        # 重新生成 Dockerfile
-        base_image = db.query(ImageModel).filter(ImageModel.id == target.base_image_id).first()
-        target.dockerfile = generate_dockerfile(base_image, software_list)
+        # 只有在没有提供 dockerfile 时才重新生成
+        if target_in.dockerfile is None:
+            base_image = db.query(ImageModel).filter(ImageModel.id == target.base_image_id).first()
+            target.dockerfile = generate_dockerfile(base_image, software_list)
     
     db.add(target)
     db.commit()

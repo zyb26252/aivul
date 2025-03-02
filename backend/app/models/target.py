@@ -19,6 +19,7 @@ class Target(Base):
     description = Column(Text, nullable=True)
     base_image_id = Column(Integer, ForeignKey("images.id"))
     dockerfile = Column(Text, nullable=True)
+    optimized_dockerfile = Column(Text, nullable=True)
     status = Column(String(20), default="draft")  # draft, building, ready, failed
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by_id = Column(Integer, ForeignKey("users.id"))

@@ -3,6 +3,7 @@ export interface Target {
   name: string
   description: string
   dockerfile: string
+  optimized_dockerfile: string | null
   base_image_id: number
   software_ids: number[]
   ports: number[]
@@ -30,6 +31,7 @@ export interface TargetCreate {
   name: string
   description?: string
   dockerfile?: string
+  optimized_dockerfile?: string
   base_image_id: number
   software_ids: number[]
   ports: number[]
@@ -39,6 +41,7 @@ export interface TargetUpdate {
   name?: string
   description?: string
   dockerfile?: string
+  optimized_dockerfile?: string
   base_image_id?: number
   software_ids?: number[]
   ports?: number[]
