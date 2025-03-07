@@ -58,6 +58,8 @@ import { Graph, Shape } from '@antv/x6'
 import type { Node } from '../types'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
+import containerIcon from '@/assets/icons/container.svg'
+import switchIcon from '@/assets/icons/switch.svg'
 
 // 状态
 const container = ref<HTMLElement>()
@@ -115,56 +117,70 @@ interface NodeConfig {
 // 节点配置
 const nodeConfig: Record<string, NodeConfig> = {
   container: {
-    width: 80,
-    height: 80,
+    width: 40,
+    height: 60,
     shape: 'rect',
-    attrs: {
-      body: {
-        fill: '#fff',
-        stroke: '#1890ff',
-        strokeWidth: 2,
-        rx: 8,
-        ry: 8,
+    markup: [
+      {
+        tagName: 'image',
+        selector: 'image',
       },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
+    attrs: {
       image: {
-        'xlink:href': '/public/icons/container.svg',
+        'xlink:href': containerIcon,
         width: 40,
         height: 40,
-        x: 20,
-        y: 12,
+        x: 0,
+        y: 0,
       },
       label: {
         text: '容器',
         fontSize: 12,
         fill: '#333',
-        y: 65,
+        refX: '50%',
+        refY: '100%',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'top',
+        y: 4,
       },
     },
   },
   switch: {
-    width: 80,
-    height: 80,
+    width: 40,
+    height: 60,
     shape: 'rect',
-    attrs: {
-      body: {
-        fill: '#fff',
-        stroke: '#13c2c2',
-        strokeWidth: 2,
-        rx: 8,
-        ry: 8,
+    markup: [
+      {
+        tagName: 'image',
+        selector: 'image',
       },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
+    attrs: {
       image: {
-        'xlink:href': '/public/icons/switch.svg',
+        'xlink:href': switchIcon,
         width: 40,
         height: 40,
-        x: 20,
-        y: 12,
+        x: 0,
+        y: 0,
       },
       label: {
         text: '交换机',
         fontSize: 12,
         fill: '#333',
-        y: 65,
+        refX: '50%',
+        refY: '100%',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'top',
+        y: 4,
       },
     },
   },
@@ -324,8 +340,7 @@ const handleDrop = (e: DragEvent) => {
     })
 
     // 触发节点选中事件
-    graph.clearSelection()
-    graph.select(node)
+    graph.trigger('node:selected', { node })
   } catch (error) {
     console.error('Failed to create node:', error)
   }
@@ -394,35 +409,103 @@ const initGraph = () => {
     if (graph && container.value) {
       graph.resize(container.value.clientWidth, container.value.clientHeight)
     }
+  }, { passive: true })
+
+  // 监听选中变化事件
+  graph.on('selection:changed', () => {
+    selectedCells.value = graph?.getSelectedCells() ?? []
+    // 获取第一个选中的节点
+    const node = selectedCells.value.find(cell => cell.isNode())
+    if (node) {
+      console.log('Selected node:', node) // 添加调试日志
+      // 转换节点数据为所需格式
+      const nodeData = {
+        id: node.id,
+        attrs: {
+          label: {
+            text: node.data?.type === 'container' ? '容器' : '交换机',
+            fontSize: 12,
+            fill: '#333',
+            refX: '50%',
+            refY: '100%',
+            textAnchor: 'middle',
+            textVerticalAnchor: 'top',
+            y: 4,
+          },
+        },
+        data: {
+          type: node.data?.type || '',
+          properties: {
+            ...(node.data?.type === 'container' ? { 
+              ip: '192.168.1.100',
+              netmask: '255.255.255.0',
+              gateway: '192.168.1.1'
+            } : {}),
+            ...(node.data?.type === 'switch' ? { 
+              gateway: '192.168.1.1',
+              dhcpStart: '192.168.1.100',
+              dhcpEnd: '192.168.1.200'
+            } : {}),
+            ...(node.data?.properties || {}),
+          },
+        },
+        position: node.position(),
+        size: node.size(),
+      } as Node
+      console.log('Selected node value:', nodeData) // 添加调试日志
+      selectedNode.value = nodeData
+    } else {
+      selectedNode.value = undefined
+    }
   })
 
-  // 监听节点选中事件
-  graph.on('node:selected', ({ node }: { node: any }) => {
-    // 转换节点数据为所需格式
-    selectedNode.value = {
+  // 监听节点点击事件
+  graph.on('node:click', ({ node }) => {
+    console.log('Node clicked:', node) // 添加调试日志
+    const nodeData = {
       id: node.id,
-      attrs: node.getAttrs(),
-      data: node.getData(),
+      attrs: {
+        label: {
+          text: node.data?.type === 'container' ? '容器' : '交换机',
+          fontSize: 12,
+          fill: '#333',
+          refX: '50%',
+          refY: '100%',
+          textAnchor: 'middle',
+          textVerticalAnchor: 'top',
+          y: 4,
+        },
+      },
+      data: {
+        type: node.data?.type || '',
+        properties: {
+          ...(node.data?.type === 'container' ? { 
+            ip: '192.168.1.100',
+            netmask: '255.255.255.0',
+            gateway: '192.168.1.1'
+          } : {}),
+          ...(node.data?.type === 'switch' ? { 
+            gateway: '192.168.1.1',
+            dhcpStart: '192.168.1.100',
+            dhcpEnd: '192.168.1.200'
+          } : {}),
+          ...(node.data?.properties || {}),
+        },
+      },
       position: node.position(),
-      size: node.size()
+      size: node.size(),
     } as Node
-  })
-
-  // 监听节点取消选中事件
-  graph.on('node:unselected', () => {
-    selectedNode.value = undefined
+    console.log('Node data:', nodeData) // 添加调试日志
+    selectedNode.value = nodeData
   })
 
   // 监听节点属性更新事件
   graph.on('node:change:attrs', ({ node }: { node: any }) => {
     if (selectedNode.value && selectedNode.value.id === node.id) {
       selectedNode.value = {
-        id: node.id,
+        ...selectedNode.value,
         attrs: node.getAttrs(),
-        data: node.getData(),
-        position: node.position(),
-        size: node.size()
-      } as Node
+      }
     }
   })
 
@@ -430,18 +513,10 @@ const initGraph = () => {
   graph.on('node:change:data', ({ node }: { node: any }) => {
     if (selectedNode.value && selectedNode.value.id === node.id) {
       selectedNode.value = {
-        id: node.id,
-        attrs: node.getAttrs(),
+        ...selectedNode.value,
         data: node.getData(),
-        position: node.position(),
-        size: node.size()
-      } as Node
+      }
     }
-  })
-
-  // 监听选中变化事件
-  graph.on('selection:changed', () => {
-    selectedCells.value = graph?.getSelectedCells() ?? []
   })
 
   // 监听节点移动事件

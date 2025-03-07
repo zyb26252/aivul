@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 交换机主体 -->
+  <rect x="2" y="4" width="20" height="16" rx="2" stroke="#13c2c2" stroke-width="2" fill="none"/>
+  <!-- 左侧连接点 -->
+  <circle cx="2" cy="8" r="2" fill="#13c2c2"/>
+  <circle cx="2" cy="12" r="2" fill="#13c2c2"/>
+  <circle cx="2" cy="16" r="2" fill="#13c2c2"/>
+  <circle cx="2" cy="20" r="2" fill="#13c2c2"/>
+  <!-- 右侧连接点 -->
+  <circle cx="22" cy="8" r="2" fill="#13c2c2"/>
+  <circle cx="22" cy="12" r="2" fill="#13c2c2"/>
+  <circle cx="22" cy="16" r="2" fill="#13c2c2"/>
+  <circle cx="22" cy="20" r="2" fill="#13c2c2"/>
+  <!-- 内部连接线 -->
+  <path d="M4 8L20 8" stroke="#13c2c2" stroke-width="2"/>
+  <path d="M4 12L20 12" stroke="#13c2c2" stroke-width="2"/>
+  <path d="M4 16L20 16" stroke="#13c2c2" stroke-width="2"/>
+  <path d="M4 20L20 20" stroke="#13c2c2" stroke-width="2"/>
+  <!-- 中间连接线 -->
+  <path d="M12 8L12 20" stroke="#13c2c2" stroke-width="2"/>
+</svg> 
