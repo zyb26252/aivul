@@ -26,6 +26,15 @@
           取消分组
         </el-button>
       </el-button-group>
+      <el-button-group class="ml-2">
+        <el-button 
+          :type="isConnecting ? 'primary' : 'default'"
+          @click="toggleConnecting"
+        >
+          <el-icon><Connection /></el-icon>
+          连线模式
+        </el-button>
+      </el-button-group>
     </div>
 
     <div class="editor-main">
@@ -53,7 +62,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
+import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen, Connection } from '@element-plus/icons-vue'
 import { Graph, Shape } from '@antv/x6'
 import type { Node } from '../types'
 import ElementPanel from './ElementPanel.vue'
@@ -65,6 +74,8 @@ import switchIcon from '@/assets/icons/switch.svg'
 const container = ref<HTMLElement>()
 const selectedNode = ref<Node>()
 const selectedCells = ref<any[]>([])
+const isConnecting = ref(false)
+const sourceNode = ref<any>(null)
 
 // 计算属性
 const canCreateGroup = computed(() => {
@@ -112,6 +123,25 @@ interface NodeConfig {
     tagName: string
     selector: string
   }>
+  ports?: {
+    groups: {
+      [key: string]: {
+        position: string
+        attrs: {
+          circle: {
+            r: number
+            magnet: boolean
+            stroke: string
+            strokeWidth: number
+            fill: string
+            cursor: string
+            event: string
+            visibility: string
+          }
+        }
+      }
+    }
+  }
 }
 
 // 节点配置
@@ -122,6 +152,10 @@ const nodeConfig: Record<string, NodeConfig> = {
     shape: 'rect',
     markup: [
       {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
         tagName: 'image',
         selector: 'image',
       },
@@ -129,8 +163,19 @@ const nodeConfig: Record<string, NodeConfig> = {
         tagName: 'text',
         selector: 'label',
       },
+      {
+        tagName: 'circle',
+        selector: 'magnet',
+      },
     ],
     attrs: {
+      body: {
+        fill: 'none',
+        stroke: 'none',
+        strokeWidth: 0,
+        rx: 4,
+        ry: 4,
+      },
       image: {
         'xlink:href': containerIcon,
         width: 40,
@@ -148,6 +193,48 @@ const nodeConfig: Record<string, NodeConfig> = {
         textVerticalAnchor: 'top',
         y: 4,
       },
+      magnet: {
+        r: 4,
+        fill: '#fff',
+        stroke: '#333',
+        strokeWidth: 1,
+        cx: 20,
+        cy: 0,
+      },
+    },
+    ports: {
+      groups: {
+        top: {
+          position: 'top',
+          attrs: {
+            circle: {
+              r: 4,
+              magnet: true,
+              stroke: '#333',
+              strokeWidth: 1,
+              fill: '#fff',
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
+            },
+          },
+        },
+        bottom: {
+          position: 'bottom',
+          attrs: {
+            circle: {
+              r: 4,
+              magnet: true,
+              stroke: '#333',
+              strokeWidth: 1,
+              fill: '#fff',
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
+            },
+          },
+        },
+      },
     },
   },
   switch: {
@@ -156,6 +243,10 @@ const nodeConfig: Record<string, NodeConfig> = {
     shape: 'rect',
     markup: [
       {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
         tagName: 'image',
         selector: 'image',
       },
@@ -163,8 +254,19 @@ const nodeConfig: Record<string, NodeConfig> = {
         tagName: 'text',
         selector: 'label',
       },
+      {
+        tagName: 'circle',
+        selector: 'magnet',
+      },
     ],
     attrs: {
+      body: {
+        fill: 'none',
+        stroke: 'none',
+        strokeWidth: 0,
+        rx: 4,
+        ry: 4,
+      },
       image: {
         'xlink:href': switchIcon,
         width: 40,
@@ -181,6 +283,48 @@ const nodeConfig: Record<string, NodeConfig> = {
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 4,
+      },
+      magnet: {
+        r: 4,
+        fill: '#fff',
+        stroke: '#333',
+        strokeWidth: 1,
+        cx: 20,
+        cy: 0,
+      },
+    },
+    ports: {
+      groups: {
+        top: {
+          position: 'top',
+          attrs: {
+            circle: {
+              r: 4,
+              magnet: true,
+              stroke: '#333',
+              strokeWidth: 1,
+              fill: '#fff',
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
+            },
+          },
+        },
+        bottom: {
+          position: 'bottom',
+          attrs: {
+            circle: {
+              r: 4,
+              magnet: true,
+              stroke: '#333',
+              strokeWidth: 1,
+              fill: '#fff',
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
+            },
+          },
+        },
       },
     },
   },
@@ -357,191 +501,24 @@ const handleNodeUpdate = (node: Node) => {
   }
 }
 
-// 初始化画布
-const initGraph = () => {
-  if (!container.value) return
-
-  // 创建画布
-  graph = new Graph({
-    container: container.value,
-    width: container.value.clientWidth,
-    height: container.value.clientHeight,
-    grid: {
-      visible: true,
-      type: 'dot',
-      size: 20,
-      color: '#ddd',
-    },
-    connecting: {
-      snap: true,
-      allowBlank: false,
-      allowLoop: false,
-      highlight: true,
-      connector: 'rounded',
-      connectionPoint: 'boundary',
-      router: {
-        name: 'er',
-        args: {
-          direction: 'H',
-        },
-      },
-    },
-    selecting: {
-      enabled: true,
-      multiple: true,
-      rubberband: true,
-      showNodeSelectionBox: true,
-    },
-    keyboard: true,
-    clipboard: true,
-    history: true,
-    interacting: {
-      nodeMovable: true,
-      edgeMovable: true,
-      edgeLabelMovable: false,
-      magnetConnectable: true,
-      stopDelegateOnDragging: false,
-    },
-  })
-
-  // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    if (graph && container.value) {
-      graph.resize(container.value.clientWidth, container.value.clientHeight)
-    }
-  }, { passive: true })
-
-  // 监听选中变化事件
-  graph.on('selection:changed', () => {
-    selectedCells.value = graph?.getSelectedCells() ?? []
-    // 获取第一个选中的节点
-    const node = selectedCells.value.find(cell => cell.isNode())
-    if (node) {
-      console.log('Selected node:', node) // 添加调试日志
-      // 转换节点数据为所需格式
-      const nodeData = {
-        id: node.id,
-        attrs: {
-          label: {
-            text: node.data?.type === 'container' ? '容器' : '交换机',
-            fontSize: 12,
-            fill: '#333',
-            refX: '50%',
-            refY: '100%',
-            textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            y: 4,
-          },
-        },
-        data: {
-          type: node.data?.type || '',
-          properties: {
-            ...(node.data?.type === 'container' ? { 
-              ip: '192.168.1.100',
-              netmask: '255.255.255.0',
-              gateway: '192.168.1.1'
-            } : {}),
-            ...(node.data?.type === 'switch' ? { 
-              gateway: '192.168.1.1',
-              dhcpStart: '192.168.1.100',
-              dhcpEnd: '192.168.1.200'
-            } : {}),
-            ...(node.data?.properties || {}),
-          },
-        },
-        position: node.position(),
-        size: node.size(),
-      } as Node
-      console.log('Selected node value:', nodeData) // 添加调试日志
-      selectedNode.value = nodeData
-    } else {
-      selectedNode.value = undefined
-    }
-  })
-
-  // 监听节点点击事件
-  graph.on('node:click', ({ node }) => {
-    console.log('Node clicked:', node) // 添加调试日志
-    const nodeData = {
-      id: node.id,
-      attrs: {
-        label: {
-          text: node.data?.type === 'container' ? '容器' : '交换机',
-          fontSize: 12,
-          fill: '#333',
-          refX: '50%',
-          refY: '100%',
-          textAnchor: 'middle',
-          textVerticalAnchor: 'top',
-          y: 4,
-        },
-      },
-      data: {
-        type: node.data?.type || '',
-        properties: {
-          ...(node.data?.type === 'container' ? { 
-            ip: '192.168.1.100',
-            netmask: '255.255.255.0',
-            gateway: '192.168.1.1'
-          } : {}),
-          ...(node.data?.type === 'switch' ? { 
-            gateway: '192.168.1.1',
-            dhcpStart: '192.168.1.100',
-            dhcpEnd: '192.168.1.200'
-          } : {}),
-          ...(node.data?.properties || {}),
-        },
-      },
-      position: node.position(),
-      size: node.size(),
-    } as Node
-    console.log('Node data:', nodeData) // 添加调试日志
-    selectedNode.value = nodeData
-  })
-
-  // 监听节点属性更新事件
-  graph.on('node:change:attrs', ({ node }: { node: any }) => {
-    if (selectedNode.value && selectedNode.value.id === node.id) {
-      selectedNode.value = {
-        ...selectedNode.value,
-        attrs: node.getAttrs(),
-      }
-    }
-  })
-
-  // 监听节点数据更新事件
-  graph.on('node:change:data', ({ node }: { node: any }) => {
-    if (selectedNode.value && selectedNode.value.id === node.id) {
-      selectedNode.value = {
-        ...selectedNode.value,
-        data: node.getData(),
-      }
-    }
-  })
-
-  // 监听节点移动事件
-  graph.on('node:moved', ({ node, current }: { node: any; current: { x: number; y: number } }) => {
-    // 如果是分组中的节点，更新分组大小
-    const parentId = node.data?.parent
-    if (parentId) {
-      const parent = graph?.getCellById(parentId)
-      if (parent) {
-        const children = graph?.getNodes().filter(n => n.data?.parent === parentId)
-        if (children && children.length > 0) {
-          const bbox = graph?.getCellsBBox(children)
-          if (bbox) {
-            parent.resize(bbox.width + 32, bbox.height + 32)
-            parent.position(bbox.x - 16, bbox.y - 16)
-          }
-        }
-      }
-    }
-  })
+// 切换连线模式
+const toggleConnecting = () => {
+  isConnecting.value = !isConnecting.value
+  if (!isConnecting.value) {
+    sourceNode.value = null
+  }
 }
 
 // 生命周期钩子
-onMounted(() => {
-  initGraph()
+onMounted(async () => {
+  console.log('Component mounted, initializing graph...')
+  try {
+    await initGraph()
+    console.log('Graph initialized successfully')
+  } catch (error) {
+    console.error('Failed to initialize graph:', error)
+    ElMessage.error('图形初始化失败，请刷新页面重试')
+  }
 })
 
 onUnmounted(() => {
@@ -555,6 +532,241 @@ onUnmounted(() => {
 defineExpose({
   graph,
 })
+
+// 初始化画布
+const initGraph = async () => {
+  console.log('Initializing graph...')
+  console.log('Container:', container.value)
+  
+  if (!container.value) {
+    console.error('Container not available')
+    return
+  }
+
+  try {
+    // 创建画布实例
+    console.log('Creating graph instance...')
+    graph = new Graph({
+      container: container.value,
+      width: container.value.clientWidth,
+      height: container.value.clientHeight,
+      grid: true,
+      mousewheel: {
+        enabled: true,
+        modifiers: [],
+        minScale: 0.2,
+        maxScale: 2,
+      },
+      scaling: {
+        min: 0.2,
+        max: 2,
+      },
+      connecting: {
+        snap: true,
+        allowBlank: false,
+        allowLoop: false,
+        allowNode: true,
+        allowEdge: false,
+        validateConnection({ sourceCell, targetCell }) {
+          // 不允许连接到自身
+          if (sourceCell === targetCell) {
+            return false
+          }
+          // 不允许重复连接
+          const edges = graph?.getEdges() || []
+          return !edges.some(edge => 
+            (edge.getSourceCellId() === sourceCell.id && edge.getTargetCellId() === targetCell.id) ||
+            (edge.getSourceCellId() === targetCell.id && edge.getTargetCellId() === sourceCell.id)
+          )
+        },
+      },
+      selecting: {
+        enabled: true,
+        multiple: true,
+        rubberband: true,
+        showNodeSelectionBox: true,
+      },
+      keyboard: true,
+      clipboard: true,
+      history: true,
+      interacting: {
+        nodeMovable: true,
+        edgeMovable: false,
+        edgeLabelMovable: false,
+        magnetConnectable: true,
+        stopDelegateOnDragging: false,
+      },
+    })
+    console.log('Graph instance created:', graph)
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+      if (graph && container.value) {
+        graph.resize(container.value.clientWidth, container.value.clientHeight)
+      }
+    }, { passive: true })
+
+    // 监听选中变化事件
+    graph.on('selection:changed', () => {
+      selectedCells.value = graph?.getSelectedCells() ?? []
+      // 获取第一个选中的节点
+      const node = selectedCells.value.find(cell => cell.isNode())
+      if (node) {
+        console.log('Selected node:', node)
+        // 转换节点数据为所需格式
+        const nodeData = {
+          id: node.id,
+          attrs: {
+            label: {
+              text: node.data?.type === 'container' ? '容器' : '交换机',
+              fontSize: 12,
+              fill: '#333',
+              refX: '50%',
+              refY: '100%',
+              textAnchor: 'middle',
+              textVerticalAnchor: 'top',
+              y: 4,
+            },
+          },
+          data: {
+            type: node.data?.type || '',
+            properties: {
+              ...(node.data?.type === 'container' ? { 
+                ip: '192.168.1.100',
+                netmask: '255.255.255.0',
+                gateway: '192.168.1.1'
+              } : {}),
+              ...(node.data?.type === 'switch' ? { 
+                gateway: '192.168.1.1',
+                dhcpStart: '192.168.1.100',
+                dhcpEnd: '192.168.1.200'
+              } : {}),
+              ...(node.data?.properties || {}),
+            },
+          },
+          position: node.position(),
+          size: node.size(),
+        } as Node
+        console.log('Selected node value:', nodeData)
+        selectedNode.value = nodeData
+      } else {
+        selectedNode.value = undefined
+      }
+    })
+
+    // 监听节点点击事件
+    graph.on('node:click', ({ node }) => {
+      if (isConnecting.value) {
+        if (!sourceNode.value) {
+          sourceNode.value = node
+          ElMessage.info('请选择目标节点')
+        } else {
+          if (sourceNode.value !== node) {
+            try {
+              graph?.addEdge({
+                source: sourceNode.value,
+                target: node,
+                attrs: {
+                  line: {
+                    stroke: '#333',
+                    strokeWidth: 1,
+                    targetMarker: null,
+                  },
+                },
+              })
+              ElMessage.success('连线创建成功')
+            } catch (error) {
+              ElMessage.error('无法创建连线')
+            }
+          }
+          isConnecting.value = false
+          sourceNode.value = null
+        }
+      } else {
+        console.log('Node clicked:', node)
+        const nodeData = {
+          id: node.id,
+          attrs: {
+            label: {
+              text: node.data?.type === 'container' ? '容器' : '交换机',
+              fontSize: 12,
+              fill: '#333',
+              refX: '50%',
+              refY: '100%',
+              textAnchor: 'middle',
+              textVerticalAnchor: 'top',
+              y: 4,
+            },
+          },
+          data: {
+            type: node.data?.type || '',
+            properties: {
+              ...(node.data?.type === 'container' ? { 
+                ip: '192.168.1.100',
+                netmask: '255.255.255.0',
+                gateway: '192.168.1.1'
+              } : {}),
+              ...(node.data?.type === 'switch' ? { 
+                gateway: '192.168.1.1',
+                dhcpStart: '192.168.1.100',
+                dhcpEnd: '192.168.1.200'
+              } : {}),
+              ...(node.data?.properties || {}),
+            },
+          },
+          position: node.position(),
+          size: node.size(),
+        } as Node
+        console.log('Node data:', nodeData)
+        selectedNode.value = nodeData
+      }
+    })
+
+    // 监听节点属性更新事件
+    graph.on('node:change:attrs', ({ node }) => {
+      if (selectedNode.value && selectedNode.value.id === node.id) {
+        selectedNode.value = {
+          ...selectedNode.value,
+          attrs: node.getAttrs(),
+        }
+      }
+    })
+
+    // 监听节点数据更新事件
+    graph.on('node:change:data', ({ node }) => {
+      if (selectedNode.value && selectedNode.value.id === node.id) {
+        selectedNode.value = {
+          ...selectedNode.value,
+          data: node.getData(),
+        }
+      }
+    })
+
+    // 监听节点移动事件
+    graph.on('node:moved', ({ node, current }) => {
+      // 如果是分组中的节点，更新分组大小
+      const parentId = node.data?.parent
+      if (parentId) {
+        const parent = graph?.getCellById(parentId)
+        if (parent) {
+          const children = graph?.getNodes().filter(n => n.data?.parent === parentId)
+          if (children && children.length > 0) {
+            const bbox = graph?.getCellsBBox(children)
+            if (bbox) {
+              parent.resize(bbox.width + 32, bbox.height + 32)
+              parent.position(bbox.x - 16, bbox.y - 16)
+            }
+          }
+        }
+      }
+    })
+
+    return graph
+  } catch (error) {
+    console.error('Failed to initialize graph:', error)
+    throw error
+  }
+}
 </script>
 
 <style lang="scss" scoped>
