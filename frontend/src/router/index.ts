@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { RouteRecordRaw } from 'vue-router'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -55,6 +56,22 @@ const router = createRouter({
           name: 'Instances',
           component: () => import('../views/instances/index.vue'),
           meta: { title: '实例管理', requiresAuth: true }
+        },
+        {
+          path: 'scene',
+          name: 'Scene',
+          component: () => import('../views/scene/index.vue'),
+          meta: {
+            title: '场景管理'
+          }
+        },
+        {
+          path: 'scene/:id/topology',
+          name: 'Topology',
+          component: () => import('../views/topology/index.vue'),
+          meta: {
+            title: '拓扑编辑器'
+          }
         }
       ]
     }

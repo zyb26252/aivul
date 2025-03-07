@@ -30,11 +30,14 @@
             {{ new Date(row.createdAt).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <div class="operation-group">
               <el-button type="primary" link @click="handleEdit(row)">
                 编辑
+              </el-button>
+              <el-button type="primary" link @click="handleTopology(row)">
+                编辑拓扑
               </el-button>
               <el-button type="danger" link @click="handleDelete(row)">
                 删除
@@ -90,6 +93,7 @@ import type { FormInstance } from 'element-plus'
 import type { Scene } from '@/types/scene'
 import { getSceneList, deleteScene, copyScene, updateScene, createScene } from '@/services/scene'
 import TableSkeleton from '@/components/TableSkeleton.vue'
+import { useRouter } from 'vue-router'
 
 const loading = ref(false)
 const scenes = ref<Scene[]>([])
@@ -98,6 +102,7 @@ const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
+const router = useRouter()
 
 const formData = reactive({
   id: 0,
@@ -231,6 +236,10 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formData.id = 0
   formData.name = ''
   formData.description = ''
+}
+
+const handleTopology = (row: Scene) => {
+  router.push(`/scene/${row.id}/topology`)
 }
 
 onMounted(() => {

@@ -14,7 +14,8 @@ COPY package*.json ./
 
 # 安装依赖
 RUN npm install --quiet && \
-    npm install -D sass --quiet
+    npm install -D sass --quiet && \
+    npm install @antv/x6 --quiet
 
 # 复制源代码
 COPY . .
@@ -30,12 +31,14 @@ FROM node:18-alpine as builder
 
 WORKDIR /app
 
-# 复制依赖文件
+# 复制 package.json 和 package-lock.json
 COPY package*.json ./
 
 # 安装依赖
 RUN npm install && \
-    npm install -D sass
+    npm install -D sass && \
+    npm install @antv/x6 && \
+    npm install terser -D
 
 # 复制源代码
 COPY . .
