@@ -6,7 +6,7 @@ services:
     build:
       context: .
       target: development
-    container_name: aivul-frontend-dev
+    container_name: frontend-dev
     volumes:
       - .:/app
       - /app/node_modules
@@ -16,37 +16,27 @@ services:
       - NODE_ENV=development
       - VITE_API_BASE_URL=http://47.86.184.188:8000
       - VITE_API_TIMEOUT=30000
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+      - NPM_CONFIG_FUND=false
+      - NPM_CONFIG_AUDIT=false
+    command: sh -c "npm run dev -- --host 0.0.0.0"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 3s
       retries: 3
-    restart: unless-stopped
-
-  # 生产环境
-  frontend-prod:
-    build:
-      context: .
-      target: production
-    container_name: aivul-frontend-prod
-    ports:
-      - "80:80"
-    environment:
-      - NODE_ENV=production
-      - NGINX_HOST=localhost
-      - NGINX_PORT=80
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
+      start_period: 5s
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: '0.5'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.25'
-          memory: 256M 
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+

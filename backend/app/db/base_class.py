@@ -1,5 +1,6 @@
 from typing import Any
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from app.models.user import Base as UserBase  # noqa
 
 @as_declarative()
 class Base:

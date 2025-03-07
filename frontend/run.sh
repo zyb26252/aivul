@@ -1,1 +1,1 @@
-docker run -p 3000:3000 -v $(pwd):/app my-frontend-app
+docker run -p 3000:3000 -v $(pwd):/app aivul-frontend-dev
