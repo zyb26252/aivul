@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景网格 -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    </pattern>
+    <!-- 攻击向量动画 -->
+    <animate id="attack" attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite"/>
+  </defs>
+  <rect width="800" height="600" fill="url(#grid)"/>
+  
+  <!-- 防护盾牌 -->
+  <g transform="translate(200,200)">
+    <path d="M 0 -80 L 40 -40 L 40 40 L 0 80 L -40 40 L -40 -40 Z" 
+          fill="rgba(255,255,255,0.05)" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+    <path d="M 0 -60 L 30 -30 L 30 30 L 0 60 L -30 30 L -30 -30 Z" 
+          fill="rgba(255,255,255,0.05)" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+    <path d="M 0 -40 L 20 -20 L 20 20 L 0 40 L -20 20 L -20 -20 Z" 
+          fill="rgba(255,255,255,0.1)" 
+          stroke="rgba(255,255,255,0.3)" 
+          stroke-width="2"/>
+  </g>
+
+  <!-- 防火墙 -->
+  <g transform="translate(400,300)">
+    <rect x="-40" y="-60" width="80" height="120" rx="8" 
+          fill="rgba(255,255,255,0.05)" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+    <rect x="-30" y="-50" width="60" height="100" rx="4" 
+          fill="rgba(255,255,255,0.05)" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+    <path d="M -20 -40 L 20 -40 M -20 0 L 20 0 M -20 40 L 20 40" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+  </g>
+
+  <!-- 攻击向量 -->
+  <g transform="translate(600,200)">
+    <circle cx="0" cy="0" r="60" 
+            fill="none" 
+            stroke="rgba(255,255,255,0.1)" 
+            stroke-width="2" 
+            stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="40" 
+            fill="none" 
+            stroke="rgba(255,255,255,0.1)" 
+            stroke-width="2" 
+            stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M -30 -30 L 30 30 M -30 30 L 30 -30" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+  </g>
+
+  <!-- 连接线 -->
+  <path d="M 200 200 L 400 300 L 600 200" 
+        stroke="rgba(255,255,255,0.1)" 
+        stroke-width="2" 
+        stroke-dasharray="5,5">
+    <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- 数据包 -->
+  <g transform="translate(300,400)">
+    <rect x="-20" y="-10" width="40" height="20" rx="4" 
+          fill="rgba(255,255,255,0.1)" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+    <path d="M -10 -10 L -10 10 M 10 -10 L 10 10" 
+          stroke="rgba(255,255,255,0.2)" 
+          stroke-width="2"/>
+  </g>
+
+  <!-- 防护层 -->
+  <g transform="translate(500,400)">
+    <circle cx="0" cy="0" r="30" 
+            fill="none" 
+            stroke="rgba(255,255,255,0.1)" 
+            stroke-width="2"/>
+    <circle cx="0" cy="0" r="20" 
+            fill="none" 
+            stroke="rgba(255,255,255,0.1)" 
+            stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" 
+            fill="rgba(255,255,255,0.1)" 
+            stroke="rgba(255,255,255,0.2)" 
+            stroke-width="2"/>
+  </g>
+</svg> 
