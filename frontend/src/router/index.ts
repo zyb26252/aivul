@@ -27,6 +27,12 @@ const router = createRouter({
           meta: { title: '首页', requiresAuth: true }
         },
         {
+          path: 'scenes',
+          name: 'Scenes',
+          component: () => import('../views/scene/index.vue'),
+          meta: { title: '场景管理', requiresAuth: true }
+        },
+        {
           path: 'images',
           name: 'Images',
           component: () => import('../views/images/index.vue'),

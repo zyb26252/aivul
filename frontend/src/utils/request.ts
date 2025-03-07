@@ -27,10 +27,7 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    if (response.data && typeof response.data === 'object') {
-      return response.data
-    }
-    return { data: response.data }
+    return response.data
   },
   error => {
     if (error.response) {

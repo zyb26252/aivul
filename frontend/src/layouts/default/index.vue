@@ -26,6 +26,10 @@
           <el-icon><Aim /></el-icon>
           <span>靶标管理</span>
         </el-menu-item>
+        <el-menu-item index="/scenes">
+          <el-icon><Operation /></el-icon>
+          <span>场景管理</span>
+        </el-menu-item>
         <el-menu-item index="/instances">
           <el-icon><Monitor /></el-icon>
           <span>实例管理</span>
@@ -64,7 +68,8 @@ import {
   Box,
   Aim,
   Monitor,
-  User
+  User,
+  Operation
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { onMounted } from 'vue'
