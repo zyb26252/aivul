@@ -351,21 +351,14 @@
       <!-- 兼容性分析对话框 -->
       <el-dialog
         v-model="compatibilityDialogVisible"
-        title="兼容性分析"
-        width="800px"
-        top="5vh"
-        class="compatibility-dialog"
+        title="兼容性分析结果"
+        width="60%"
       >
-        <div class="compatibility-content markdown-body" v-html="renderedCompatibilityAnalysis" />
+        <div v-loading="compatibilityLoading">
+          <div class="markdown-body" v-html="renderedCompatibilityResult"></div>
+        </div>
         <template #footer>
           <el-button @click="compatibilityDialogVisible = false">关闭</el-button>
-          <el-button
-            type="primary"
-            :loading="compatibilityLoading"
-            @click="handleConfirmCompatibility"
-          >
-            继续使用
-          </el-button>
         </template>
       </el-dialog>
 
@@ -716,84 +709,18 @@ const compatibilityLoading = ref(false)
 
 // 添加兼容性分析对话框的状态
 const compatibilityDialogVisible = ref(false)
-const compatibilityAnalysis = ref('')
+const compatibilityResult = ref<string>('')  // 改为 string 类型
 
-// 添加兼容性结果的类型定义
-interface CompatibilityResult {
-  has_compatibility_issues: boolean
-  analysis: string
-}
+const converter = new window.showdown.Converter()
 
-// 添加兼容性结果的状态
-const compatibilityResult = ref<CompatibilityResult | null>(null)
-
-// 修改计算属性，优化 markdown 渲染
-const renderedCompatibilityAnalysis = computed(() => {
-  if (!compatibilityAnalysis.value) return ''
-  
-  const lines = compatibilityAnalysis.value.split('\n')
-  const result = []
-  let inCodeBlock = false
-  let listItems = []
-
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i]
-    
-    // 处理代码块
-    if (line.startsWith('```')) {
-      if (!inCodeBlock) {
-        inCodeBlock = true
-        result.push('<pre><code>')
-        continue
-      } else {
-        inCodeBlock = false
-        result.push('</code></pre>')
-        continue
-      }
-    }
-
-    if (inCodeBlock) {
-      result.push(line)
-      continue
-    }
-
-    // 处理加粗文本
-    line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-
-    // 处理标题
-    if (line.match(/^#{1,6}\s/)) {
-      const level = line.match(/^(#{1,6})\s/)[1].length
-      const text = line.slice(level + 1)
-      result.push(`<h${level}>${text}</h${level}>`)
-      continue
-    }
-
-    // 处理列表项
-    if (line.startsWith('- ')) {
-      listItems.push(`<li>${line.slice(2)}</li>`)
-      if (!lines[i + 1]?.startsWith('- ') || i === lines.length - 1) {
-        result.push('<ul>' + listItems.join('') + '</ul>')
-        listItems = []
-      }
-      continue
-    }
-
-    // 处理行内代码
-    if (line.includes('`')) {
-      line = line.replace(/`([^`]+)`/g, '<code>$1</code>')
-    }
-
-    // 处理空行
-    if (!line.trim()) {
-      result.push('<br>')
-      continue
-    }
-
-    // 处理普通段落
-    result.push(`<p>${line}</p>`)
+const renderedCompatibilityResult = computed(() => {
+  if (!compatibilityResult.value) return ''
+  try {
+    return converter.makeHtml(compatibilityResult.value)
+  } catch (error) {
+    console.error('Markdown rendering error:', error)
+    return compatibilityResult.value
   }
-
-  return result.join('\n')
 })
 
 // 处理软件选择变化
@@ -845,8 +772,8 @@ const checkSoftwareCompatibility = async () => {
   compatibilityLoading.value = true
   try {
     const result = await checkCompatibility(form.value.base_image_id, form.value.software_ids)
-    compatibilityResult.value = result
-    compatibilityAnalysis.value = result.analysis
+    // 直接将返回的结果字符串赋值给 compatibilityResult
+    compatibilityResult.value = result.result
     compatibilityDialogVisible.value = true
   } catch (error) {
     ElMessage.error('检查软件兼容性时发生错误')
@@ -867,30 +794,6 @@ const filteredTargets = computed(() => {
 // 处理搜索输入
 const handleSearch = () => {
   // 这里可以添加防抖逻辑如果需要
-}
-
-// 添加处理兼容性确认的函数
-const handleConfirmCompatibility = async () => {
-  compatibilityDialogVisible.value = false
-  // 如果没有兼容性问题，不需要进一步操作
-  if (!compatibilityResult.value?.has_compatibility_issues) {
-    return
-  }
-  
-  try {
-    await ElMessageBox.confirm(
-      '确定要继续使用这些软件吗？',
-      '确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-  } catch {
-    // 用户点击了取消，清空最后选择的软件
-    form.value.software_ids = form.value.software_ids.slice(0, -1)
-  }
 }
 
 // 处理表格选择变化
@@ -1172,6 +1075,46 @@ onMounted(() => {
       padding: 0 20px 20px;
       border-top: 1px solid var(--el-border-color-light);
     }
+  }
+}
+
+.compatibility-result {
+  white-space: pre-wrap;
+  font-family: monospace;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+// 修改 Markdown 样式
+:deep(.markdown-body) {
+  box-sizing: border-box;
+  min-width: 200px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  
+  @media (max-width: 767px) {
+    padding: 15px;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  
+  p {
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  
+  ul {
+    padding-left: 2em;
+    margin-top: 0;
+    margin-bottom: 16px;
   }
 }
 </style> 

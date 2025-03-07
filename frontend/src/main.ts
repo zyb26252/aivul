@@ -13,6 +13,11 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
+// 使用 v-md-editor（从全局变量中获取）
+if (window.VueMarkdownPreview) {
+  app.use(window.VueMarkdownPreview)
+}
+
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)

@@ -33,7 +33,7 @@ export const deleteSoftware = (id: number) => {
 
 export const checkCompatibility = (baseImageId: number, softwareIds: number[]) => {
   return request<any>({
-    url: '/api/v1/ai/check-compatibility',
+    url: '/api/v1/ai/check_compatibility',
     method: 'post',
     data: {
       base_image_id: baseImageId,

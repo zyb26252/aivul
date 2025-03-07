@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import auth, images, software, targets, instances, dashboard
-from app.api.v1 import ai
+from app.api import auth, images, software, targets, instances, dashboard, ai
 from app.models.user import Base
 from app.db.session import engine
 from app.db.init_db import init_db
