@@ -107,13 +107,17 @@ const handleLogout = () => {
   font-size: 20px;
   font-weight: bold;
   gap: 8px;
+  padding: 0 12px;
+  text-align: center;
   
   .logo-icon {
     font-size: 24px;
+    flex-shrink: 0;
   }
   
   .logo-text {
     letter-spacing: 1px;
+    line-height: 1.2;
   }
 }
 

@@ -81,7 +81,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  document.title = to.meta.title ? `${to.meta.title} - 靶标管理系统` : '靶标管理系统'
+  document.title = to.meta.title ? `${to.meta.title} - AI驱动的网络靶场驱动自动化构建引擎` : 'AI驱动的网络靶场驱动自动化构建引擎'
   
   if (to.meta.requiresAuth && !token) {
     ElMessage.warning('请先登录')
