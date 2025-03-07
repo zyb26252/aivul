@@ -127,7 +127,7 @@ const nodeConfig: Record<string, NodeConfig> = {
         ry: 8,
       },
       image: {
-        'xlink:href': '/icons/container.svg',
+        'xlink:href': '/public/icons/container.svg',
         width: 40,
         height: 40,
         x: 20,
@@ -154,7 +154,7 @@ const nodeConfig: Record<string, NodeConfig> = {
         ry: 8,
       },
       image: {
-        'xlink:href': '/icons/switch.svg',
+        'xlink:href': '/public/icons/switch.svg',
         width: 40,
         height: 40,
         x: 20,
@@ -236,7 +236,7 @@ const handleCreateGroup = () => {
   })
 
   // 选中分组节点
-  graph.cleanSelection()
+  graph.clearSelection()
   graph.select(group)
 }
 
@@ -324,7 +324,7 @@ const handleDrop = (e: DragEvent) => {
     })
 
     // 触发节点选中事件
-    graph.cleanSelection()
+    graph.clearSelection()
     graph.select(node)
   } catch (error) {
     console.error('Failed to create node:', error)
@@ -398,12 +398,45 @@ const initGraph = () => {
 
   // 监听节点选中事件
   graph.on('node:selected', ({ node }: { node: any }) => {
-    selectedNode.value = node as Node
+    // 转换节点数据为所需格式
+    selectedNode.value = {
+      id: node.id,
+      attrs: node.getAttrs(),
+      data: node.getData(),
+      position: node.position(),
+      size: node.size()
+    } as Node
   })
 
   // 监听节点取消选中事件
   graph.on('node:unselected', () => {
     selectedNode.value = undefined
+  })
+
+  // 监听节点属性更新事件
+  graph.on('node:change:attrs', ({ node }: { node: any }) => {
+    if (selectedNode.value && selectedNode.value.id === node.id) {
+      selectedNode.value = {
+        id: node.id,
+        attrs: node.getAttrs(),
+        data: node.getData(),
+        position: node.position(),
+        size: node.size()
+      } as Node
+    }
+  })
+
+  // 监听节点数据更新事件
+  graph.on('node:change:data', ({ node }: { node: any }) => {
+    if (selectedNode.value && selectedNode.value.id === node.id) {
+      selectedNode.value = {
+        id: node.id,
+        attrs: node.getAttrs(),
+        data: node.getData(),
+        position: node.position(),
+        size: node.size()
+      } as Node
+    }
   })
 
   // 监听选中变化事件

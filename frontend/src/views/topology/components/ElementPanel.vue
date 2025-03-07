@@ -24,12 +24,12 @@ const elements: Element[] = [
   {
     type: 'container',
     name: '容器',
-    icon: '/icons/container.svg',
+    icon: '/public/icons/container.svg',
   },
   {
     type: 'switch',
     name: '交换机',
-    icon: '/icons/switch.svg',
+    icon: '/public/icons/switch.svg',
   },
 ]
 

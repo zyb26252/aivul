@@ -80,10 +80,20 @@ const formData = ref<{
 // 监听选中节点变化
 watch(() => props.selectedNode, (node) => {
   if (node) {
+    // 初始化默认属性
+    const defaultProperties = node.data?.type === 'container' 
+      ? { cpu: 1, memory: 1 }
+      : node.data?.type === 'switch'
+      ? { bandwidth: '1', vlan: 1 }
+      : {}
+
     formData.value = {
       name: node.attrs?.label?.text ?? '',
       type: node.data?.type ?? '',
-      properties: node.data?.properties ?? {}
+      properties: {
+        ...defaultProperties,
+        ...(node.data?.properties ?? {})
+      }
     }
   } else {
     formData.value = {
@@ -97,31 +107,35 @@ watch(() => props.selectedNode, (node) => {
 // 处理名称变更
 const emit = defineEmits(['update:node'])
 const handleNameChange = () => {
-  if (props.selectedNode) {
-    emit('update:node', {
-      ...props.selectedNode,
-      attrs: {
-        ...props.selectedNode.attrs,
-        label: {
-          ...props.selectedNode.attrs?.label,
-          text: formData.value.name
-        }
+  if (!props.selectedNode) return
+
+  emit('update:node', {
+    ...props.selectedNode,
+    attrs: {
+      ...props.selectedNode.attrs,
+      label: {
+        ...props.selectedNode.attrs?.label,
+        text: formData.value.name
       }
-    })
-  }
+    }
+  })
 }
 
 // 处理属性变更
 const handlePropertyChange = () => {
-  if (props.selectedNode) {
-    emit('update:node', {
-      ...props.selectedNode,
-      data: {
-        ...props.selectedNode.data,
-        properties: formData.value.properties
+  if (!props.selectedNode) return
+
+  emit('update:node', {
+    ...props.selectedNode,
+    data: {
+      ...props.selectedNode.data,
+      type: formData.value.type,
+      properties: {
+        ...(props.selectedNode.data?.properties ?? {}),
+        ...formData.value.properties
       }
-    })
-  }
+    }
+  })
 }
 </script>
 

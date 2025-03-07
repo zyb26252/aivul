@@ -10,7 +10,8 @@ declare module '@antv/x6' {
     clientToLocal(point: { x: number; y: number }): { x: number; y: number }
     addNode(options: any): Cell
     select(node: Cell | Cell[]): void
-    cleanSelection(): void
+    clearSelection(): void
+    unselect(node?: Cell | Cell[]): void
     getCellById(id: string): Cell | null
     getSelectedCells(): Cell[]
     addCell(cell: Cell): Cell
