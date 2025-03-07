@@ -8,6 +8,7 @@ from app.models.image import Image
 from app.models.instance import Instance
 from app.models.target import Target
 from app.models.software import Software
+from app.models.scene import Scene
 from app.schemas.dashboard import DashboardStats, Activity, ResourceUsage
 
 router = APIRouter()
@@ -41,6 +42,36 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             type="新增实例",
             name=instance.name,
             createdAt=instance.created_at.isoformat()
+        ))
+
+    # 获取最新的软件
+    recent_software = db.query(Software).order_by(Software.created_at.desc()).limit(3).all()
+    for software in recent_software:
+        recent_activities.append(Activity(
+            id=software.id,
+            type="新增软件",
+            name=software.name,
+            createdAt=software.created_at.isoformat()
+        ))
+
+    # 获取最新的靶标
+    recent_targets = db.query(Target).order_by(Target.created_at.desc()).limit(3).all()
+    for target in recent_targets:
+        recent_activities.append(Activity(
+            id=target.id,
+            type="新增靶标",
+            name=target.name,
+            createdAt=target.created_at.isoformat()
+        ))
+
+    # 获取最新的场景
+    recent_scenes = db.query(Scene).order_by(Scene.created_at.desc()).limit(3).all()
+    for scene in recent_scenes:
+        recent_activities.append(Activity(
+            id=scene.id,
+            type="新增场景",
+            name=scene.name,
+            createdAt=scene.created_at.isoformat()
         ))
 
     # 获取系统资源使用情况
