@@ -35,6 +35,15 @@
           连线模式
         </el-button>
       </el-button-group>
+      <el-button-group class="ml-2">
+        <el-button 
+          @click="handleDelete" 
+          :disabled="!canDelete"
+        >
+          <el-icon><Delete /></el-icon>
+          删除
+        </el-button>
+      </el-button-group>
     </div>
 
     <div class="editor-main">
@@ -63,8 +72,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen, Connection } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen, Connection, Delete } from '@element-plus/icons-vue'
 import { Graph, Shape } from '@antv/x6'
 import { register } from '@antv/x6-vue-shape'
 import type { Cell } from '@antv/x6'
@@ -98,6 +107,10 @@ const canCreateGroup = computed(() => {
 
 const canUngroup = computed(() => {
   return selectedCells.value.length === 1 && selectedCells.value[0].isNode() && selectedCells.value[0].data?.type === 'group'
+})
+
+const canDelete = computed(() => {
+  return selectedCells.value.length > 0
 })
 
 // 画布实例
@@ -650,12 +663,61 @@ const handleEdgeUpdate = (edge: any) => {
   }
 }
 
+// 删除处理
+const handleDelete = async () => {
+  if (!graph) return
+  
+  try {
+    // 获取选中的元素
+    const cells = selectedCells.value
+    if (cells.length === 0) return
+
+    // 弹出确认对话框
+    await ElMessageBox.confirm(
+      '确定要删除选中的元素吗？此操作不可恢复',
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    // 删除选中的元素
+    cells.forEach(cell => {
+      // 如果是节点,需要同时删除相连的边
+      if (cell.isNode()) {
+        // 获取相连的边
+        const connectedEdges = graph?.getConnectedEdges(cell) || []
+        // 删除相连的边
+        connectedEdges.forEach(edge => graph?.removeCell(edge))
+      }
+      // 删除元素
+      graph?.removeCell(cell)
+    })
+
+    // 清除选中状态
+    selectedNode.value = undefined
+    selectedEdge.value = null
+
+    ElMessage.success('删除成功')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 // 生命周期钩子
 onMounted(async () => {
   console.log('Component mounted, initializing graph...')
   try {
     await initGraph()
     console.log('Graph initialized successfully')
+
+    // 添加键盘事件监听
+    window.addEventListener('keydown', handleKeyDown)
   } catch (error) {
     console.error('Failed to initialize graph:', error)
     ElMessage.error('图形初始化失败，请刷新页面重试')
@@ -666,8 +728,18 @@ onUnmounted(() => {
   if (graph) {
     graph.dispose()
   }
+  // 移除键盘事件监听
+  window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('resize', () => {})
 })
+
+// 键盘事件处理
+const handleKeyDown = (e: KeyboardEvent) => {
+  // 如果按下Delete键且可以删除
+  if (e.key === 'Delete' && canDelete.value) {
+    handleDelete()
+  }
+}
 
 // 对外暴露方法
 defineExpose({
@@ -723,83 +795,9 @@ const initGraph = async () => {
           },
         },
       },
-      connecting: {
-        snap: true,
-        allowBlank: false,
-        allowLoop: false,
-        allowNode: true,
-        allowEdge: false,
-        connector: {
-          name: 'rounded',
-          args: {
-            radius: 8
-          }
-        },
-        router: {
-          name: 'manhattan',
-          args: {
-            padding: 10,
-            startDirections: ['right', 'bottom', 'left', 'top'],
-            endDirections: ['left', 'top', 'right', 'bottom']
-          }
-        },
-        connectionPoint: {
-          name: 'anchor',
-          args: {
-            offset: -4
-          }
-        },
-        anchor: 'center',
-        validateConnection({ sourceCell, targetCell }) {
-          // 不允许连接到自身
-          if (sourceCell === targetCell) {
-            return false
-          }
-          // 不允许重复连接
-          const edges = graph?.getEdges() || []
-          return !edges.some(edge => 
-            (edge.getSourceCellId() === sourceCell.id && edge.getTargetCellId() === targetCell.id) ||
-            (edge.getSourceCellId() === targetCell.id && edge.getTargetCellId() === sourceCell.id)
-          )
-        },
-        // 设置默认的边样式
-        createEdge() {
-          return new Shape.Edge({
-            router: {
-              name: 'manhattan',
-              args: {
-                padding: 10,
-                startDirections: ['right', 'bottom', 'left', 'top'],
-                endDirections: ['left', 'top', 'right', 'bottom']
-              }
-            },
-            connector: {
-              name: 'rounded',
-              args: {
-                radius: 8
-              }
-            },
-            attrs: {
-              line: {
-                stroke: '#333',
-                strokeWidth: 1,
-                targetMarker: null
-              }
-            }
-          })
-        }
+      background: {
+        color: '#F8F9FA',
       },
-      selecting: {
-        enabled: true,
-        multiple: true,
-        rubberband: true,
-        showNodeSelectionBox: true,
-        strict: false,
-        showEdgeSelectionBox: false,
-      },
-      keyboard: true,
-      clipboard: true,
-      history: true,
       interacting: {
         nodeMovable: true,
         edgeMovable: false,
@@ -808,6 +806,17 @@ const initGraph = async () => {
         stopDelegateOnDragging: false,
         edgeMovableItems: []
       },
+      selecting: {
+        enabled: true,
+        multiple: true,
+        rubberband: true,
+        showNodeSelectionBox: true,
+        strict: true,
+        showEdgeSelectionBox: false,
+      },
+      keyboard: true,
+      clipboard: true,
+      history: true,
       embedding: {
         enabled: true,
         findParent({ node }) {
@@ -832,32 +841,86 @@ const initGraph = async () => {
       }
     }, { passive: true })
 
-    // 监听选中变化事件
-    graph.on('selection:changed', () => {
-      try {
-        // 获取所有选中的元素
-        const cells = graph?.getSelectedCells() || []
-        selectedCells.value = cells
+    // 监听选择状态变化
+    graph.on('selection:changed', ({ selected, removed }) => {
+      // 更新选中状态
+      selectedCells.value = graph?.getSelectedCells() || []
+
+      // 清除所有节点的高亮效果
+      graph?.getNodes().forEach(node => {
+        if (node.data?.type !== 'group') {
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
+              stroke: 'none',
+              strokeWidth: 0
+            }
+          })
+        }
+      })
+
+      // 清除所有边的高亮效果
+      graph?.getEdges().forEach(edge => {
+        edge.setAttrs({
+          line: {
+            ...edge.getAttrs().line,
+            stroke: '#333',
+            strokeWidth: 1,
+            strokeDasharray: ''
+          }
+        })
+      })
+
+      // 如果有选中的元素
+      if (selected && selected.length > 0) {
+        const cell = selected[0]
         
-        // 只取第一个选中的元素
-        const cell = cells[0]
-        
-        if (cell?.isEdge()) {
+        if (cell.isEdge()) {
+          // 设置边的高亮效果
+          cell.setAttrs({
+            line: {
+              ...cell.getAttrs().line,
+              stroke: '#1890ff',
+              strokeWidth: 2,
+              strokeDasharray: '5 5'
+            }
+          })
+          
           selectedNode.value = undefined
           selectedEdge.value = {
             id: cell.id,
             connector: cell.getConnector()?.name || 'normal',
+            attrs: cell.getAttrs()
+          }
+        } else if (cell.isNode() && cell.data?.type !== 'group') {
+          // 设置节点的高亮效果
+          cell.setAttrs({
+            body: {
+              ...cell.getAttrs().body,
+              stroke: '#1890ff',
+              strokeWidth: 2,
+              strokeDasharray: '5 5'
+            }
+          })
+          
+          selectedEdge.value = null
+          const nodeData = {
+            id: cell.id,
+            type: cell.data?.type,
+            data: {
+              type: cell.data?.type,
+              properties: cell.data?.properties || {},
+            },
+            position: cell.getPosition(),
+            size: cell.getSize(),
             attrs: cell.getAttrs(),
           }
-        } else if (cell?.isNode() && cell.data?.type !== 'group') {
-          selectedEdge.value = null
-          selectedNode.value = cell
-        } else {
-          selectedNode.value = undefined
-          selectedEdge.value = null
+          selectedNode.value = nodeData
         }
-      } catch (error) {
-        console.error('Error in selection:changed event:', error)
+      } else {
+        // 清除选中状态
+        selectedNode.value = undefined
+        selectedEdge.value = null
       }
     })
 
@@ -942,6 +1005,8 @@ const initGraph = async () => {
         }
         
         selectedEdge.value = null
+        // 更新选中状态
+        selectedCells.value = [node]
         // 构造完整的节点数据
         const nodeData = {
           id: node.id,
@@ -995,6 +1060,8 @@ const initGraph = async () => {
         }
       })
 
+      // 更新选中状态
+      selectedCells.value = [edge]
       // 清除节点选中状态
       selectedNode.value = undefined
       // 设置当前选中的连线
@@ -1003,6 +1070,39 @@ const initGraph = async () => {
         connector: edge.getConnector()?.name || 'normal',
         attrs: edge.getAttrs()
       }
+    })
+
+    // 监听空白处点击事件
+    graph.on('blank:click', () => {
+      // 清除所有节点的高亮效果
+      graph?.getNodes().forEach(node => {
+        if (node.data?.type !== 'group') {
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
+              stroke: 'none',
+              strokeWidth: 0
+            }
+          })
+        }
+      })
+
+      // 清除所有边的高亮效果
+      graph?.getEdges().forEach(edge => {
+        edge.setAttrs({
+          line: {
+            ...edge.getAttrs().line,
+            stroke: '#333',
+            strokeWidth: 1,
+            strokeDasharray: ''
+          }
+        })
+      })
+
+      // 清除选中状态
+      selectedCells.value = []
+      selectedNode.value = undefined
+      selectedEdge.value = null
     })
 
     // 监听节点属性更新事件
