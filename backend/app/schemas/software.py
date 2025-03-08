@@ -21,7 +21,7 @@ class SoftwareUpdate(SoftwareBase):
 class Software(SoftwareBase):
     id: int
     created_at: datetime
-    created_by_id: int
+    owner_id: int
 
     class Config:
         from_attributes = True 

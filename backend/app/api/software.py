@@ -53,7 +53,7 @@ def create_software(
     try:
         software = SoftwareModel(
             **software_in.dict(),
-            created_by_id=current_user.id
+            owner_id=current_user.id
         )
         db.add(software)
         db.commit()
