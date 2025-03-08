@@ -52,7 +52,9 @@
         <h3 class="panel-title">属性</h3>
         <property-panel 
           :selected-node="selectedNode" 
+          :selected-edge="selectedEdge" 
           @update:node="handleNodeUpdate" 
+          @update:edge="handleEdgeUpdate"
         />
       </div>
     </div>
@@ -73,6 +75,7 @@ import switchIcon from '@/assets/icons/switch.svg'
 // 状态
 const container = ref<HTMLElement>()
 const selectedNode = ref<Node>()
+const selectedEdge = ref<any>(null)
 const selectedCells = ref<any[]>([])
 const isConnecting = ref(false)
 const sourceNode = ref<any>(null)
@@ -162,11 +165,7 @@ const nodeConfig: Record<string, NodeConfig> = {
       {
         tagName: 'text',
         selector: 'label',
-      },
-      {
-        tagName: 'circle',
-        selector: 'magnet',
-      },
+      }
     ],
     attrs: {
       body: {
@@ -192,15 +191,7 @@ const nodeConfig: Record<string, NodeConfig> = {
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 4,
-      },
-      magnet: {
-        r: 4,
-        fill: '#fff',
-        stroke: '#333',
-        strokeWidth: 1,
-        cx: 20,
-        cy: 0,
-      },
+      }
     },
     ports: {
       groups: {
@@ -253,11 +244,7 @@ const nodeConfig: Record<string, NodeConfig> = {
       {
         tagName: 'text',
         selector: 'label',
-      },
-      {
-        tagName: 'circle',
-        selector: 'magnet',
-      },
+      }
     ],
     attrs: {
       body: {
@@ -283,15 +270,7 @@ const nodeConfig: Record<string, NodeConfig> = {
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 4,
-      },
-      magnet: {
-        r: 4,
-        fill: '#fff',
-        stroke: '#333',
-        strokeWidth: 1,
-        cx: 20,
-        cy: 0,
-      },
+      }
     },
     ports: {
       groups: {
@@ -509,6 +488,16 @@ const toggleConnecting = () => {
   }
 }
 
+// 处理连线更新
+const handleEdgeUpdate = (edge: any) => {
+  if (!graph) return
+
+  const target = graph.getCellById(edge.id)
+  if (target) {
+    target.setAttrs(edge.attrs)
+  }
+}
+
 // 生命周期钩子
 onMounted(async () => {
   console.log('Component mounted, initializing graph...')
@@ -609,16 +598,28 @@ const initGraph = async () => {
     // 监听选中变化事件
     graph.on('selection:changed', () => {
       selectedCells.value = graph?.getSelectedCells() ?? []
-      // 获取第一个选中的节点
-      const node = selectedCells.value.find(cell => cell.isNode())
-      if (node) {
-        console.log('Selected node:', node)
+      // 获取第一个选中的节点或边
+      const cell = selectedCells.value[0]
+      
+      if (cell?.isEdge()) {
+        selectedNode.value = undefined
+        selectedEdge.value = {
+          id: cell.id,
+          attrs: cell.getAttrs() || {
+            line: {
+              stroke: '#333',
+              strokeWidth: 1,
+            }
+          }
+        }
+      } else if (cell?.isNode()) {
+        selectedEdge.value = null
         // 转换节点数据为所需格式
         const nodeData = {
-          id: node.id,
+          id: cell.id,
           attrs: {
             label: {
-              text: node.data?.type === 'container' ? '容器' : '交换机',
+              text: cell.data?.type === 'container' ? '容器' : '交换机',
               fontSize: 12,
               fill: '#333',
               refX: '50%',
@@ -629,28 +630,28 @@ const initGraph = async () => {
             },
           },
           data: {
-            type: node.data?.type || '',
+            type: cell.data?.type || '',
             properties: {
-              ...(node.data?.type === 'container' ? { 
+              ...(cell.data?.type === 'container' ? { 
                 ip: '192.168.1.100',
                 netmask: '255.255.255.0',
                 gateway: '192.168.1.1'
               } : {}),
-              ...(node.data?.type === 'switch' ? { 
+              ...(cell.data?.type === 'switch' ? { 
                 gateway: '192.168.1.1',
                 dhcpStart: '192.168.1.100',
                 dhcpEnd: '192.168.1.200'
               } : {}),
-              ...(node.data?.properties || {}),
+              ...(cell.data?.properties || {}),
             },
           },
-          position: node.position(),
-          size: node.size(),
+          position: cell.position(),
+          size: cell.size(),
         } as Node
-        console.log('Selected node value:', nodeData)
         selectedNode.value = nodeData
       } else {
         selectedNode.value = undefined
+        selectedEdge.value = null
       }
     })
 
@@ -720,6 +721,24 @@ const initGraph = async () => {
         console.log('Node data:', nodeData)
         selectedNode.value = nodeData
       }
+    })
+
+    // 添加连线点击事件监听
+    graph.on('edge:click', ({ edge }) => {
+      // 清除节点选中状态
+      selectedNode.value = undefined
+      // 设置当前选中的连线
+      selectedEdge.value = {
+        id: edge.id,
+        attrs: edge.getAttrs() || {
+          line: {
+            stroke: '#333',
+            strokeWidth: 1,
+          }
+        }
+      }
+      // 选中当前连线
+      graph?.select(edge)
     })
 
     // 监听节点属性更新事件

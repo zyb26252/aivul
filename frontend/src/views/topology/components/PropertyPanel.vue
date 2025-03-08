@@ -1,5 +1,6 @@
 <template>
   <div class="property-panel">
+    <!-- 节点属性 -->
     <div v-if="selectedNode" class="panel-content">
       <el-form :model="formData" label-width="100px">
         <el-form-item label="名称">
@@ -33,7 +34,7 @@
 
         <!-- 交换机节点特有属性 -->
         <template v-if="isSwitch">
-          <el-form-item label="网关地址">
+          <el-form-item label="网关">
             <el-input 
               v-model="formData.properties.gateway" 
               placeholder="请输入网关地址"
@@ -57,79 +58,108 @@
         </template>
       </el-form>
     </div>
+
+    <!-- 连线属性 -->
+    <div v-else-if="selectedEdge" class="panel-content">
+      <el-form :model="edgeFormData" label-width="100px">
+        <el-form-item label="线条颜色">
+          <el-color-picker 
+            v-model="edgeFormData.stroke" 
+            @change="handleEdgeStyleChange" 
+          />
+        </el-form-item>
+        <el-form-item label="线条宽度">
+          <el-input-number 
+            v-model="edgeFormData.strokeWidth" 
+            :min="1" 
+            :max="10" 
+            @change="handleEdgeStyleChange" 
+          />
+        </el-form-item>
+        <el-form-item label="线条样式">
+          <el-select 
+            v-model="edgeFormData.strokeDasharray" 
+            @change="handleEdgeStyleChange"
+          >
+            <el-option label="实线" value="" />
+            <el-option label="虚线" value="5 5" />
+            <el-option label="点线" value="2 2" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- 空状态 -->
     <div v-else class="panel-empty">
-      <el-empty description="请选择一个节点" />
+      <span class="text-muted">请选择节点或连线</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Node } from '../types'
 
 const props = defineProps<{
   selectedNode?: Node
+  selectedEdge?: any
 }>()
 
-const formData = ref<{
-  name: string
-  type: string
-  properties: Record<string, any>
-}>({
+// 节点表单数据
+const formData = ref({
   name: '',
   type: '',
-  properties: {}
+  properties: {} as Record<string, any>
 })
 
-// 计算属性：判断是否显示容器属性
-const isContainer = computed(() => formData.value.type === 'container')
+// 连线表单数据
+const edgeFormData = ref({
+  stroke: '#333333',
+  strokeWidth: 1,
+  strokeDasharray: ''
+})
 
-// 计算属性：判断是否显示交换机属性
+// 计算属性
+const isContainer = computed(() => formData.value.type === 'container')
 const isSwitch = computed(() => formData.value.type === 'switch')
 
-// 监听选中节点变化
+// 监听节点数据变化
 watch(() => props.selectedNode, (node) => {
-  console.log('PropertyPanel received node:', node)
   if (node) {
-    // 初始化默认属性
-    const defaultProperties = node.data?.type === 'container' 
-      ? { 
-          ip: '192.168.1.100',
-          netmask: '255.255.255.0',
-          gateway: '192.168.1.1'
-        }
-      : node.data?.type === 'switch'
-      ? { 
-          gateway: '192.168.1.1',
-          dhcpStart: '192.168.1.100',
-          dhcpEnd: '192.168.1.200'
-        }
-      : {}
-
-    // 确保 properties 对象存在
-    const properties = {
-      ...defaultProperties,
-      ...(node.data?.properties || {})
-    }
-
-    // 更新表单数据
     formData.value = {
       name: node.attrs?.label?.text || '',
       type: node.data?.type || '',
-      properties: properties
-    }
-    console.log('PropertyPanel formData:', formData.value)
-  } else {
-    formData.value = {
-      name: '',
-      type: '',
-      properties: {}
+      properties: {
+        ...(node.data?.type === 'container' ? { 
+          ip: '192.168.1.100',
+          netmask: '255.255.255.0',
+          gateway: '192.168.1.1'
+        } : {}),
+        ...(node.data?.type === 'switch' ? { 
+          gateway: '192.168.1.1',
+          dhcpStart: '192.168.1.100',
+          dhcpEnd: '192.168.1.200'
+        } : {}),
+        ...(node.data?.properties || {})
+      }
     }
   }
 }, { immediate: true, deep: true })
 
-// 处理名称变更
-const emit = defineEmits(['update:node'])
+// 监听连线数据变化
+watch(() => props.selectedEdge, (edge) => {
+  if (edge) {
+    const lineAttrs = edge.attrs?.line || {}
+    edgeFormData.value = {
+      stroke: lineAttrs.stroke || '#333333',
+      strokeWidth: lineAttrs.strokeWidth || 1,
+      strokeDasharray: lineAttrs.strokeDasharray || ''
+    }
+  }
+}, { immediate: true, deep: true })
+
+// 处理节点名称变更
+const emit = defineEmits(['update:node', 'update:edge'])
 const handleNameChange = () => {
   if (!props.selectedNode) return
 
@@ -143,11 +173,10 @@ const handleNameChange = () => {
       }
     }
   }
-  console.log('Emitting node update:', updatedNode)
   emit('update:node', updatedNode)
 }
 
-// 处理属性变更
+// 处理节点属性变更
 const handlePropertyChange = () => {
   if (!props.selectedNode) return
 
@@ -161,8 +190,26 @@ const handlePropertyChange = () => {
       }
     }
   }
-  console.log('Emitting node update:', updatedNode)
   emit('update:node', updatedNode)
+}
+
+// 处理连线样式变更
+const handleEdgeStyleChange = () => {
+  if (!props.selectedEdge) return
+
+  const updatedEdge = {
+    ...props.selectedEdge,
+    attrs: {
+      ...props.selectedEdge.attrs,
+      line: {
+        ...props.selectedEdge.attrs?.line,
+        stroke: edgeFormData.value.stroke,
+        strokeWidth: edgeFormData.value.strokeWidth,
+        strokeDasharray: edgeFormData.value.strokeDasharray
+      }
+    }
+  }
+  emit('update:edge', updatedEdge)
 }
 </script>
 
@@ -186,6 +233,7 @@ const handlePropertyChange = () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--el-text-color-secondary);
   }
 }
 </style> 
