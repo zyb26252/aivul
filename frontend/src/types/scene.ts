@@ -3,11 +3,7 @@ export interface Scene {
   name: string;
   description: string;
   node_count: number;
-  topology?: {
-    nodes: any[];
-    edges: any[];
-    groups: any[];
-  };
+  topology?: string;
   created_at: string;
   updated_at: string;
   created_by_id: number;

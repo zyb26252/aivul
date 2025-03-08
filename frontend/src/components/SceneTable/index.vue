@@ -9,6 +9,22 @@
       <el-table-column type="selection" width="55" />
       <el-table-column prop="name" label="场景名称" width="200" />
       <el-table-column prop="description" label="描述" show-overflow-tooltip />
+      
+      <el-table-column label="拓扑预览" width="200" align="center">
+        <template #default="{ row }">
+          <div class="topology-thumbnail" @click="handlePreview(row)">
+            <div v-if="row.topology" class="thumbnail-container">
+              <div 
+                :id="`thumbnail-${row.id}`" 
+                class="thumbnail-content"
+                style="position: relative;"
+              ></div>
+            </div>
+            <el-empty v-else description="暂无拓扑" :image-size="50" />
+          </div>
+        </template>
+      </el-table-column>
+
       <el-table-column prop="nodeCount" label="节点数量" width="100" align="center">
         <template #default="{ row }">
           <el-tag size="small" type="info">{{ row.nodeCount }}</el-tag>
@@ -40,11 +56,21 @@
       <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
       <el-button type="danger" @click="$emit('batch-delete', selectedRows)">批量删除</el-button>
     </div>
+
+    <el-dialog
+      v-model="previewVisible"
+      title="拓扑预览"
+      width="800px"
+      destroy-on-close
+    >
+      <div class="preview-container" ref="previewContainer"></div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
+import { Graph } from '@antv/x6'
 import type { Scene } from '@/types/scene'
 
 const props = defineProps<{
@@ -53,10 +79,374 @@ const props = defineProps<{
 }>()
 
 const selectedRows = ref<Scene[]>([])
+const previewVisible = ref(false)
+const previewContainer = ref<HTMLElement>()
+const graphInstances = new Map<number, any>()
+
+const updateThumbnail = async (scene: Scene) => {
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  const containerId = `thumbnail-${scene.id}`
+  const container = document.getElementById(containerId)
+  
+  if (!container || !scene.topology) return
+
+  try {
+    let graph = graphInstances.get(scene.id)
+    
+    if (!graph) {
+      container.innerHTML = ''
+      container.style.width = '180px'
+      container.style.height = '100px'
+      
+      graph = new Graph({
+        container,
+        width: 180,
+        height: 100,
+        background: {
+          color: '#F8F9FA',
+        },
+        grid: false,
+        interacting: false,
+        connecting: false,
+        mousewheel: false,
+        preventDefaultContextMenu: false,
+        preventDefaultBlankAction: false,
+        options: {
+          passive: true
+        }
+      })
+      
+      graphInstances.set(scene.id, graph)
+    }
+
+    graph.clearCells()
+
+    const topologyData = typeof scene.topology === 'string' 
+      ? JSON.parse(scene.topology) 
+      : scene.topology
+
+    const nodes = topologyData.nodes || []
+    const edges = topologyData.edges || []
+    
+    // 先渲染节点
+    nodes.forEach((node: any) => {
+      graph.addNode({
+        id: node.id,
+        x: node.x,
+        y: node.y,
+        width: 40,
+        height: 60,
+        shape: 'rect',
+        ports: {
+          groups: {
+            // 定义连接点组
+            all: {
+              position: 'absolute',
+              attrs: {
+                circle: {
+                  r: 4,
+                  magnet: true,
+                  stroke: '#31d0c6',
+                  strokeWidth: 2,
+                  fill: '#fff',
+                },
+              },
+            },
+          },
+          items: [
+            // 上方连接点
+            {
+              id: `${node.id}-top`,
+              group: 'all',
+              args: { x: 20, y: 0 },
+            },
+            // 右方连接点
+            {
+              id: `${node.id}-right`,
+              group: 'all',
+              args: { x: 40, y: 30 },
+            },
+            // 下方连接点
+            {
+              id: `${node.id}-bottom`,
+              group: 'all',
+              args: { x: 20, y: 60 },
+            },
+            // 左方连接点
+            {
+              id: `${node.id}-left`,
+              group: 'all',
+              args: { x: 0, y: 30 },
+            },
+          ],
+        },
+        markup: [
+          {
+            tagName: 'image',
+            selector: 'image',
+          },
+          {
+            tagName: 'text',
+            selector: 'label',
+          },
+        ],
+        attrs: {
+          image: {
+            'xlink:href': node.type === 'container' 
+              ? '/src/assets/icons/container.svg'
+              : '/src/assets/icons/switch.svg',
+            width: 32,
+            height: 32,
+            x: 4,
+            y: 4,
+          },
+          label: {
+            text: node.type === 'container' ? '容器' : '交换机',
+            fontSize: 12,
+            fill: '#333',
+            refY: '100%',
+            refY2: -2,
+            textAnchor: 'middle',
+            textVerticalAnchor: 'top',
+            x: 20,
+          },
+        },
+      })
+    })
+
+    // 添加边的渲染
+    edges.forEach((edge: any) => {
+      graph.addEdge({
+        source: {
+          cell: edge.source,
+          anchor: {
+            name: 'center'
+          }
+        },
+        target: {
+          cell: edge.target,
+          anchor: {
+            name: 'center'
+          }
+        },
+        attrs: {
+          line: {
+            stroke: '#A2B1C3',
+            strokeWidth: 1,
+            targetMarker: null,
+          },
+        },
+        router: {
+          name: 'manhattan',
+          args: {
+            padding: 10,
+          },
+        },
+        connector: {
+          name: 'rounded',
+          args: {
+            radius: 8,
+          },
+        },
+      })
+    })
+
+    if (nodes.length > 0) {
+      graph.zoomToFit({ padding: 10 })
+      graph.centerContent()
+    }
+  } catch (error) {
+    console.error('更新缩略图时出错:', error)
+  }
+}
+
+watch(() => props.scenes, (newScenes) => {
+  setTimeout(async () => {
+    for (const scene of newScenes) {
+      await updateThumbnail(scene)
+    }
+  }, 100)
+}, { immediate: true, deep: true })
+
+onMounted(() => {
+  setTimeout(async () => {
+    for (const scene of props.scenes) {
+      await updateThumbnail(scene)
+    }
+  }, 100)
+})
+
+onBeforeUnmount(() => {
+  graphInstances.forEach(graph => {
+    try {
+      graph.dispose()
+    } catch (error) {
+      console.error('清理图形实例失败:', error)
+    }
+  })
+  graphInstances.clear()
+})
 
 const handleSelectionChange = (rows: Scene[]) => {
   selectedRows.value = rows
   emit('selection-change', rows)
+}
+
+const handlePreview = (scene: Scene) => {
+  if (!scene.topology) return
+  previewVisible.value = true
+  nextTick(() => {
+    if (!previewContainer.value) return
+    
+    const graph = new Graph({
+      container: previewContainer.value,
+      width: 760,
+      height: 500,
+      background: {
+        color: '#F8F9FA',
+      },
+      grid: false,
+      interacting: false,
+      connecting: false,
+      mousewheel: false,
+    })
+
+    const topologyData = typeof scene.topology === 'string' 
+      ? JSON.parse(scene.topology) 
+      : scene.topology
+
+    const nodes = topologyData.nodes || []
+    const edges = topologyData.edges || []
+    
+    // 渲染节点
+    nodes.forEach((node: any) => {
+      graph.addNode({
+        id: node.id,
+        x: node.x,
+        y: node.y,
+        width: 40,
+        height: 60,
+        shape: 'rect',
+        ports: {
+          groups: {
+            // 定义连接点组
+            all: {
+              position: 'absolute',
+              attrs: {
+                circle: {
+                  r: 4,
+                  magnet: true,
+                  stroke: '#31d0c6',
+                  strokeWidth: 2,
+                  fill: '#fff',
+                },
+              },
+            },
+          },
+          items: [
+            // 上方连接点
+            {
+              id: `${node.id}-top`,
+              group: 'all',
+              args: { x: 20, y: 0 },
+            },
+            // 右方连接点
+            {
+              id: `${node.id}-right`,
+              group: 'all',
+              args: { x: 40, y: 30 },
+            },
+            // 下方连接点
+            {
+              id: `${node.id}-bottom`,
+              group: 'all',
+              args: { x: 20, y: 60 },
+            },
+            // 左方连接点
+            {
+              id: `${node.id}-left`,
+              group: 'all',
+              args: { x: 0, y: 30 },
+            },
+          ],
+        },
+        markup: [
+          {
+            tagName: 'image',
+            selector: 'image',
+          },
+          {
+            tagName: 'text',
+            selector: 'label',
+          },
+        ],
+        attrs: {
+          image: {
+            'xlink:href': node.type === 'container' 
+              ? '/src/assets/icons/container.svg'
+              : '/src/assets/icons/switch.svg',
+            width: 32,
+            height: 32,
+            x: 4,
+            y: 4,
+          },
+          label: {
+            text: node.type === 'container' ? '容器' : '交换机',
+            fontSize: 12,
+            fill: '#333',
+            refY: '100%',
+            refY2: -2,
+            textAnchor: 'middle',
+            textVerticalAnchor: 'top',
+            x: 20,
+          },
+        },
+      })
+    })
+
+    // 渲染边
+    edges.forEach((edge: any) => {
+      graph.addEdge({
+        source: {
+          cell: edge.source,
+          anchor: {
+            name: 'center'
+          }
+        },
+        target: {
+          cell: edge.target,
+          anchor: {
+            name: 'center'
+          }
+        },
+        attrs: {
+          line: {
+            stroke: '#A2B1C3',
+            strokeWidth: 1,
+            targetMarker: null,
+          },
+        },
+        router: {
+          name: 'manhattan',
+          args: {
+            padding: 10,
+          },
+        },
+        connector: {
+          name: 'rounded',
+          args: {
+            radius: 8,
+          },
+        },
+      })
+    })
+
+    if (nodes.length > 0) {
+      graph.zoomToFit({ padding: 20 })
+      graph.centerContent()
+    }
+  })
 }
 
 const emit = defineEmits<{
@@ -88,5 +478,45 @@ const emit = defineEmits<{
     color: var(--el-text-color-secondary);
     font-size: 14px;
   }
+}
+
+.topology-thumbnail {
+  width: 180px;
+  height: 100px;
+  background: #fff;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  
+  &:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+    z-index: 1;
+  }
+  
+  .thumbnail-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    
+    .thumbnail-content {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  }
+}
+
+.preview-container {
+  width: 760px;
+  height: 500px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  overflow: hidden;
 }
 </style> 
