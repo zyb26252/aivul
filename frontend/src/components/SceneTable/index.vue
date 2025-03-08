@@ -138,49 +138,6 @@ const updateThumbnail = async (scene: Scene) => {
         width: 40,
         height: 60,
         shape: 'rect',
-        ports: {
-          groups: {
-            // 定义连接点组
-            all: {
-              position: 'absolute',
-              attrs: {
-                circle: {
-                  r: 4,
-                  magnet: true,
-                  stroke: '#31d0c6',
-                  strokeWidth: 2,
-                  fill: '#fff',
-                },
-              },
-            },
-          },
-          items: [
-            // 上方连接点
-            {
-              id: `${node.id}-top`,
-              group: 'all',
-              args: { x: 20, y: 0 },
-            },
-            // 右方连接点
-            {
-              id: `${node.id}-right`,
-              group: 'all',
-              args: { x: 40, y: 30 },
-            },
-            // 下方连接点
-            {
-              id: `${node.id}-bottom`,
-              group: 'all',
-              args: { x: 20, y: 60 },
-            },
-            // 左方连接点
-            {
-              id: `${node.id}-left`,
-              group: 'all',
-              args: { x: 0, y: 30 },
-            },
-          ],
-        },
         markup: [
           {
             tagName: 'image',
@@ -205,11 +162,10 @@ const updateThumbnail = async (scene: Scene) => {
             text: node.type === 'container' ? '容器' : '交换机',
             fontSize: 12,
             fill: '#333',
-            refY: '100%',
-            refY2: -2,
+            refX: 0.5,
+            refY: 0.8,
             textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            x: 20,
+            textVerticalAnchor: 'middle',
           },
         },
       })
@@ -328,49 +284,6 @@ const handlePreview = (scene: Scene) => {
         width: 40,
         height: 60,
         shape: 'rect',
-        ports: {
-          groups: {
-            // 定义连接点组
-            all: {
-              position: 'absolute',
-              attrs: {
-                circle: {
-                  r: 4,
-                  magnet: true,
-                  stroke: '#31d0c6',
-                  strokeWidth: 2,
-                  fill: '#fff',
-                },
-              },
-            },
-          },
-          items: [
-            // 上方连接点
-            {
-              id: `${node.id}-top`,
-              group: 'all',
-              args: { x: 20, y: 0 },
-            },
-            // 右方连接点
-            {
-              id: `${node.id}-right`,
-              group: 'all',
-              args: { x: 40, y: 30 },
-            },
-            // 下方连接点
-            {
-              id: `${node.id}-bottom`,
-              group: 'all',
-              args: { x: 20, y: 60 },
-            },
-            // 左方连接点
-            {
-              id: `${node.id}-left`,
-              group: 'all',
-              args: { x: 0, y: 30 },
-            },
-          ],
-        },
         markup: [
           {
             tagName: 'image',
@@ -395,11 +308,10 @@ const handlePreview = (scene: Scene) => {
             text: node.type === 'container' ? '容器' : '交换机',
             fontSize: 12,
             fill: '#333',
-            refY: '100%',
-            refY2: -2,
+            refX: 0.5,
+            refY: 0.8,
             textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            x: 20,
+            textVerticalAnchor: 'middle',
           },
         },
       })
