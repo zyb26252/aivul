@@ -73,14 +73,61 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen, Connection, Delete } from '@element-plus/icons-vue'
-import { Graph, Shape } from '@antv/x6'
+import { 
+  FolderAdd, 
+  FolderRemove, 
+  ZoomIn, 
+  ZoomOut, 
+  FullScreen, 
+  Connection, 
+  Delete
+} from '@element-plus/icons-vue'
+import { Graph, Cell } from '@antv/x6'
 import { register } from '@antv/x6-vue-shape'
-import type { Cell } from '@antv/x6'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import containerIcon from '@/assets/icons/container.svg'
 import switchIcon from '@/assets/icons/switch.svg'
+
+// 定义节点数据接口
+interface NodeData {
+  type: 'container' | 'switch' | 'group'
+  properties: Record<string, any>
+  parent?: string
+  name?: string
+}
+
+// 定义边数据接口
+interface EdgeData {
+  properties: Record<string, any>
+}
+
+// 定义分组数据接口
+interface GroupData {
+  id: string
+  name: string
+  children: string[]
+}
+
+// 定义拓扑数据接口
+interface TopologyData {
+  nodes: Array<{
+    id: string
+    type: string
+    x: number
+    y: number
+    data: NodeData
+    attrs: Record<string, any>
+  }>
+  edges: Array<{
+    id: string
+    source: string
+    target: string
+    data: EdgeData
+    attrs: Record<string, any>
+  }>
+  groups: GroupData[]
+}
 
 // 注册自定义节点
 register({
@@ -124,89 +171,129 @@ const canDelete = computed(() => {
 // 画布实例
 let graph: Graph | null = null
 
-// 暴露给父组件的方法
-const getData = () => {
+// 获取拓扑数据
+const getData = (): TopologyData => {
   if (!graph) {
     throw new Error('图形实例未初始化')
   }
-  return {
-    nodes: graph.getNodes().map((node) => ({
+
+  const nodes = graph.getNodes().map(node => {
+    const pos = node.getBBox()
+    return {
       id: node.id,
-      type: node.data?.type,
-      x: node.position().x,
-      y: node.position().y,
-      data: node.data,
-      attrs: node.getAttrs() || {
-        label: {
-          text: node.data?.type === 'container' ? '容器' : '交换机',
-          fontSize: 12,
-          fill: '#333',
-          refX: '50%',
-          refY: '100%',
-          textAnchor: 'middle',
-          textVerticalAnchor: 'top',
-          y: 4,
-        }
-      }
-    })),
-    edges: graph.getEdges().map((edge) => ({
+      type: node.getData()?.type || '',
+      x: pos.x,
+      y: pos.y,
+      data: node.getData() as NodeData,
+      attrs: node.getAttrs()
+    }
+  })
+
+  const edges = graph.getEdges().map(edge => {
+    const sourceId = (edge as any).getSourceCell()?.id || ''
+    const targetId = (edge as any).getTargetCell()?.id || ''
+    return {
       id: edge.id,
-      source: edge.getSourceNode()?.id,
-      target: edge.getTargetNode()?.id,
-      data: edge.data,
-      attrs: edge.getAttrs() || {
-        line: {
-          stroke: '#333',
-          strokeWidth: 1,
-          targetMarker: null
-        }
-      }
-    })),
-    groups: graph.getNodes()
-      .filter((node) => node.data?.type === 'group')
-      .map((group) => ({
-        id: group.id,
-        name: group.data?.name,
-        children: group.getChildren()?.map((child: Cell) => child.id) || []
-      }))
-  }
+      source: sourceId,
+      target: targetId,
+      data: edge.getData() as EdgeData,
+      attrs: edge.getAttrs()
+    }
+  })
+
+  const allNodes = graph.getNodes()
+  const groups = allNodes
+    .filter(node => node.getData()?.type === 'group')
+    .map(group => ({
+      id: group.id,
+      name: group.getData()?.name || '未命名分组',
+      children: allNodes
+        .filter(node => node.getData()?.parent === group.id)
+        .map(node => node.id)
+    }))
+
+  return { nodes, edges, groups }
 }
 
-const setData = (data: any) => {
+// 设置拓扑数据
+const setData = (data: TopologyData) => {
   if (!graph) {
     throw new Error('图形实例未初始化')
   }
 
   // 清空画布
-  graph.clearCells()
+  graph.removeCells(graph.getCells())
 
-  // 添加节点
-  data.nodes?.forEach((nodeData: any) => {
-    if (graph) {
-      graph.addNode({
-        id: nodeData.id,
-        x: nodeData.x,
-        y: nodeData.y,
-        ...nodeConfig[nodeData.type],
-        attrs: nodeData.attrs || {
-          label: {
-            text: nodeData.data?.type === 'container' ? '容器' : '交换机',
-            fontSize: 12,
-            fill: '#333',
-            refX: '50%',
-            refY: '100%',
-            textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            y: 4,
-          }
-        },
-        data: nodeData.data
-      })
-    }
-  })
+  // 先添加分组节点
+  data.nodes
+    .filter(node => node.data.type === 'group')
+    .forEach(nodeData => {
+      if (graph) {
+        // 查找该分组下的所有子节点
+        const childrenNodes = data.nodes.filter(n => n.data.parent === nodeData.id)
+        
+        // 计算分组的大小和位置
+        let minX = nodeData.x
+        let minY = nodeData.y
+        let maxX = nodeData.x + (nodeConfig.group.width || 200)
+        let maxY = nodeData.y + (nodeConfig.group.height || 100)
 
-  // 添加边
-  data.edges?.forEach((edgeData: any) => {
+        // 如果有子节点，根据子节点位置调整分组大小
+        if (childrenNodes.length > 0) {
+          minX = Math.min(minX, ...childrenNodes.map(n => n.x))
+          minY = Math.min(minY, ...childrenNodes.map(n => n.y))
+          maxX = Math.max(maxX, ...childrenNodes.map(n => n.x + (nodeConfig[n.data.type]?.width || 40)))
+          maxY = Math.max(maxY, ...childrenNodes.map(n => n.y + (nodeConfig[n.data.type]?.height || 60)))
+        }
+
+        // 添加边距
+        minX -= 16
+        minY -= 16
+        maxX += 16
+        maxY += 16
+
+        graph.addNode({
+          id: nodeData.id,
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+          ...nodeConfig.group,
+          attrs: {
+            ...nodeConfig.group.attrs,
+            label: {
+              ...nodeConfig.group.attrs.label,
+              text: nodeData.data.name || '未命名分组'
+            }
+          },
+          data: nodeData.data,
+          zIndex: 0
+        })
+      }
+    })
+
+  // 再添加普通节点
+  data.nodes
+    .filter(node => node.data.type !== 'group')
+    .forEach(nodeData => {
+      if (graph) {
+        const config = nodeConfig[nodeData.type as keyof typeof nodeConfig]
+        if (config) {
+          graph.addNode({
+            id: nodeData.id,
+            x: nodeData.x,
+            y: nodeData.y,
+            ...config,
+            attrs: nodeData.attrs,
+            data: nodeData.data,
+            zIndex: 1
+          })
+        }
+      }
+    })
+
+  // 最后添加边
+  data.edges.forEach(edgeData => {
     if (edgeData.source && edgeData.target && graph) {
       graph.addEdge({
         id: edgeData.id,
@@ -226,35 +313,8 @@ const setData = (data: any) => {
             radius: 8
           }
         },
-        attrs: edgeData.attrs || {
-          line: {
-            stroke: '#333',
-            strokeWidth: 1,
-            targetMarker: null
-          }
-        }
+        attrs: edgeData.attrs
       })
-    }
-  })
-
-  // 添加分组
-  data.groups?.forEach((groupData: any) => {
-    if (graph) {
-      const children = groupData.children
-        ?.map((id: string) => graph.getCellById(id))
-        .filter((cell): cell is Cell => cell != null) || []
-      
-      if (children.length > 0) {
-        graph.addNode({
-          id: groupData.id,
-          shape: 'groupNode',
-          data: {
-            type: 'group',
-            name: groupData.name
-          },
-          children
-        })
-      }
     }
   })
 }
@@ -484,27 +544,29 @@ const nodeConfig: Record<string, NodeConfig> = {
         strokeWidth: 1,
         strokeDasharray: '5 5',
         rx: 8,
-        ry: 8,
+        ry: 8
       },
       label: {
         text: '分组',
         fontSize: 12,
         fill: '#1890ff',
         refX: 8,
-        refY: 8,
-      },
+        refY: 8
+      }
     },
     markup: [
       {
         tagName: 'rect',
-        selector: 'body',
+        selector: 'body'
       },
       {
         tagName: 'text',
-        selector: 'label',
-      },
+        selector: 'label'
+      }
     ],
-    movable: false,
+    width: 200,
+    height: 100,
+    movable: true
   },
 }
 
