@@ -1,18 +1,21 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
-from sqlalchemy import Column, Integer, String, Text, DateTime, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String, Text, DateTime, or_, ForeignKey
+from sqlalchemy.orm import Session, relationship
 from app.db.base_class import Base
 
 class Scene(Base):
-    __tablename__ = "scene"
+    __tablename__ = "scenes"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), nullable=False)
-    description = Column(Text, nullable=False)
-    node_count = Column(Integer, default=0)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    node_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    
+    created_by = relationship("User", back_populates="scenes", lazy="joined")
 
     @classmethod
     def get(cls, db: Session, id: int) -> Optional["Scene"]:
@@ -43,8 +46,12 @@ class Scene(Base):
         return scenes, total
 
     @classmethod
-    def create(cls, db: Session, *, name: str, description: str) -> "Scene":
-        db_obj = cls(name=name, description=description)
+    def create(cls, db: Session, *, name: str, description: str, created_by_id: int) -> "Scene":
+        db_obj = cls(
+            name=name,
+            description=description,
+            created_by_id=created_by_id
+        )
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -87,5 +94,6 @@ class Scene(Base):
         return cls.create(
             db,
             name=f"{obj.name} (复制)",
-            description=obj.description
+            description=obj.description,
+            created_by_id=obj.created_by_id
         ) 

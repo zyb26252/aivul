@@ -1,8 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from app.db.base_class import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -16,4 +14,5 @@ class User(Base):
     images = relationship("Image", back_populates="created_by")
     software = relationship("Software", back_populates="created_by")
     targets = relationship("Target", back_populates="created_by")
-    instances = relationship("Instance", back_populates="created_by") 
+    instances = relationship("Instance", back_populates="created_by")
+    scenes = relationship("Scene", back_populates="created_by", lazy="dynamic") 

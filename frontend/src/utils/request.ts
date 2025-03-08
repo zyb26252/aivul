@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 
 const service = axios.create({
-  baseURL: 'http://47.86.184.188:8000',
+  baseURL: 'http://aivul.love:8000',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

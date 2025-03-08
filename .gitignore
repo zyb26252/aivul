@@ -24,8 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# SQLite
-*.db
+
 
 # IDE
 .idea/

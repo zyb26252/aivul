@@ -1,9 +1,9 @@
 from typing import Any
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from app.models.user import Base as UserBase  # noqa
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
-@as_declarative()
-class Base:
+Base = declarative_base()
+
+class ModelBase:
     id: Any
     __name__: str
 

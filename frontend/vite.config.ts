@@ -10,6 +10,7 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     cors: true,
+    allowedHosts: ['aivul.love'],
     hmr: {
       clientPort: 3000
     }
