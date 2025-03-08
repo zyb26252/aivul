@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 class SceneBase(BaseModel):
@@ -7,15 +7,17 @@ class SceneBase(BaseModel):
     description: str
 
 class SceneCreate(SceneBase):
-    pass
+    topology: Optional[Dict[str, Any]] = None
 
 class SceneUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    topology: Optional[Dict[str, Any]] = None
 
 class Scene(SceneBase):
     id: int
     node_count: int
+    topology: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
     created_by_id: int
@@ -33,6 +35,11 @@ class Scene(SceneBase):
                 "name": "测试场景",
                 "description": "这是一个测试场景",
                 "node_count": 0,
+                "topology": {
+                    "nodes": [],
+                    "edges": [],
+                    "groups": []
+                },
                 "created_at": "2024-03-07T09:24:04.412557",
                 "updated_at": "2024-03-07T09:24:04.412567",
                 "created_by_id": 1

@@ -25,15 +25,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import TopologyEditor from './components/TopologyEditor.vue'
+import { getScene, updateScene } from '@/api/scenes'
 
 const route = useRoute()
 const router = useRouter()
 const editorRef = ref()
+
+const sceneId = computed(() => Number(route.params.id))
 
 const handleBack = () => {
   router.back()
@@ -41,7 +44,18 @@ const handleBack = () => {
 
 const handleSave = async () => {
   try {
-    // TODO: 实现保存逻辑
+    if (!editorRef.value) {
+      throw new Error('编辑器未初始化')
+    }
+
+    // 获取编辑器中的拓扑数据
+    const topology = editorRef.value.getData()
+
+    // 更新场景数据
+    await updateScene(sceneId.value, {
+      topology
+    })
+
     ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -49,8 +63,19 @@ const handleSave = async () => {
   }
 }
 
-onMounted(() => {
-  // TODO: 加载拓扑数据
+onMounted(async () => {
+  try {
+    // 加载场景数据
+    const scene = await getScene(sceneId.value)
+    
+    // 如果有拓扑数据，加载到编辑器中
+    if (scene.topology && editorRef.value) {
+      editorRef.value.setData(scene.topology)
+    }
+  } catch (error) {
+    console.error('加载场景失败:', error)
+    ElMessage.error('加载场景失败')
+  }
 })
 </script>
 

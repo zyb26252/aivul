@@ -9,7 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@antv/x6": "^2.x",
+    "@antv/x6": "1.34.0",
+    "@antv/x6-vue-shape": "1.4.0",
     "axios": "^1.4.0",
     "element-plus": "^2.3.8",
     "pinia": "^2.1.4",

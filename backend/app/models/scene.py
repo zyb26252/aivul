@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import List, Optional, Tuple
-from sqlalchemy import Column, Integer, String, Text, DateTime, or_, ForeignKey
+from typing import List, Optional, Tuple, Dict, Any
+from sqlalchemy import Column, Integer, String, Text, DateTime, or_, ForeignKey, JSON
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.sql import func
 from app.models.base import Base
@@ -13,6 +13,7 @@ class Scene(Base):
     name = Column(String(255), index=True)
     description = Column(Text, nullable=True)
     node_count = Column(Integer, default=0)
+    topology = Column(JSON, nullable=True)  # 存储拓扑数据
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by_id = Column(Integer, ForeignKey("users.id"))

@@ -64,6 +64,7 @@ def create_scene(
         name=scene_in.name,
         description=scene_in.description,
         node_count=0,
+        topology=scene_in.topology or {"nodes": [], "edges": [], "groups": []},
         created_by_id=current_user.id,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
@@ -103,7 +104,14 @@ def update_scene(
     if not scene:
         raise HTTPException(status_code=404, detail="场景不存在")
     
-    for field, value in scene_in.dict(exclude_unset=True).items():
+    update_data = scene_in.dict(exclude_unset=True)
+    
+    # 如果更新了拓扑数据，更新节点数量
+    if "topology" in update_data:
+        topology = update_data["topology"] or {"nodes": [], "edges": [], "groups": []}
+        update_data["node_count"] = len(topology.get("nodes", []))
+    
+    for field, value in update_data.items():
         setattr(scene, field, value)
     
     db.add(scene)
@@ -147,6 +155,7 @@ def copy_scene(
         name=f"{scene.name} (复制)",
         description=scene.description,
         node_count=scene.node_count,
+        topology=scene.topology,
         created_by_id=current_user.id,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()

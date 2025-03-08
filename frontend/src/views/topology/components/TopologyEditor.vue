@@ -66,15 +66,26 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { FolderAdd, FolderRemove, ZoomIn, ZoomOut, FullScreen, Connection } from '@element-plus/icons-vue'
 import { Graph, Shape } from '@antv/x6'
-import type { Node } from '../types'
+import { register } from '@antv/x6-vue-shape'
+import type { Cell } from '@antv/x6'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import containerIcon from '@/assets/icons/container.svg'
 import switchIcon from '@/assets/icons/switch.svg'
 
+// 注册自定义节点
+register({
+  shape: 'custom-node',
+  width: 100,
+  height: 40,
+  component: {
+    template: '<div>Custom Node</div>'
+  }
+})
+
 // 状态
 const container = ref<HTMLElement>()
-const selectedNode = ref<Node>()
+const selectedNode = ref<Cell>()
 const selectedEdge = ref<any>(null)
 const selectedCells = ref<any[]>([])
 const isConnecting = ref(false)
@@ -91,6 +102,118 @@ const canUngroup = computed(() => {
 
 // 画布实例
 let graph: Graph | null = null
+
+// 暴露给父组件的方法
+const getData = () => {
+  if (!graph) {
+    throw new Error('图形实例未初始化')
+  }
+  return {
+    nodes: graph.getNodes().map((node) => ({
+      id: node.id,
+      type: node.data?.type,
+      x: node.position().x,
+      y: node.position().y,
+      data: node.data
+    })),
+    edges: graph.getEdges().map((edge) => ({
+      id: edge.id,
+      source: edge.getSourceNode()?.id,
+      target: edge.getTargetNode()?.id,
+      data: edge.data,
+      attrs: edge.getAttrs() || {
+        line: {
+          stroke: '#333',
+          strokeWidth: 1,
+          targetMarker: null
+        }
+      }
+    })),
+    groups: graph.getNodes()
+      .filter((node) => node.data?.type === 'group')
+      .map((group) => ({
+        id: group.id,
+        name: group.data?.name,
+        children: group.getChildren()?.map((child: Cell) => child.id) || []
+      }))
+  }
+}
+
+const setData = (data: any) => {
+  if (!graph) {
+    throw new Error('图形实例未初始化')
+  }
+
+  // 清空画布
+  graph.clearCells()
+
+  // 添加节点
+  data.nodes?.forEach((nodeData: any) => {
+    if (graph) {
+      graph.addNode({
+        id: nodeData.id,
+        x: nodeData.x,
+        y: nodeData.y,
+        ...nodeConfig[nodeData.type],
+        data: nodeData.data
+      })
+    }
+  })
+
+  // 添加边
+  data.edges?.forEach((edgeData: any) => {
+    if (edgeData.source && edgeData.target && graph) {
+      graph.addEdge({
+        id: edgeData.id,
+        source: edgeData.source,
+        target: edgeData.target,
+        data: edgeData.data,
+        router: {
+          name: 'manhattan',
+          args: {
+            padding: 10,
+            startDirections: ['right', 'bottom', 'left', 'top'],
+            endDirections: ['left', 'top', 'right', 'bottom']
+          }
+        },
+        connector: {
+          name: 'rounded',
+          args: {
+            radius: 8
+          }
+        },
+        attrs: edgeData.attrs || {
+          line: {
+            stroke: '#333',
+            strokeWidth: 1,
+            targetMarker: null
+          }
+        }
+      })
+    }
+  })
+
+  // 添加分组
+  data.groups?.forEach((groupData: any) => {
+    if (graph) {
+      const children = groupData.children
+        ?.map((id: string) => graph.getCellById(id))
+        .filter((cell): cell is Cell => cell != null) || []
+      
+      if (children.length > 0) {
+        graph.addNode({
+          id: groupData.id,
+          shape: 'groupNode',
+          data: {
+            type: 'group',
+            name: groupData.name
+          },
+          children
+        })
+      }
+    }
+  })
+}
 
 // 节点配置类型
 interface NodeConfig {
@@ -470,7 +593,7 @@ const handleDrop = (e: DragEvent) => {
 }
 
 // 节点更新处理
-const handleNodeUpdate = (node: Node) => {
+const handleNodeUpdate = (node: Cell) => {
   if (!graph) return
 
   const target = graph.getCellById(node.id!)
@@ -496,6 +619,10 @@ const handleEdgeUpdate = (edge: any) => {
   if (target) {
     target.setAttrs(edge.attrs)
     target.setConnector(edge.connector)
+    target.setData({
+      ...target.getData(),
+      attrs: edge.attrs
+    })
   }
 }
 
@@ -520,7 +647,8 @@ onUnmounted(() => {
 
 // 对外暴露方法
 defineExpose({
-  graph,
+  getData,
+  setData
 })
 
 // 初始化画布
@@ -557,7 +685,27 @@ const initGraph = async () => {
         allowLoop: false,
         allowNode: true,
         allowEdge: false,
-        connector: 'normal',
+        connector: {
+          name: 'rounded',
+          args: {
+            radius: 8
+          }
+        },
+        router: {
+          name: 'manhattan',
+          args: {
+            padding: 10,
+            startDirections: ['right', 'bottom', 'left', 'top'],
+            endDirections: ['left', 'top', 'right', 'bottom']
+          }
+        },
+        connectionPoint: {
+          name: 'anchor',
+          args: {
+            offset: -4
+          }
+        },
+        anchor: 'center',
         validateConnection({ sourceCell, targetCell }) {
           // 不允许连接到自身
           if (sourceCell === targetCell) {
@@ -570,6 +718,32 @@ const initGraph = async () => {
             (edge.getSourceCellId() === targetCell.id && edge.getTargetCellId() === sourceCell.id)
           )
         },
+        // 设置默认的边样式
+        createEdge() {
+          return new Shape.Edge({
+            router: {
+              name: 'manhattan',
+              args: {
+                padding: 10,
+                startDirections: ['right', 'bottom', 'left', 'top'],
+                endDirections: ['left', 'top', 'right', 'bottom']
+              }
+            },
+            connector: {
+              name: 'rounded',
+              args: {
+                radius: 8
+              }
+            },
+            attrs: {
+              line: {
+                stroke: '#333',
+                strokeWidth: 1,
+                targetMarker: null
+              }
+            }
+          })
+        }
       },
       selecting: {
         enabled: true,
@@ -652,7 +826,7 @@ const initGraph = async () => {
           },
           position: cell.position(),
           size: cell.size(),
-        } as Node
+        } as Cell
         selectedNode.value = nodeData
       } else {
         selectedNode.value = undefined
@@ -680,14 +854,27 @@ const initGraph = async () => {
               graph?.addEdge({
                 source: sourceNode.value,
                 target: node,
-                connector: 'normal',
+                router: {
+                  name: 'manhattan',
+                  args: {
+                    padding: 10,
+                    startDirections: ['right', 'bottom', 'left', 'top'],
+                    endDirections: ['left', 'top', 'right', 'bottom']
+                  }
+                },
+                connector: {
+                  name: 'rounded',
+                  args: {
+                    radius: 8
+                  }
+                },
                 attrs: {
                   line: {
                     stroke: '#333',
                     strokeWidth: 1,
-                    targetMarker: null,
-                  },
-                },
+                    targetMarker: null
+                  }
+                }
               })
               ElMessage.success('连线创建成功')
             } catch (error) {
@@ -731,7 +918,7 @@ const initGraph = async () => {
           },
           position: node.position(),
           size: node.size(),
-        } as Node
+        } as Cell
         console.log('Node data:', nodeData)
         selectedNode.value = nodeData
       }
@@ -749,6 +936,7 @@ const initGraph = async () => {
           line: {
             stroke: '#333',
             strokeWidth: 1,
+            targetMarker: null
           }
         }
       }
