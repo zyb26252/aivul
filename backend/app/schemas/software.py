@@ -24,4 +24,4 @@ class Software(SoftwareBase):
     created_by_id: int
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 

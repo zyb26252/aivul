@@ -1,10 +1,24 @@
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, TypeDecorator
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.sql import func
 from app.models.base import Base
 from app.schemas.software import SoftwareCreate, SoftwareUpdate
+import json
+
+class JSONEncodedList(TypeDecorator):
+    impl = String
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return json.dumps(value)
+        return None
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return json.loads(value)
+        return None
 
 class Software(Base):
     __tablename__ = "softwares"
@@ -16,8 +30,8 @@ class Software(Base):
     architecture = Column(String(20), nullable=False)
     os_type = Column(String(50), nullable=False)
     install_command = Column(Text, nullable=False)
-    start_command = Column(JSON, nullable=False)
-    ports = Column(JSON, nullable=False)
+    start_command = Column(JSONEncodedList, nullable=False)
+    ports = Column(JSONEncodedList, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"))
