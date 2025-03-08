@@ -904,6 +904,31 @@ const initGraph = async () => {
           sourceNode.value = null
         }
       } else {
+        // 清除所有节点的高亮效果
+        graph?.getNodes().forEach(n => {
+          if (n.data?.type !== 'group') {
+            n.setAttrs({
+              body: {
+                ...n.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            })
+          }
+        })
+
+        // 清除所有边的高亮效果
+        graph?.getEdges().forEach(edge => {
+          edge.setAttrs({
+            line: {
+              ...edge.getAttrs().line,
+              stroke: '#333',
+              strokeWidth: 1,
+              strokeDasharray: ''
+            }
+          })
+        })
+        
         // 设置当前节点的高亮效果
         if (node.data?.type !== 'group') {
           node.setAttrs({
