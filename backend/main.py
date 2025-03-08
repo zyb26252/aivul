@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import auth, images, software, targets, instances, dashboard, ai, api, scenes
+from app.api import auth, images, software, targets, instances, dashboard, ai, scenes
 from app.models.user import Base
 from app.db.session import engine
 from app.db.init_db import init_db
@@ -48,15 +48,14 @@ app.add_middleware(
 )
 
 # 注册路由
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(images.router, prefix="/api/v1/images", tags=["images"])
-app.include_router(instances.router, prefix="/api/v1/instances", tags=["instances"])
-app.include_router(software.router, prefix="/api/v1/software", tags=["software"])
-app.include_router(targets.router, prefix="/api/v1/targets", tags=["targets"])
-app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
-app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
-app.include_router(scenes.router, prefix="/api/v1/scenes", tags=["scenes"])
-app.include_router(api.api_router, prefix="/api/v1")
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+app.include_router(images.router, prefix=f"{settings.API_V1_STR}/images", tags=["images"])
+app.include_router(instances.router, prefix=f"{settings.API_V1_STR}/instances", tags=["instances"])
+app.include_router(software.router, prefix=f"{settings.API_V1_STR}/software", tags=["software"])
+app.include_router(targets.router, prefix=f"{settings.API_V1_STR}/targets", tags=["targets"])
+app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}/dashboard", tags=["dashboard"])
+app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["ai"])
+app.include_router(scenes.router, prefix=f"{settings.API_V1_STR}/scenes", tags=["scenes"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning") 

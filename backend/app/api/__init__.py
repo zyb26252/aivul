@@ -9,7 +9,7 @@ from app.api.targets import router as targets_router
 from app.api.instances import router as instances_router
 from app.api.dashboard import router as dashboard_router
 from app.api.ai import router as ai_router
-from app.api.v1.scenes import router as scenes_router
+from app.api.scenes import router as scenes_router
 
 # 导出所有路由
 __all__ = [
