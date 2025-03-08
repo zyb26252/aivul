@@ -62,6 +62,16 @@
     <!-- 连线属性 -->
     <div v-else-if="selectedEdge" class="panel-content">
       <el-form :model="edgeFormData" label-width="100px">
+        <el-form-item label="连线形状">
+          <el-select 
+            v-model="edgeFormData.connector" 
+            @change="handleEdgeStyleChange"
+          >
+            <el-option label="直线" value="normal" />
+            <el-option label="折线" value="smooth" />
+            <el-option label="曲线" value="rounded" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="线条颜色">
           <el-color-picker 
             v-model="edgeFormData.stroke" 
@@ -116,7 +126,8 @@ const formData = ref({
 const edgeFormData = ref({
   stroke: '#333333',
   strokeWidth: 1,
-  strokeDasharray: ''
+  strokeDasharray: '',
+  connector: 'normal'
 })
 
 // 计算属性
@@ -153,7 +164,8 @@ watch(() => props.selectedEdge, (edge) => {
     edgeFormData.value = {
       stroke: lineAttrs.stroke || '#333333',
       strokeWidth: lineAttrs.strokeWidth || 1,
-      strokeDasharray: lineAttrs.strokeDasharray || ''
+      strokeDasharray: lineAttrs.strokeDasharray || '',
+      connector: edge.connector || 'normal'
     }
   }
 }, { immediate: true, deep: true })
@@ -199,6 +211,7 @@ const handleEdgeStyleChange = () => {
 
   const updatedEdge = {
     ...props.selectedEdge,
+    connector: edgeFormData.value.connector,
     attrs: {
       ...props.selectedEdge.attrs,
       line: {

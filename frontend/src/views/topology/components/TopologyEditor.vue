@@ -495,6 +495,7 @@ const handleEdgeUpdate = (edge: any) => {
   const target = graph.getCellById(edge.id)
   if (target) {
     target.setAttrs(edge.attrs)
+    target.setConnector(edge.connector)
   }
 }
 
@@ -556,6 +557,7 @@ const initGraph = async () => {
         allowLoop: false,
         allowNode: true,
         allowEdge: false,
+        connector: 'normal',
         validateConnection({ sourceCell, targetCell }) {
           // 不允许连接到自身
           if (sourceCell === targetCell) {
@@ -574,6 +576,7 @@ const initGraph = async () => {
         multiple: true,
         rubberband: true,
         showNodeSelectionBox: true,
+        strict: false
       },
       keyboard: true,
       clipboard: true,
@@ -584,6 +587,7 @@ const initGraph = async () => {
         edgeLabelMovable: false,
         magnetConnectable: true,
         stopDelegateOnDragging: false,
+        edgeMovableItems: []
       },
     })
     console.log('Graph instance created:', graph)
@@ -597,7 +601,7 @@ const initGraph = async () => {
 
     // 监听选中变化事件
     graph.on('selection:changed', () => {
-      selectedCells.value = graph?.getSelectedCells() ?? []
+      selectedCells.value = graph?.getCells() ?? []
       // 获取第一个选中的节点或边
       const cell = selectedCells.value[0]
       
@@ -605,6 +609,7 @@ const initGraph = async () => {
         selectedNode.value = undefined
         selectedEdge.value = {
           id: cell.id,
+          connector: cell.getConnector()?.name || 'normal',
           attrs: cell.getAttrs() || {
             line: {
               stroke: '#333',
@@ -653,6 +658,14 @@ const initGraph = async () => {
         selectedNode.value = undefined
         selectedEdge.value = null
       }
+
+      // 确保节点始终可以拖动
+      graph?.getNodes().forEach(node => {
+        node.setData({
+          ...node.getData(),
+          movable: true
+        })
+      })
     })
 
     // 监听节点点击事件
@@ -667,6 +680,7 @@ const initGraph = async () => {
               graph?.addEdge({
                 source: sourceNode.value,
                 target: node,
+                connector: 'normal',
                 attrs: {
                   line: {
                     stroke: '#333',
@@ -730,6 +744,7 @@ const initGraph = async () => {
       // 设置当前选中的连线
       selectedEdge.value = {
         id: edge.id,
+        connector: edge.getConnector()?.name || 'normal',
         attrs: edge.getAttrs() || {
           line: {
             stroke: '#333',
@@ -737,8 +752,19 @@ const initGraph = async () => {
           }
         }
       }
-      // 选中当前连线
-      graph?.select(edge)
+
+      // 移除所有边的工具
+      graph?.getEdges().forEach(e => {
+        e.removeTools()
+      })
+      
+      // 确保节点仍然可以拖动
+      graph?.getNodes().forEach(node => {
+        node.setData({
+          ...node.getData(),
+          movable: true
+        })
+      })
     })
 
     // 监听节点属性更新事件
