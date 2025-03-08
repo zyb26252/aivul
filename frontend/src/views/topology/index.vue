@@ -11,6 +11,10 @@
         <h2>拓扑编辑器</h2>
       </div>
       <div class="right">
+        <el-button @click="handleReset">
+          <el-icon><RefreshRight /></el-icon>
+          重置
+        </el-button>
         <el-button type="primary" @click="handleSave">
           保存
         </el-button>
@@ -27,8 +31,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, RefreshRight } from '@element-plus/icons-vue'
 import TopologyEditor from './components/TopologyEditor.vue'
 import { getScene, updateScene } from '@/api/scenes'
 
@@ -63,18 +67,60 @@ const handleSave = async () => {
   }
 }
 
+// 重置功能
+const handleReset = async () => {
+  try {
+    // 弹出确认对话框
+    await ElMessageBox.confirm(
+      '重置将丢失所有未保存的修改，确定要重置吗？',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    // 重新加载场景数据
+    const scene = await getScene(sceneId.value)
+    console.log('Scene Response:', scene) // 添加日志
+    
+    // 如果编辑器已初始化，重新加载数据
+    if (editorRef.value) {
+      // 确保 topology 存在，如果不存在则使用空对象
+      const topology = scene?.topology || {}
+      console.log('Loading topology:', topology) // 添加日志
+      editorRef.value.setData(topology)
+      ElMessage.success('已重置为最后保存的状态')
+    } else {
+      throw new Error('编辑器未初始化')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('重置失败:', error)
+      ElMessage.error(error instanceof Error ? error.message : '重置失败')
+    }
+  }
+}
+
 onMounted(async () => {
   try {
     // 加载场景数据
     const scene = await getScene(sceneId.value)
+    console.log('Scene Response:', scene) // 添加日志
     
-    // 如果有拓扑数据，加载到编辑器中
-    if (scene.topology && editorRef.value) {
-      editorRef.value.setData(scene.topology)
+    // 如果编辑器已初始化，加载数据
+    if (editorRef.value) {
+      // 确保 topology 存在，如果不存在则使用空对象
+      const topology = scene?.topology || {}
+      console.log('Loading topology:', topology) // 添加日志
+      editorRef.value.setData(topology)
+    } else {
+      throw new Error('编辑器未初始化')
     }
   } catch (error) {
     console.error('加载场景失败:', error)
-    ElMessage.error('加载场景失败')
+    ElMessage.error(error instanceof Error ? error.message : '加载场景失败')
   }
 })
 </script>
