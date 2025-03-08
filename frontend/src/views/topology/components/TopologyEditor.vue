@@ -536,7 +536,8 @@ const handleCreateGroup = () => {
               ...nodeConfig.group.attrs.label,
               text: groupName.value
             }
-          }
+          },
+          zIndex: 0  // 设置分组节点为最底层
         })
 
         // 将选中的节点添加到分组中
@@ -545,7 +546,7 @@ const handleCreateGroup = () => {
             ...node.data,
             parent: group.id,
           })
-          node.setZIndex(1)
+          node.setZIndex(1)  // 确保节点在分组之上
           // 清除节点的高亮效果
           node.setAttrs({
             body: {
@@ -624,7 +625,7 @@ const handleUngroup = () => {
       ...node.data,
       parent: undefined,
     })
-    node.setZIndex(0)
+    node.setZIndex(1)  // 设置为普通节点层级
   })
 
   // 删除分组节点
@@ -686,7 +687,26 @@ const handleDrop = (e: DragEvent) => {
         type: element.type,
         properties: {},
       },
+      zIndex: 1  // 确保新创建的节点在分组之上
     })
+
+    // 检查是否落在分组内
+    const parent = graph.getNodes().find(n => {
+      if (n.data?.type === 'group') {
+        const bbox = n.getBBox()
+        const nodeBBox = node.getBBox()
+        return bbox.containsRect(nodeBBox)
+      }
+      return false
+    })
+
+    if (parent) {
+      node.setData({
+        ...node.data,
+        parent: parent.id,
+      })
+      parent.setZIndex(0)  // 确保分组在底层
+    }
 
     // 触发节点选中事件
     graph.trigger('node:selected', { node })
@@ -871,12 +891,14 @@ const initGraph = async () => {
       background: {
         color: '#F8F9FA',
       },
+      // 添加默认的 z-index 配置
+      zIndex: {
+        node: 1,  // 普通节点的默认层级
+        edge: 2,  // 边的默认层级
+        group: 0,  // 分组节点的默认层级
+      },
       interacting: {
-        nodeMovable: (view) => {
-          // 只有分组节点不可移动，其他节点（包括分组内的节点）都可以移动
-          const node = view.cell
-          return node.data?.type !== 'group'
-        },
+        nodeMovable: true,  // 允许所有节点移动
         edgeMovable: false,
         edgeLabelMovable: false,
         magnetConnectable: true,
@@ -886,6 +908,8 @@ const initGraph = async () => {
         rubberEdge: false,
         rubberNode: true,
         multipleSelection: true,
+        // 允许分组内节点交互（选中等）
+        shouldStartSelecting: () => true,
       },
       selecting: {
         enabled: true,
@@ -894,9 +918,11 @@ const initGraph = async () => {
         rubberNode: true,
         showNodeSelectionBox: true,
         showRubberband: true,
-        strict: true,
+        strict: false,  // 允许选择分组内的节点
         modifiers: 'shift',
         showEdgeSelectionBox: false,
+        // 允许选择所有类型的节点
+        filter: ['node'],
       },
       keyboard: true,
       clipboard: true,
@@ -918,7 +944,11 @@ const initGraph = async () => {
       },
       // 添加分组相关配置
       translating: {
-        restrict: false  // 不限制节点移动
+        restrict: (view) => {
+          const cell = view.cell
+          // 只限制分组节点的移动
+          return cell.data?.type === 'group'
+        }
       },
     })
     console.log('Graph instance created:', graph)
@@ -1274,6 +1304,38 @@ const initGraph = async () => {
           }
         }
       }
+    })
+
+    // 监听节点移动开始事件
+    graph.on('node:mousedown', ({ node }) => {
+      // 确保所有分组节点都在最底层
+      graph?.getNodes().forEach(n => {
+        if (n.data?.type === 'group') {
+          n.setZIndex(0)
+        } else {
+          n.setZIndex(1)
+        }
+      })
+    })
+
+    // 监听节点移动过程中的事件
+    graph.on('node:mousemove', ({ node }) => {
+      // 确保当前移动的节点在最上层
+      if (node.data?.type !== 'group') {
+        node.setZIndex(2)
+      }
+    })
+
+    // 监听节点移动结束事件
+    graph.on('node:mouseup', ({ node }) => {
+      // 重置所有节点的层级
+      graph?.getNodes().forEach(n => {
+        if (n.data?.type === 'group') {
+          n.setZIndex(0)
+        } else {
+          n.setZIndex(1)
+        }
+      })
     })
 
     return graph
