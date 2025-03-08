@@ -114,7 +114,19 @@ const getData = () => {
       type: node.data?.type,
       x: node.position().x,
       y: node.position().y,
-      data: node.data
+      data: node.data,
+      attrs: node.getAttrs() || {
+        label: {
+          text: node.data?.type === 'container' ? '容器' : '交换机',
+          fontSize: 12,
+          fill: '#333',
+          refX: '50%',
+          refY: '100%',
+          textAnchor: 'middle',
+          textVerticalAnchor: 'top',
+          y: 4,
+        }
+      }
     })),
     edges: graph.getEdges().map((edge) => ({
       id: edge.id,
@@ -155,6 +167,18 @@ const setData = (data: any) => {
         x: nodeData.x,
         y: nodeData.y,
         ...nodeConfig[nodeData.type],
+        attrs: nodeData.attrs || {
+          label: {
+            text: nodeData.data?.type === 'container' ? '容器' : '交换机',
+            fontSize: 12,
+            fill: '#333',
+            refX: '50%',
+            refY: '100%',
+            textAnchor: 'middle',
+            textVerticalAnchor: 'top',
+            y: 4,
+          }
+        },
         data: nodeData.data
       })
     }
@@ -679,6 +703,26 @@ const initGraph = async () => {
         min: 0.2,
         max: 2,
       },
+      highlighting: {
+        magnetAvailable: {
+          name: 'className',
+          args: {
+            className: 'available',
+          },
+        },
+        nodeAvailable: {
+          name: 'className',
+          args: {
+            className: 'available',
+          },
+        },
+        magnetAdsorbed: {
+          name: 'className',
+          args: {
+            className: 'adsorbed',
+          },
+        },
+      },
       connecting: {
         snap: true,
         allowBlank: false,
@@ -750,7 +794,8 @@ const initGraph = async () => {
         multiple: true,
         rubberband: true,
         showNodeSelectionBox: true,
-        strict: false
+        strict: false,
+        showEdgeSelectionBox: false,
       },
       keyboard: true,
       clipboard: true,
@@ -762,6 +807,20 @@ const initGraph = async () => {
         magnetConnectable: true,
         stopDelegateOnDragging: false,
         edgeMovableItems: []
+      },
+      embedding: {
+        enabled: true,
+        findParent({ node }) {
+          const bbox = node.getBBox()
+          return this.getNodes().filter((node) => {
+            const data = node.getData()
+            if (data && data.type === 'group') {
+              const targetBBox = node.getBBox()
+              return targetBBox.containsRect(bbox)
+            }
+            return false
+          })
+        },
       },
     })
     console.log('Graph instance created:', graph)
@@ -775,71 +834,31 @@ const initGraph = async () => {
 
     // 监听选中变化事件
     graph.on('selection:changed', () => {
-      selectedCells.value = graph?.getCells() ?? []
-      // 获取第一个选中的节点或边
-      const cell = selectedCells.value[0]
-      
-      if (cell?.isEdge()) {
-        selectedNode.value = undefined
-        selectedEdge.value = {
-          id: cell.id,
-          connector: cell.getConnector()?.name || 'normal',
-          attrs: cell.getAttrs() || {
-            line: {
-              stroke: '#333',
-              strokeWidth: 1,
-            }
+      try {
+        // 获取所有选中的元素
+        const cells = graph?.getSelectedCells() || []
+        selectedCells.value = cells
+        
+        // 只取第一个选中的元素
+        const cell = cells[0]
+        
+        if (cell?.isEdge()) {
+          selectedNode.value = undefined
+          selectedEdge.value = {
+            id: cell.id,
+            connector: cell.getConnector()?.name || 'normal',
+            attrs: cell.getAttrs(),
           }
+        } else if (cell?.isNode() && cell.data?.type !== 'group') {
+          selectedEdge.value = null
+          selectedNode.value = cell
+        } else {
+          selectedNode.value = undefined
+          selectedEdge.value = null
         }
-      } else if (cell?.isNode()) {
-        selectedEdge.value = null
-        // 转换节点数据为所需格式
-        const nodeData = {
-          id: cell.id,
-          attrs: {
-            label: {
-              text: cell.data?.type === 'container' ? '容器' : '交换机',
-              fontSize: 12,
-              fill: '#333',
-              refX: '50%',
-              refY: '100%',
-              textAnchor: 'middle',
-              textVerticalAnchor: 'top',
-              y: 4,
-            },
-          },
-          data: {
-            type: cell.data?.type || '',
-            properties: {
-              ...(cell.data?.type === 'container' ? { 
-                ip: '192.168.1.100',
-                netmask: '255.255.255.0',
-                gateway: '192.168.1.1'
-              } : {}),
-              ...(cell.data?.type === 'switch' ? { 
-                gateway: '192.168.1.1',
-                dhcpStart: '192.168.1.100',
-                dhcpEnd: '192.168.1.200'
-              } : {}),
-              ...(cell.data?.properties || {}),
-            },
-          },
-          position: cell.position(),
-          size: cell.size(),
-        } as Cell
-        selectedNode.value = nodeData
-      } else {
-        selectedNode.value = undefined
-        selectedEdge.value = null
+      } catch (error) {
+        console.error('Error in selection:changed event:', error)
       }
-
-      // 确保节点始终可以拖动
-      graph?.getNodes().forEach(node => {
-        node.setData({
-          ...node.getData(),
-          movable: true
-        })
-      })
     })
 
     // 监听节点点击事件
@@ -885,74 +904,80 @@ const initGraph = async () => {
           sourceNode.value = null
         }
       } else {
-        console.log('Node clicked:', node)
+        // 设置当前节点的高亮效果
+        if (node.data?.type !== 'group') {
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
+              stroke: '#1890ff',
+              strokeWidth: 2,
+              strokeDasharray: '5 5'
+            }
+          })
+        }
+        
+        selectedEdge.value = null
+        // 构造完整的节点数据
         const nodeData = {
           id: node.id,
-          attrs: {
-            label: {
-              text: node.data?.type === 'container' ? '容器' : '交换机',
-              fontSize: 12,
-              fill: '#333',
-              refX: '50%',
-              refY: '100%',
-              textAnchor: 'middle',
-              textVerticalAnchor: 'top',
-              y: 4,
-            },
-          },
+          type: node.data?.type,
           data: {
-            type: node.data?.type || '',
-            properties: {
-              ...(node.data?.type === 'container' ? { 
-                ip: '192.168.1.100',
-                netmask: '255.255.255.0',
-                gateway: '192.168.1.1'
-              } : {}),
-              ...(node.data?.type === 'switch' ? { 
-                gateway: '192.168.1.1',
-                dhcpStart: '192.168.1.100',
-                dhcpEnd: '192.168.1.200'
-              } : {}),
-              ...(node.data?.properties || {}),
-            },
+            type: node.data?.type,
+            properties: node.data?.properties || {},
           },
-          position: node.position(),
-          size: node.size(),
-        } as Cell
-        console.log('Node data:', nodeData)
+          position: node.getPosition(),
+          size: node.getSize(),
+          attrs: node.getAttrs(),
+        }
         selectedNode.value = nodeData
       }
     })
 
-    // 添加连线点击事件监听
+    // 监听边点击事件
     graph.on('edge:click', ({ edge }) => {
+      // 清除所有节点的高亮效果
+      graph?.getNodes().forEach(node => {
+        if (node.data?.type !== 'group') {
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
+              stroke: 'none',
+              strokeWidth: 0
+            }
+          })
+        }
+      })
+
+      // 清除所有边的高亮效果
+      graph?.getEdges().forEach(e => {
+        e.setAttrs({
+          line: {
+            ...e.getAttrs().line,
+            stroke: '#333',
+            strokeWidth: 1,
+            strokeDasharray: ''
+          }
+        })
+      })
+
+      // 设置当前边的高亮效果
+      edge.setAttrs({
+        line: {
+          ...edge.getAttrs().line,
+          stroke: '#1890ff',
+          strokeWidth: 2,
+          strokeDasharray: '5 5'
+        }
+      })
+
       // 清除节点选中状态
       selectedNode.value = undefined
       // 设置当前选中的连线
       selectedEdge.value = {
         id: edge.id,
         connector: edge.getConnector()?.name || 'normal',
-        attrs: edge.getAttrs() || {
-          line: {
-            stroke: '#333',
-            strokeWidth: 1,
-            targetMarker: null
-          }
-        }
+        attrs: edge.getAttrs()
       }
-
-      // 移除所有边的工具
-      graph?.getEdges().forEach(e => {
-        e.removeTools()
-      })
-      
-      // 确保节点仍然可以拖动
-      graph?.getNodes().forEach(node => {
-        node.setData({
-          ...node.getData(),
-          movable: true
-        })
-      })
     })
 
     // 监听节点属性更新事件
@@ -960,6 +985,13 @@ const initGraph = async () => {
       if (selectedNode.value && selectedNode.value.id === node.id) {
         selectedNode.value = {
           ...selectedNode.value,
+          type: node.data?.type,
+          data: {
+            type: node.data?.type,
+            properties: node.data?.properties || {},
+          },
+          position: node.getPosition(),
+          size: node.getSize(),
           attrs: node.getAttrs(),
         }
       }
@@ -970,7 +1002,14 @@ const initGraph = async () => {
       if (selectedNode.value && selectedNode.value.id === node.id) {
         selectedNode.value = {
           ...selectedNode.value,
-          data: node.getData(),
+          type: node.data?.type,
+          data: {
+            type: node.data?.type,
+            properties: node.data?.properties || {},
+          },
+          position: node.getPosition(),
+          size: node.getSize(),
+          attrs: node.getAttrs(),
         }
       }
     })
