@@ -19,7 +19,7 @@
       <el-button-group class="ml-2">
         <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
           <el-icon><FolderAdd /></el-icon>
-          创建分组
+          {{ groupButtonText }}
         </el-button>
         <el-button @click="handleUngroup" :disabled="!canUngroup">
           <el-icon><FolderRemove /></el-icon>
@@ -99,10 +99,18 @@ const selectedEdge = ref<any>(null)
 const selectedCells = ref<any[]>([])
 const isConnecting = ref(false)
 const sourceNode = ref<any>(null)
+const isGrouping = ref(false)
+const groupName = ref('')
+const groupingNodes = ref<Cell[]>([])
 
 // 计算属性
 const canCreateGroup = computed(() => {
-  return selectedCells.value.length > 1 && selectedCells.value.every(cell => cell.isNode())
+  if (isGrouping.value) {
+    // 如果正在创建分组，则需要至少选择了一个节点才能完成创建
+    return groupingNodes.value.length > 0
+  }
+  // 如果不在创建分组状态，则始终可以点击开始创建
+  return true
 })
 
 const canUngroup = computed(() => {
@@ -206,11 +214,10 @@ const setData = (data: any) => {
         target: edgeData.target,
         data: edgeData.data,
         router: {
-          name: 'manhattan',
+          name: 'orth',
           args: {
             padding: 10,
-            startDirections: ['right', 'bottom', 'left', 'top'],
-            endDirections: ['left', 'top', 'right', 'bottom']
+            direction: 'H'
           }
         },
         connector: {
@@ -305,6 +312,7 @@ interface NodeConfig {
       }
     }
   }
+  movable?: boolean
 }
 
 // 节点配置
@@ -496,6 +504,7 @@ const nodeConfig: Record<string, NodeConfig> = {
         selector: 'label',
       },
     ],
+    movable: false,
   },
 }
 
@@ -503,41 +512,98 @@ const nodeConfig: Record<string, NodeConfig> = {
 const handleCreateGroup = () => {
   if (!graph) return
 
-  const selected = selectedCells.value
-  if (selected.length < 2) return
+  if (isGrouping.value) {
+    // 如果已经在创建分组状态，且有选中的节点，则完成分组创建
+    if (groupingNodes.value.length > 0) {
+      // 计算分组的边界
+      const bbox = graph.getCellsBBox(groupingNodes.value)
+      if (bbox) {
+        // 创建分组节点
+        const group = graph.addNode({
+          ...nodeConfig.group,
+          x: bbox.x - 16,
+          y: bbox.y - 16,
+          width: bbox.width + 32,
+          height: bbox.height + 32,
+          data: {
+            type: 'group',
+            name: groupName.value,
+            properties: {},
+          },
+          attrs: {
+            ...nodeConfig.group.attrs,
+            label: {
+              ...nodeConfig.group.attrs.label,
+              text: groupName.value
+            }
+          }
+        })
 
-  // 计算分组的边界
-  const bbox = graph.getCellsBBox(selected)
-  if (!bbox) return
+        // 将选中的节点添加到分组中
+        groupingNodes.value.forEach(node => {
+          node.setData({
+            ...node.data,
+            parent: group.id,
+          })
+          node.setZIndex(1)
+          // 清除节点的高亮效果
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
+              stroke: 'none',
+              strokeWidth: 0
+            }
+          })
+        })
 
-  // 创建分组节点
-  const group = graph.addNode({
-    ...nodeConfig.group,
-    x: bbox.x - 16,
-    y: bbox.y - 16,
-    width: bbox.width + 32,
-    height: bbox.height + 32,
-    data: {
-      type: 'group',
-      properties: {},
-    },
-  })
+        // 重置分组状态
+        isGrouping.value = false
+        groupName.value = ''
+        groupingNodes.value = []
+        
+        // 取消所有选中状态
+        groupingNodes.value.forEach(cell => {
+          cell.setData({
+            ...cell.data,
+            selected: false
+          })
+        })
+        // 选中分组节点
+        group.setData({
+          ...group.data,
+          selected: true
+        })
 
-  // 将选中的节点添加到分组中
-  selected.forEach(node => {
-    if (node.isNode()) {
-      node.setData({
-        ...node.data,
-        parent: group.id,
-      })
-      node.setZIndex(1)
+        ElMessage.success('分组创建成功')
+      }
+    } else {
+      ElMessage.warning('请至少选择一个节点')
     }
-  })
-
-  // 选中分组节点
-  graph.clearSelection()
-  graph.select(group)
+  } else {
+    // 开始创建分组
+    ElMessageBox.prompt('请输入分组名称', '创建分组', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /\S+/,
+      inputErrorMessage: '分组名称不能为空'
+    }).then(({ value: name }) => {
+      groupName.value = name
+      isGrouping.value = true
+      groupingNodes.value = []
+      ElMessage.info('请点击要添加到分组的节点，完成后再次点击创建分组按钮')
+    }).catch(() => {
+      // 用户取消输入，不做任何操作
+    })
+  }
 }
+
+// 创建分组按钮文本计算属性
+const groupButtonText = computed(() => {
+  if (isGrouping.value) {
+    return `完成创建(${groupingNodes.value.length})`
+  }
+  return '创建分组'
+})
 
 // 取消分组
 const handleUngroup = () => {
@@ -770,10 +836,17 @@ const initGraph = async () => {
         modifiers: [],
         minScale: 0.2,
         maxScale: 2,
+        passive: true
       },
       scaling: {
         min: 0.2,
         max: 2,
+      },
+      panning: {
+        enabled: true,
+        eventTypes: ['rightMouseDown'],
+        modifiers: [],
+        passive: true
       },
       highlighting: {
         magnetAvailable: {
@@ -799,19 +872,30 @@ const initGraph = async () => {
         color: '#F8F9FA',
       },
       interacting: {
-        nodeMovable: true,
+        nodeMovable: (view) => {
+          // 只有分组节点不可移动，其他节点（包括分组内的节点）都可以移动
+          const node = view.cell
+          return node.data?.type !== 'group'
+        },
         edgeMovable: false,
         edgeLabelMovable: false,
         magnetConnectable: true,
         stopDelegateOnDragging: false,
-        edgeMovableItems: []
+        edgeMovableItems: [],
+        rubberband: true,
+        rubberEdge: false,
+        rubberNode: true,
+        multipleSelection: true,
       },
       selecting: {
         enabled: true,
         multiple: true,
         rubberband: true,
+        rubberNode: true,
         showNodeSelectionBox: true,
+        showRubberband: true,
         strict: true,
+        modifiers: 'shift',
         showEdgeSelectionBox: false,
       },
       keyboard: true,
@@ -830,6 +914,11 @@ const initGraph = async () => {
             return false
           })
         },
+        validate: () => true,  // 允许节点在分组内自由移动
+      },
+      // 添加分组相关配置
+      translating: {
+        restrict: false  // 不限制节点移动
       },
     })
     console.log('Graph instance created:', graph)
@@ -844,7 +933,7 @@ const initGraph = async () => {
     // 监听选择状态变化
     graph.on('selection:changed', ({ selected, removed }) => {
       // 更新选中状态
-      selectedCells.value = graph?.getSelectedCells() || []
+      selectedCells.value = selected || []
 
       // 清除所有节点的高亮效果
       graph?.getNodes().forEach(node => {
@@ -937,11 +1026,10 @@ const initGraph = async () => {
                 source: sourceNode.value,
                 target: node,
                 router: {
-                  name: 'manhattan',
+                  name: 'orth',
                   args: {
                     padding: 10,
-                    startDirections: ['right', 'bottom', 'left', 'top'],
-                    endDirections: ['left', 'top', 'right', 'bottom']
+                    direction: 'H'
                   }
                 },
                 connector: {
@@ -965,6 +1053,35 @@ const initGraph = async () => {
           }
           isConnecting.value = false
           sourceNode.value = null
+        }
+      } else if (isGrouping.value) {
+        // 如果正在创建分组
+        if (node.data?.type !== 'group') {
+          const index = groupingNodes.value.findIndex(n => n.id === node.id)
+          if (index === -1) {
+            // 添加到分组节点列表
+            groupingNodes.value.push(node)
+            // 设置节点高亮效果
+            node.setAttrs({
+              body: {
+                ...node.getAttrs().body,
+                stroke: '#1890ff',
+                strokeWidth: 2,
+                strokeDasharray: '5 5'
+              }
+            })
+          } else {
+            // 从分组节点列表中移除
+            groupingNodes.value.splice(index, 1)
+            // 移除节点高亮效果
+            node.setAttrs({
+              body: {
+                ...node.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            })
+          }
         }
       } else {
         // 清除所有节点的高亮效果
@@ -1150,6 +1267,7 @@ const initGraph = async () => {
           if (children && children.length > 0) {
             const bbox = graph?.getCellsBBox(children)
             if (bbox) {
+              // 更新分组大小和位置
               parent.resize(bbox.width + 32, bbox.height + 32)
               parent.position(bbox.x - 16, bbox.y - 16)
             }
