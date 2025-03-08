@@ -1,11 +1,12 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.api import deps
 from app.schemas.scene import Scene, SceneCreate, SceneUpdate, SceneList
 from app.models.scene import Scene as SceneModel
 from app.models.user import User
+from datetime import datetime
 
 router = APIRouter()
 
@@ -32,8 +33,21 @@ def list_scenes(
             )
         )
     
+    # 确保加载关联的用户数据
+    query = query.options(joinedload(SceneModel.created_by))
+    
     total = query.count()
     scenes = query.order_by(SceneModel.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 确保每个场景都有 created_by_id
+    for scene in scenes:
+        if scene.created_by_id is None and current_user:
+            scene.created_by_id = current_user.id
+            db.add(scene)
+    
+    if db.dirty:
+        db.commit()
+    
     return {"items": scenes, "total": total}
 
 @router.post("/", response_model=Scene)
@@ -49,7 +63,10 @@ def create_scene(
     scene = SceneModel(
         name=scene_in.name,
         description=scene_in.description,
-        node_count=0
+        node_count=0,
+        created_by_id=current_user.id,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
     db.add(scene)
     db.commit()
@@ -129,7 +146,10 @@ def copy_scene(
     new_scene = SceneModel(
         name=f"{scene.name} (复制)",
         description=scene.description,
-        node_count=scene.node_count
+        node_count=scene.node_count,
+        created_by_id=current_user.id,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
     db.add(new_scene)
     db.commit()

@@ -8,7 +8,7 @@ target_software = Table(
     'target_software',
     Base.metadata,
     Column('target_id', Integer, ForeignKey('targets.id')),
-    Column('software_id', Integer, ForeignKey('software.id'))
+    Column('software_id', Integer, ForeignKey('softwares.id'))
 )
 
 class Target(Base):

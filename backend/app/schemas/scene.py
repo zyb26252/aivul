@@ -15,9 +15,10 @@ class SceneUpdate(BaseModel):
 
 class Scene(SceneBase):
     id: int
-    nodeCount: int = Field(alias="node_count")
-    createdAt: datetime = Field(alias="created_at")
-    updatedAt: datetime = Field(alias="updated_at")
+    node_count: int
+    created_at: datetime
+    updated_at: datetime
+    created_by_id: int
 
     class Config:
         from_attributes = True
@@ -31,9 +32,10 @@ class Scene(SceneBase):
                 "id": 1,
                 "name": "测试场景",
                 "description": "这是一个测试场景",
-                "nodeCount": 0,
-                "createdAt": "2024-03-07T09:24:04.412557",
-                "updatedAt": "2024-03-07T09:24:04.412567"
+                "node_count": 0,
+                "created_at": "2024-03-07T09:24:04.412557",
+                "updated_at": "2024-03-07T09:24:04.412567",
+                "created_by_id": 1
             }
         }
 
