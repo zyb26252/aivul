@@ -1,3 +1,15 @@
+/**
+ * 拓扑编辑器组件
+ * 
+ * 功能：
+ * 1. 提供画布用于编辑网络拓扑图
+ * 2. 支持拖拽添加节点（容器和交换机）
+ * 3. 支持节点之间创建连线
+ * 4. 支持节点分组管理
+ * 5. 提供缩放、适应画布等工具栏功能
+ * 6. 支持属性面板编辑节点和连线的样式
+ */
+
 <template>
   <div class="topology-editor">
     <!-- 工具栏 -->
@@ -337,110 +349,113 @@ const setData = (data: TopologyData) => {
   })
 }
 
-// 节点配置类型
+// 节点配置类型定义
 interface NodeConfig {
-  width?: number
-  height?: number
-  shape: string
+  width?: number      // 节点宽度
+  height?: number     // 节点高度
+  shape: string       // 节点形状
   attrs: {
-    body: {
-      fill: string
-      stroke: string
-      strokeWidth: number
-      rx?: number
-      ry?: number
-      strokeDasharray?: string
+    body: {          // 节点主体样式
+      fill: string   // 填充颜色
+      stroke: string // 边框颜色
+      strokeWidth: number // 边框宽度
+      rx?: number    // 圆角半径 X
+      ry?: number    // 圆角半径 Y
+      strokeDasharray?: string // 虚线样式
     }
-    image?: {
-      'xlink:href': string
-      width: number
-      height: number
-      x: number
-      y: number
+    image?: {        // 节点图标配置
+      'xlink:href': string // 图标路径
+      width: number  // 图标宽度
+      height: number // 图标高度
+      x: number      // 图标 X 坐标
+      y: number      // 图标 Y 坐标
     }
-    label: {
-      text: string
-      fontSize: number
-      fill: string
-      y?: number
-      refX?: number
-      refY?: number
+    label: {         // 节点文本配置
+      text: string   // 显示文本
+      fontSize: number // 字体大小
+      fill: string   // 文本颜色
+      y?: number     // 文本 Y 偏移
+      refX?: number  // 文本相对 X 位置
+      refY?: number  // 文本相对 Y 位置
     }
   }
-  markup?: Array<{
-    tagName: string
-    selector: string
+  markup?: Array<{   // 节点 DOM 结构
+    tagName: string  // 标签名
+    selector: string // 选择器
   }>
-  ports?: {
+  ports?: {          // 连接桩配置
     groups: {
       [key: string]: {
-        position: string
+        position: string // 位置
         attrs: {
-          circle: {
-            r: number
-            magnet: boolean
-            stroke: string
-            strokeWidth: number
-            fill: string
-            cursor: string
-            event: string
-            visibility: string
+          circle: {    // 连接桩样式
+            r: number  // 半径
+            magnet: boolean // 是否可连接
+            stroke: string  // 边框颜色
+            strokeWidth: number // 边框宽度
+            fill: string   // 填充颜色
+            cursor: string // 鼠标样式
+            event: string  // 事件名
+            visibility: string // 可见性
           }
         }
       }
     }
   }
-  movable?: boolean
+  movable?: boolean  // 是否可移动
 }
 
-// 节点配置
+// 节点配置对象
 const nodeConfig: Record<string, NodeConfig> = {
+  // 容器节点配置
   container: {
     width: 40,
     height: 45,
     shape: 'rect',
     markup: [
       {
-        tagName: 'rect',
+        tagName: 'rect',    // 矩形作为背景
         selector: 'body',
       },
       {
-        tagName: 'image',
+        tagName: 'image',   // 图片作为图标
         selector: 'image',
       },
       {
-        tagName: 'text',
+        tagName: 'text',    // 文本作为标签
         selector: 'label',
       }
     ],
     attrs: {
       body: {
-        fill: 'none',
-        stroke: 'none',
+        fill: 'none',       // 透明背景
+        stroke: 'none',     // 无边框
         strokeWidth: 0,
-        rx: 4,
+        rx: 4,             // 圆角矩形
         ry: 4,
       },
       image: {
-        'xlink:href': containerIcon,
+        'xlink:href': containerIcon,  // 容器图标
         width: 40,
         height: 40,
         x: 0,
         y: 0,
       },
       label: {
-        text: '容器',
+        text: '容器',       // 默认文本
         fontSize: 12,
         fill: '#333',
-        refX: '50%',
-        refY: '85%',
+        refX: '50%',       // 水平居中
+        refY: '85%',       // 文本位置
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 0,
       }
     },
+    // 定义连接桩
     ports: {
       groups: {
+        // 顶部连接桩
         top: {
           position: 'top',
           attrs: {
@@ -456,6 +471,7 @@ const nodeConfig: Record<string, NodeConfig> = {
             },
           },
         },
+        // 底部连接桩
         bottom: {
           position: 'bottom',
           attrs: {
@@ -474,6 +490,8 @@ const nodeConfig: Record<string, NodeConfig> = {
       },
     },
   },
+
+  // 交换机节点配置（结构同容器节点）
   switch: {
     width: 40,
     height: 45,
@@ -553,14 +571,16 @@ const nodeConfig: Record<string, NodeConfig> = {
       },
     },
   },
+
+  // 分组节点配置
   group: {
     shape: 'rect',
     attrs: {
       body: {
-        fill: 'rgba(24, 144, 255, 0.1)',
+        fill: 'rgba(24, 144, 255, 0.1)',  // 半透明背景
         stroke: '#1890ff',
         strokeWidth: 1,
-        strokeDasharray: '5 5',
+        strokeDasharray: '5 5',  // 虚线边框
         rx: 8,
         ry: 8
       },
@@ -584,7 +604,7 @@ const nodeConfig: Record<string, NodeConfig> = {
     ],
     width: 200,
     height: 100,
-    movable: false
+    movable: false  // 分组节点不可移动
   },
 }
 
@@ -957,7 +977,8 @@ const initGraph = async () => {
       container: container.value,
       width: container.value.clientWidth,
       height: container.value.clientHeight,
-      grid: true,
+      grid: true,  // 显示网格
+      // 鼠标滚轮缩放配置
       mousewheel: {
         enabled: true,
         modifiers: [],
@@ -965,16 +986,19 @@ const initGraph = async () => {
         maxScale: 2,
         passive: true
       },
+      // 缩放范围限制
       scaling: {
         min: 0.2,
         max: 2,
       },
+      // 画布平移配置
       panning: {
         enabled: true,
         eventTypes: ['rightMouseDown'],
         modifiers: [],
         passive: true
       },
+      // 高亮效果配置
       highlighting: {
         magnetAvailable: {
           name: 'className',
@@ -996,32 +1020,33 @@ const initGraph = async () => {
         },
       },
       background: {
-        color: '#F8F9FA',
+        color: '#F8F9FA',  // 背景色
       },
-      // 添加默认的 z-index 配置
+      // 元素层级配置
       zIndex: {
-        node: 1,  // 普通节点的默认层级
-        edge: 2,  // 边的默认层级
-        group: 0,  // 分组节点的默认层级
+        node: 1,    // 普通节点层级
+        edge: 2,    // 边的层级
+        group: 0,   // 分组节点层级（最底层）
       },
+      // 交互行为配置
       interacting: {
+        // 节点是否可移动（分组节点不可移动）
         nodeMovable: (view) => {
-          // 分组节点不可移动，其他节点可移动
           const cell = view.cell
           return cell.data?.type !== 'group'
         },
-        edgeMovable: false,
-        edgeLabelMovable: false,
-        magnetConnectable: true,
+        edgeMovable: false,      // 边不可移动
+        edgeLabelMovable: false, // 边的标签不可移动
+        magnetConnectable: true,  // 允许连接到磁性连接桩
         stopDelegateOnDragging: false,
         edgeMovableItems: [],
-        rubberband: true,
+        rubberband: true,        // 允许框选
         rubberEdge: false,
         rubberNode: true,
-        multipleSelection: true,
-        // 允许分组内节点交互（选中等）
+        multipleSelection: true,  // 允许多选
         shouldStartSelecting: () => true,
       },
+      // 选择功能配置
       selecting: {
         enabled: true,
         multiple: true,
@@ -1032,16 +1057,15 @@ const initGraph = async () => {
         strict: false,  // 允许选择分组内的节点
         modifiers: 'shift',
         showEdgeSelectionBox: false,
-        // 允许选择所有类型的节点
         filter: ['node'],
       },
-      keyboard: true,
-      clipboard: true,
-      history: true,
+      keyboard: true,   // 启用键盘事件
+      clipboard: true,  // 启用剪贴板
+      history: true,    // 启用历史记录
+      // 嵌入功能配置（用于分组）
       embedding: {
         enabled: true,
         findParent({ node }) {
-          // 如果节点已经有父节点，且正在拖动中，不改变其父节点
           if (node.getData()?.parent) {
             return []
           }
@@ -1058,12 +1082,11 @@ const initGraph = async () => {
         },
         validate: () => true,
       },
-      // 改进 translating 配置，确保只有分组节点受限
+      // 移动限制配置
       translating: {
         restrict: (view) => {
           const cell = view.cell
           if (cell.getData()?.type === 'group') {
-            // 返回一个大范围，实际上是禁止分组移动
             return {
               x: cell.getPosition().x,
               y: cell.getPosition().y,
@@ -1071,7 +1094,6 @@ const initGraph = async () => {
               height: 0
             }
           }
-          // 对普通节点不做限制
           return null
         }
       },
