@@ -222,75 +222,73 @@ const setData = (data: TopologyData) => {
   }
 
   // 清空画布
-  graph.removeCells(graph.getCells())
+  graph.removeCell(graph.getCells())
 
+  // 先创建所有节点（分组和普通节点），但先不建立父子关系
+  const nodeMap = new Map()
+  
   // 先添加分组节点
-  data.nodes
-    .filter(node => node.data.type === 'group')
-    .forEach(nodeData => {
-      if (graph) {
-        // 查找该分组下的所有子节点
-        const childrenNodes = data.nodes.filter(n => n.data.parent === nodeData.id)
-        
-        // 计算分组的大小和位置
-        let minX = nodeData.x
-        let minY = nodeData.y
-        let maxX = nodeData.x + (nodeConfig.group.width || 200)
-        let maxY = nodeData.y + (nodeConfig.group.height || 100)
-
-        // 如果有子节点，根据子节点位置调整分组大小
-        if (childrenNodes.length > 0) {
-          minX = Math.min(minX, ...childrenNodes.map(n => n.x))
-          minY = Math.min(minY, ...childrenNodes.map(n => n.y))
-          maxX = Math.max(maxX, ...childrenNodes.map(n => n.x + (nodeConfig[n.data.type]?.width || 40)))
-          maxY = Math.max(maxY, ...childrenNodes.map(n => n.y + (nodeConfig[n.data.type]?.height || 60)))
-        }
-
-        // 添加边距
-        minX -= 16
-        minY -= 16
-        maxX += 16
-        maxY += 16
-
-        graph.addNode({
-          id: nodeData.id,
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY,
-          ...nodeConfig.group,
-          attrs: {
-            ...nodeConfig.group.attrs,
-            label: {
-              ...nodeConfig.group.attrs.label,
-              text: nodeData.data.name || '未命名分组'
-            }
-          },
-          data: nodeData.data,
-          zIndex: 0
-        })
-      }
-    })
+  const groupNodes = data.nodes.filter(node => node.data.type === 'group')
+  groupNodes.forEach(nodeData => {
+    if (graph) {
+      const group = graph.addNode({
+        id: nodeData.id,
+        x: nodeData.x,
+        y: nodeData.y,
+        width: 200, // 初始大小，稍后会根据子节点调整
+        height: 100, // 初始大小，稍后会根据子节点调整
+        ...nodeConfig.group,
+        attrs: {
+          ...nodeConfig.group.attrs,
+          label: {
+            ...nodeConfig.group.attrs.label,
+            text: nodeData.data.name || '未命名分组'
+          }
+        },
+        data: nodeData.data,
+        zIndex: 0 // 分组在底层
+      })
+      
+      nodeMap.set(nodeData.id, group)
+    }
+  })
 
   // 再添加普通节点
-  data.nodes
-    .filter(node => node.data.type !== 'group')
-    .forEach(nodeData => {
-      if (graph) {
-        const config = nodeConfig[nodeData.type as keyof typeof nodeConfig]
-        if (config) {
-          graph.addNode({
-            id: nodeData.id,
-            x: nodeData.x,
-            y: nodeData.y,
-            ...config,
-            attrs: nodeData.attrs,
-            data: nodeData.data,
-            zIndex: 1
-          })
-        }
+  const normalNodes = data.nodes.filter(node => node.data.type !== 'group')
+  normalNodes.forEach(nodeData => {
+    if (graph) {
+      const config = nodeConfig[nodeData.type as keyof typeof nodeConfig]
+      if (config) {
+        const node = graph.addNode({
+          id: nodeData.id,
+          x: nodeData.x,
+          y: nodeData.y,
+          ...config,
+          attrs: nodeData.attrs,
+          data: nodeData.data,
+          zIndex: 1 // 普通节点在上层
+        })
+        
+        nodeMap.set(nodeData.id, node)
       }
-    })
+    }
+  })
+  
+  // 建立节点的父子关系
+  normalNodes.forEach(nodeData => {
+    if (nodeData.data.parent) {
+      const node = nodeMap.get(nodeData.id)
+      const parent = nodeMap.get(nodeData.data.parent)
+      
+      if (node && parent) {
+        // 设置父子关系
+        node.setData({
+          ...node.getData(),
+          parent: parent.id
+        })
+      }
+    }
+  })
 
   // 最后添加边
   data.edges.forEach(edgeData => {
@@ -315,6 +313,26 @@ const setData = (data: TopologyData) => {
         },
         attrs: edgeData.attrs
       })
+    }
+  })
+
+  // 调整分组大小以适应其子节点
+  groupNodes.forEach(groupData => {
+    if (graph) {
+      const group = nodeMap.get(groupData.id)
+      if (group) {
+        const children = graph.getNodes().filter(node => node.getData()?.parent === groupData.id)
+        if (children.length > 0) {
+          const bbox = graph.getCellsBBox(children)
+          if (bbox) {
+            // 添加边距
+            const padding = 16
+            // 更新分组大小和位置
+            group.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+            group.position(bbox.x - padding, bbox.y - padding)
+          }
+        }
+      }
     }
   })
 }
@@ -566,7 +584,7 @@ const nodeConfig: Record<string, NodeConfig> = {
     ],
     width: 200,
     height: 100,
-    movable: true
+    movable: false
   },
 }
 
@@ -749,29 +767,40 @@ const handleDrop = (e: DragEvent) => {
         type: element.type,
         properties: {},
       },
-      zIndex: 1  // 确保新创建的节点在分组之上
+      zIndex: 1
     })
 
     // 检查是否落在分组内
-    const parent = graph.getNodes().find(n => {
-      if (n.data?.type === 'group') {
-        const bbox = n.getBBox()
-        const nodeBBox = node.getBBox()
-        return bbox.containsRect(nodeBBox)
+    const groups = graph.getNodes().filter(n => n.getData()?.type === 'group')
+    for (const group of groups) {
+      const groupBBox = group.getBBox()
+      const nodeBBox = node.getBBox()
+      
+      if (groupBBox.containsRect(nodeBBox)) {
+        // 设置父子关系
+        node.setData({
+          ...node.getData(),
+          parent: group.id
+        })
+        
+        // 确保层级关系正确
+        group.setZIndex(0)
+        node.setZIndex(1)
+        
+        // 调整分组大小
+        const children = graph.getNodes().filter(n => n.getData()?.parent === group.id)
+        if (children.length > 0) {
+          const bbox = graph.getCellsBBox(children)
+          if (bbox) {
+            const padding = 16
+            group.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+            group.position(bbox.x - padding, bbox.y - padding)
+          }
+        }
+        
+        break
       }
-      return false
-    })
-
-    if (parent) {
-      node.setData({
-        ...node.data,
-        parent: parent.id,
-      })
-      parent.setZIndex(0)  // 确保分组在底层
     }
-
-    // 触发节点选中事件
-    graph.trigger('node:selected', { node })
   } catch (error) {
     console.error('Failed to create node:', error)
   }
@@ -960,7 +989,11 @@ const initGraph = async () => {
         group: 0,  // 分组节点的默认层级
       },
       interacting: {
-        nodeMovable: true,  // 允许所有节点移动
+        nodeMovable: (view) => {
+          // 分组节点不可移动，其他节点可移动
+          const cell = view.cell
+          return cell.data?.type !== 'group'
+        },
         edgeMovable: false,
         edgeLabelMovable: false,
         magnetConnectable: true,
@@ -992,24 +1025,38 @@ const initGraph = async () => {
       embedding: {
         enabled: true,
         findParent({ node }) {
+          // 如果节点已经有父节点，且正在拖动中，不改变其父节点
+          if (node.getData()?.parent) {
+            return []
+          }
+          
           const bbox = node.getBBox()
-          return this.getNodes().filter((node) => {
-            const data = node.getData()
+          return this.getNodes().filter((n) => {
+            const data = n.getData()
             if (data && data.type === 'group') {
-              const targetBBox = node.getBBox()
+              const targetBBox = n.getBBox()
               return targetBBox.containsRect(bbox)
             }
             return false
           })
         },
-        validate: () => true,  // 允许节点在分组内自由移动
+        validate: () => true,
       },
-      // 添加分组相关配置
+      // 改进 translating 配置，确保只有分组节点受限
       translating: {
         restrict: (view) => {
           const cell = view.cell
-          // 只限制分组节点的移动
-          return cell.data?.type === 'group'
+          if (cell.getData()?.type === 'group') {
+            // 返回一个大范围，实际上是禁止分组移动
+            return {
+              x: cell.getPosition().x,
+              y: cell.getPosition().y,
+              width: 0,
+              height: 0
+            }
+          }
+          // 对普通节点不做限制
+          return null
         }
       },
     })
@@ -1348,56 +1395,54 @@ const initGraph = async () => {
       }
     })
 
-    // 监听节点移动事件
-    graph.on('node:moved', ({ node, current }) => {
+    // 监听节点移动事件，重新调整分组大小
+    graph.on('node:moved', ({ node }) => {
       // 如果是分组中的节点，更新分组大小
-      const parentId = node.data?.parent
+      const parentId = node.getData()?.parent
       if (parentId) {
-        const parent = graph?.getCellById(parentId)
-        if (parent) {
-          const children = graph?.getNodes().filter(n => n.data?.parent === parentId)
+        const parent = graph.getCellById(parentId)
+        if (parent && parent.getData()?.type === 'group') {
+          // 获取同一分组内的所有子节点
+          const children = graph.getNodes().filter(n => n.getData()?.parent === parentId)
           if (children && children.length > 0) {
-            const bbox = graph?.getCellsBBox(children)
+            const bbox = graph.getCellsBBox(children)
             if (bbox) {
+              // 添加边距
+              const padding = 16
               // 更新分组大小和位置
-              parent.resize(bbox.width + 32, bbox.height + 32)
-              parent.position(bbox.x - 16, bbox.y - 16)
+              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+              parent.position(bbox.x - padding, bbox.y - padding)
+              
+              // 确保层级关系正确
+              parent.setZIndex(0)
+              children.forEach(child => {
+                child.setZIndex(1)
+              })
             }
           }
         }
       }
     })
 
-    // 监听节点移动开始事件
-    graph.on('node:mousedown', ({ node }) => {
-      // 确保所有分组节点都在最底层
-      graph?.getNodes().forEach(n => {
-        if (n.data?.type === 'group') {
-          n.setZIndex(0)
-        } else {
-          n.setZIndex(1)
+    // 监听节点添加事件，当节点添加到画布时检查是否需要调整分组
+    graph.on('node:added', ({ node }) => {
+      const parentId = node.data?.parent
+      if (parentId) {
+        const parent = graph?.getCellById(parentId)
+        if (parent && parent.data?.type === 'group') {
+          const children = graph?.getNodes().filter(n => n.data?.parent === parentId)
+          if (children && children.length > 0) {
+            const bbox = graph?.getCellsBBox(children)
+            if (bbox) {
+              // 添加边距
+              const padding = 16
+              // 更新分组大小和位置
+              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+              parent.position(bbox.x - padding, bbox.y - padding)
+            }
+          }
         }
-      })
-    })
-
-    // 监听节点移动过程中的事件
-    graph.on('node:mousemove', ({ node }) => {
-      // 确保当前移动的节点在最上层
-      if (node.data?.type !== 'group') {
-        node.setZIndex(2)
       }
-    })
-
-    // 监听节点移动结束事件
-    graph.on('node:mouseup', ({ node }) => {
-      // 重置所有节点的层级
-      graph?.getNodes().forEach(n => {
-        if (n.data?.type === 'group') {
-          n.setZIndex(0)
-        } else {
-          n.setZIndex(1)
-        }
-      })
     })
 
     return graph
