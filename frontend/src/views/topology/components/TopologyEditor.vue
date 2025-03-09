@@ -79,11 +79,26 @@
         />
       </div>
     </div>
+
+    <div class="editor-status">
+      <div class="status-item">
+        <span>容器数量：</span>
+        <span class="count">{{ containerCount }}</span>
+      </div>
+      <div class="status-item">
+        <span>交换机数量：</span>
+        <span class="count">{{ switchCount }}</span>
+      </div>
+      <div class="status-item">
+        <span>分组数量：</span>
+        <span class="count">{{ groupCount }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   FolderAdd, 
@@ -183,6 +198,42 @@ const canDelete = computed(() => {
 // 画布实例
 let graph: Graph | null = null
 
+// 统计数量
+const containerCount = ref(0)
+const switchCount = ref(0)
+const groupCount = ref(0)
+
+// 更新统计数据的函数
+const updateCounts = () => {
+  if (!graph) {
+    containerCount.value = 0
+    switchCount.value = 0
+    groupCount.value = 0
+    return
+  }
+
+  const nodes = graph.getNodes()
+  containerCount.value = nodes.filter(node => node.getData()?.type === 'container').length
+  switchCount.value = nodes.filter(node => node.getData()?.type === 'switch').length
+  groupCount.value = nodes.filter(node => node.getData()?.type === 'group').length
+}
+
+// 使用 watchEffect 监听图形实例的变化
+watchEffect(() => {
+  if (graph) {
+    updateCounts()
+  }
+})
+
+// 在图形发生变化时更新统计
+const setupGraphListeners = () => {
+  if (!graph) return
+
+  graph.on('cell:added', updateCounts)
+  graph.on('cell:removed', updateCounts)
+  graph.on('node:change:data', updateCounts)
+}
+
 // 获取拓扑数据
 const getData = (): TopologyData => {
   if (!graph) {
@@ -191,13 +242,31 @@ const getData = (): TopologyData => {
 
   const nodes = graph.getNodes().map(node => {
     const pos = node.getBBox()
+    const data = node.getData() as NodeData
+    const attrs = node.getAttrs()
+    
+    // 如果是分组节点，确保保存名称
+    if (data?.type === 'group') {
+      return {
+        id: node.id,
+        type: data.type,
+        x: pos.x,
+        y: pos.y,
+        data: {
+          ...data,
+          name: attrs.label?.text || data.name || '未命名分组'  // 从标签文本或原有名称中获取
+        },
+        attrs: node.getAttrs()
+      }
+    }
+    
     return {
       id: node.id,
-      type: node.getData()?.type || '',
+      type: data?.type || '',
       x: pos.x,
       y: pos.y,
-      data: node.getData() as NodeData,
-      attrs: node.getAttrs()
+      data: data,
+      attrs: attrs
     }
   })
 
@@ -445,8 +514,8 @@ const nodeConfig: Record<string, NodeConfig> = {
         text: '容器',       // 默认文本
         fontSize: 12,
         fill: '#333',
-        refX: '50%',       // 水平居中
-        refY: '85%',       // 文本位置
+        refX: 0.5,       // 水平居中
+        refY: 0.85,       // 文本位置
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 0,
@@ -529,8 +598,8 @@ const nodeConfig: Record<string, NodeConfig> = {
         text: '交换机',
         fontSize: 12,
         fill: '#333',
-        refX: '50%',
-        refY: '85%',
+        refX: 0.5,
+        refY: 0.85,
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
         y: 0,
@@ -928,7 +997,10 @@ onMounted(async () => {
   try {
     await initGraph()
     console.log('Graph initialized successfully')
-
+    
+    // 设置图形监听器
+    setupGraphListeners()
+    
     // 添加键盘事件监听
     window.addEventListener('keydown', handleKeyDown)
   } catch (error) {
@@ -939,6 +1011,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (graph) {
+    graph.off('cell:added', updateCounts)
+    graph.off('cell:removed', updateCounts)
+    graph.off('node:change:data', updateCounts)
     graph.dispose()
   }
   // 移除键盘事件监听
@@ -1559,6 +1634,7 @@ const initGraph = async () => {
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
+  overflow: hidden;
 
   .editor-toolbar {
     padding: 8px 16px;
@@ -1579,6 +1655,7 @@ const initGraph = async () => {
       background-color: var(--el-bg-color);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
 
       .panel-title {
         margin: 0;
@@ -1586,6 +1663,11 @@ const initGraph = async () => {
         font-size: 16px;
         font-weight: 500;
         border-bottom: 1px solid var(--el-border-color-light);
+      }
+      
+      :deep(.panel-content) {
+        flex: 1;
+        overflow: auto;
       }
     }
 
@@ -1602,6 +1684,7 @@ const initGraph = async () => {
       background-color: var(--el-bg-color);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
 
       .panel-title {
         margin: 0;
@@ -1609,6 +1692,34 @@ const initGraph = async () => {
         font-size: 16px;
         font-weight: 500;
         border-bottom: 1px solid var(--el-border-color-light);
+      }
+      
+      :deep(.panel-content) {
+        flex: 1;
+        overflow: auto;
+      }
+    }
+  }
+
+  .editor-status {
+    height: 32px;
+    border-top: 1px solid var(--el-border-color-light);
+    background-color: var(--el-bg-color);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    gap: 16px;
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .count {
+        color: var(--el-text-color-primary);
+        font-weight: 500;
       }
     }
   }
