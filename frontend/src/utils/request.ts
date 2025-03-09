@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { getConfig } from './config'
 
 const service = axios.create({
-  baseURL: 'http://aivul.love:8000',
-  timeout: 30000,
+  baseURL: getConfig().apiUrl,
+  timeout: 5000,
   headers: {
     'Content-Type': 'application/json'
   }
