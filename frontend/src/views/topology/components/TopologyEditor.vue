@@ -397,7 +397,7 @@ interface NodeConfig {
 const nodeConfig: Record<string, NodeConfig> = {
   container: {
     width: 40,
-    height: 60,
+    height: 45,
     shape: 'rect',
     markup: [
       {
@@ -433,10 +433,10 @@ const nodeConfig: Record<string, NodeConfig> = {
         fontSize: 12,
         fill: '#333',
         refX: '50%',
-        refY: '100%',
+        refY: '85%',
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
-        y: 4,
+        y: 0,
       }
     },
     ports: {
@@ -476,7 +476,7 @@ const nodeConfig: Record<string, NodeConfig> = {
   },
   switch: {
     width: 40,
-    height: 60,
+    height: 45,
     shape: 'rect',
     markup: [
       {
@@ -512,10 +512,10 @@ const nodeConfig: Record<string, NodeConfig> = {
         fontSize: 12,
         fill: '#333',
         refX: '50%',
-        refY: '100%',
+        refY: '85%',
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
-        y: 4,
+        y: 0,
       }
     },
     ports: {
@@ -831,11 +831,27 @@ const handleEdgeUpdate = (edge: any) => {
 
   const target = graph.getCellById(edge.id)
   if (target) {
-    target.setAttrs(edge.attrs)
+    // 保存边的原始样式和属性
+    const customAttrs = {
+      ...edge.attrs
+    }
+    
+    // 应用新的样式
+    target.setAttrs(customAttrs)
     target.setConnector(edge.connector)
+    
+    // 保存边的样式信息到数据中，作为永久设置
     target.setData({
       ...target.getData(),
-      attrs: edge.attrs
+      attrs: customAttrs,
+      customStyle: true, // 标记此边有自定义样式
+      customAttrs: customAttrs, // 保存完整的自定义属性
+      // 提取主要样式信息以便于后续使用
+      style: {
+        stroke: customAttrs.line?.stroke || '#1890ff',
+        strokeWidth: customAttrs.line?.strokeWidth || 2,
+        strokeDasharray: customAttrs.line?.strokeDasharray || ''
+      }
     })
   }
 }
@@ -1074,44 +1090,63 @@ const initGraph = async () => {
       // 更新选中状态
       selectedCells.value = selected || []
 
-      // 清除所有节点的高亮效果
-      graph?.getNodes().forEach(node => {
-        if (node.data?.type !== 'group') {
-          node.setAttrs({
-            body: {
-              ...node.getAttrs().body,
-              stroke: 'none',
-              strokeWidth: 0
-            }
-          })
-        }
-      })
-
-      // 清除所有边的高亮效果
-      graph?.getEdges().forEach(edge => {
-        edge.setAttrs({
-          line: {
-            ...edge.getAttrs().line,
-            stroke: '#333',
-            strokeWidth: 1,
-            strokeDasharray: ''
+      // 如果没有选中任何元素，则恢复所有元素的默认样式
+      if (!selected || selected.length === 0) {
+        // 清除所有节点的高亮效果
+        graph?.getNodes().forEach(node => {
+          if (node.getData()?.type !== 'group') {
+            node.setAttrs({
+              body: {
+                ...node.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            })
           }
         })
-      })
 
-      // 如果有选中的元素
+        // 清除所有边的高亮效果
+        graph?.getEdges().forEach(edge => {
+          // 只有未被选中的边才重置样式
+          if (!edge.getData()?.selected) {
+            edge.setAttrs({
+              line: {
+                ...edge.getAttrs().line,
+                stroke: '#333',
+                strokeWidth: 1,
+                strokeDasharray: ''
+              }
+            })
+          }
+        })
+      }
+
+      // 处理选中的元素
       if (selected && selected.length > 0) {
         const cell = selected[0]
         
         if (cell.isEdge()) {
-          // 设置边的高亮效果
-          cell.setAttrs({
-            line: {
-              ...cell.getAttrs().line,
-              stroke: '#1890ff',
-              strokeWidth: 2,
-              strokeDasharray: '5 5'
-            }
+          // 获取当前边的样式
+          const currentStyle = cell.getAttrs().line || {}
+          const edgeData = cell.getData()
+          
+          // 如果边有自定义样式，使用自定义样式
+          if (edgeData?.customStyle) {
+            cell.setAttrs(edgeData.customAttrs)
+          } else {
+            // 保持当前样式，只增加线条宽度
+            cell.setAttrs({
+              line: {
+                ...currentStyle,
+                strokeWidth: (currentStyle.strokeWidth || 1) + 1 // 只增加线条宽度
+              }
+            })
+          }
+          
+          // 在数据中标记为选中状态
+          cell.setData({
+            ...cell.getData(),
+            selected: true
           })
           
           selectedNode.value = undefined
@@ -1120,7 +1155,7 @@ const initGraph = async () => {
             connector: cell.getConnector()?.name || 'normal',
             attrs: cell.getAttrs()
           }
-        } else if (cell.isNode() && cell.data?.type !== 'group') {
+        } else if (cell.isNode() && cell.getData()?.type !== 'group') {
           // 设置节点的高亮效果
           cell.setAttrs({
             body: {
@@ -1134,10 +1169,10 @@ const initGraph = async () => {
           selectedEdge.value = null
           const nodeData = {
             id: cell.id,
-            type: cell.data?.type,
+            type: cell.getData()?.type,
             data: {
-              type: cell.data?.type,
-              properties: cell.data?.properties || {},
+              type: cell.getData()?.type,
+              properties: cell.getData()?.properties || {},
             },
             position: cell.getPosition(),
             size: cell.getSize(),
@@ -1145,10 +1180,6 @@ const initGraph = async () => {
           }
           selectedNode.value = nodeData
         }
-      } else {
-        // 清除选中状态
-        selectedNode.value = undefined
-        selectedEdge.value = null
       }
     })
 
@@ -1181,6 +1212,7 @@ const initGraph = async () => {
                   line: {
                     stroke: '#333',
                     strokeWidth: 1,
+                    strokeDasharray: '',  // 确保默认为实线
                     targetMarker: null
                   }
                 }
@@ -1195,7 +1227,7 @@ const initGraph = async () => {
         }
       } else if (isGrouping.value) {
         // 如果正在创建分组
-        if (node.data?.type !== 'group') {
+        if (node.getData()?.type !== 'group') {
           const index = groupingNodes.value.findIndex(n => n.id === node.id)
           if (index === -1) {
             // 添加到分组节点列表
@@ -1225,7 +1257,7 @@ const initGraph = async () => {
       } else {
         // 清除所有节点的高亮效果
         graph?.getNodes().forEach(n => {
-          if (n.data?.type !== 'group') {
+          if (n.getData()?.type !== 'group') {
             n.setAttrs({
               body: {
                 ...n.getAttrs().body,
@@ -1236,20 +1268,39 @@ const initGraph = async () => {
           }
         })
 
-        // 清除所有边的高亮效果
+        // 保持选中边的高亮，只清除未选中的边
         graph?.getEdges().forEach(edge => {
-          edge.setAttrs({
-            line: {
-              ...edge.getAttrs().line,
-              stroke: '#333',
-              strokeWidth: 1,
-              strokeDasharray: ''
+          const edgeData = edge.getData()
+          if (!edgeData?.selected) {
+            edge.setAttrs({
+              line: {
+                ...edge.getAttrs().line,
+                stroke: '#333',
+                strokeWidth: 1,
+                strokeDasharray: ''
+              }
+            })
+          } else {
+            // 确保选中的边保持其样式
+            const style = edgeData.style || {
+              stroke: '#1890ff',
+              strokeWidth: 2,
+              strokeDasharray: '5 5'
             }
-          })
+            
+            edge.setAttrs({
+              line: {
+                ...edge.getAttrs().line,
+                stroke: style.stroke,
+                strokeWidth: style.strokeWidth,
+                strokeDasharray: style.strokeDasharray
+              }
+            })
+          }
         })
         
         // 设置当前节点的高亮效果
-        if (node.data?.type !== 'group') {
+        if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
@@ -1266,10 +1317,10 @@ const initGraph = async () => {
         // 构造完整的节点数据
         const nodeData = {
           id: node.id,
-          type: node.data?.type,
+          type: node.getData()?.type,
           data: {
-            type: node.data?.type,
-            properties: node.data?.properties || {},
+            type: node.getData()?.type,
+            properties: node.getData()?.properties || {},
           },
           position: node.getPosition(),
           size: node.getSize(),
@@ -1283,7 +1334,7 @@ const initGraph = async () => {
     graph.on('edge:click', ({ edge }) => {
       // 清除所有节点的高亮效果
       graph?.getNodes().forEach(node => {
-        if (node.data?.type !== 'group') {
+        if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
@@ -1294,37 +1345,49 @@ const initGraph = async () => {
         }
       })
 
-      // 清除所有边的高亮效果
-      graph?.getEdges().forEach(e => {
-        e.setAttrs({
-          line: {
-            ...e.getAttrs().line,
-            stroke: '#333',
-            strokeWidth: 1,
-            strokeDasharray: ''
-          }
-        })
+      // 获取当前边的数据和样式
+      const edgeData = edge.getData()
+      const currentStyle = edge.getAttrs().line || {}
+
+      // 设置选中状态
+      edge.setData({
+        ...edgeData,
+        selected: true
       })
 
-      // 设置当前边的高亮效果
-      edge.setAttrs({
-        line: {
-          ...edge.getAttrs().line,
-          stroke: '#1890ff',
-          strokeWidth: 2,
-          strokeDasharray: '5 5'
-        }
-      })
+      // 应用选中效果，同时保持原始样式
+      if (edgeData?.customStyle) {
+        // 如果有自定义样式，使用自定义样式并增加线宽
+        const customAttrs = edgeData.customAttrs
+        edge.setAttrs({
+          line: {
+            ...customAttrs.line,
+            strokeWidth: (customAttrs.line.strokeWidth || 1) + 1  // 选中时增加线宽
+          }
+        })
+      } else {
+        // 否则在当前样式基础上增加线宽
+        edge.setAttrs({
+          line: {
+            ...currentStyle,
+            stroke: '#1890ff',  // 选中时改变颜色
+            strokeWidth: (currentStyle.strokeWidth || 1) + 1  // 选中时增加线宽
+          }
+        })
+      }
 
       // 更新选中状态
       selectedCells.value = [edge]
-      // 清除节点选中状态
       selectedNode.value = undefined
-      // 设置当前选中的连线
       selectedEdge.value = {
         id: edge.id,
         connector: edge.getConnector()?.name || 'normal',
-        attrs: edge.getAttrs()
+        attrs: {
+          line: {
+            ...currentStyle,  // 使用原始样式
+            strokeDasharray: currentStyle.strokeDasharray || ''  // 保持原始的线条样式
+          }
+        }
       }
     })
 
@@ -1332,7 +1395,7 @@ const initGraph = async () => {
     graph.on('blank:click', () => {
       // 清除所有节点的高亮效果
       graph?.getNodes().forEach(node => {
-        if (node.data?.type !== 'group') {
+        if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
@@ -1343,16 +1406,31 @@ const initGraph = async () => {
         }
       })
 
-      // 清除所有边的高亮效果
+      // 处理所有边
       graph?.getEdges().forEach(edge => {
-        edge.setAttrs({
-          line: {
-            ...edge.getAttrs().line,
-            stroke: '#333',
-            strokeWidth: 1,
-            strokeDasharray: ''
-          }
+        const edgeData = edge.getData()
+        
+        // 清除选中状态
+        edge.setData({
+          ...edgeData,
+          selected: false
         })
+        
+        // 恢复边的样式
+        if (edgeData?.customStyle) {
+          // 如果有自定义样式，使用自定义样式
+          edge.setAttrs(edgeData.customAttrs)
+        } else {
+          // 否则使用默认样式
+          edge.setAttrs({
+            line: {
+              stroke: '#333',
+              strokeWidth: 1,
+              strokeDasharray: '',  // 使用空字符串表示实线
+              targetMarker: null
+            }
+          })
+        }
       })
 
       // 清除选中状态
