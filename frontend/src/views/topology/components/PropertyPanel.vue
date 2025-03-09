@@ -91,7 +91,7 @@
             v-model="edgeFormData.strokeDasharray" 
             @change="handleEdgeStyleChange"
           >
-            <el-option label="实线" value="" />
+            <el-option label="实线" value="none" />
             <el-option label="虚线" value="5 5" />
             <el-option label="点线" value="2 2" />
           </el-select>
@@ -164,7 +164,7 @@ watch(() => props.selectedEdge, (edge) => {
     edgeFormData.value = {
       stroke: lineAttrs.stroke || '#333333',
       strokeWidth: lineAttrs.strokeWidth || 1,
-      strokeDasharray: lineAttrs.strokeDasharray || '',
+      strokeDasharray: lineAttrs.strokeDasharray === '' ? 'none' : (lineAttrs.strokeDasharray || 'none'),
       connector: edge.connector || 'normal'
     }
   }
@@ -218,7 +218,7 @@ const handleEdgeStyleChange = () => {
         ...props.selectedEdge.attrs?.line,
         stroke: edgeFormData.value.stroke,
         strokeWidth: edgeFormData.value.strokeWidth,
-        strokeDasharray: edgeFormData.value.strokeDasharray
+        strokeDasharray: edgeFormData.value.strokeDasharray === 'none' ? '' : edgeFormData.value.strokeDasharray
       }
     }
   }
