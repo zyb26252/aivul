@@ -18,8 +18,10 @@ export interface NodeProperties {
 }
 
 export interface NodeData {
-  type: 'container' | 'switch'
+  type: 'container' | 'switch' | 'group'
   properties: NodeProperties
+  name?: string
+  description?: string
 }
 
 export interface Node extends Graph.Node {
@@ -35,6 +37,7 @@ export interface Node extends Graph.Node {
 export interface Group {
   id: string;
   name: string;
+  description?: string;
   parentId?: string;
   x: number;
   y: number;

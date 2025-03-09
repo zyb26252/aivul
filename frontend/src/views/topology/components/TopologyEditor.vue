@@ -59,14 +59,56 @@
     </div>
 
     <div class="editor-main">
-      <!-- 左侧元素面板 -->
+      <!-- 左侧面板 -->
       <div class="left-panel">
+        <!-- 网元部分 -->
         <h3 class="panel-title">网元</h3>
         <element-panel />
+        
+        <!-- 分组部分 -->
+        <h3 class="panel-title">分组</h3>
+        <div class="group-panel">
+          <el-collapse accordion>
+            <el-collapse-item v-for="group in groups" :key="group.id" :title="group.name || '未命名分组'">
+              <div class="group-nodes">
+                <div 
+                  v-for="node in group.nodes" 
+                  :key="node.id" 
+                  class="group-node"
+                  @click="handleGroupNodeClick(group.id, node.id)"
+                >
+                  <el-icon><component :is="node.type === 'container' ? 'Box' : 'Switch'" /></el-icon>
+                  <span>{{ node.name || (node.type === 'container' ? '容器' : '交换机') }}</span>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
       </div>
 
       <!-- 中间画布容器 -->
-      <div ref="container" class="editor-container" @dragover="handleDragOver" @drop="handleDrop" />
+      <div class="editor-container">
+        <div class="canvas-container" ref="container" @dragover="handleDragOver" @drop="handleDrop" />
+        <div class="editor-status">
+          <div class="status-item">
+            <el-icon><Box /></el-icon>
+            <span>容器：</span>
+            <span class="count">{{ containerCount }}</span>
+          </div>
+          <div class="divider" />
+          <div class="status-item">
+            <el-icon><Switch /></el-icon>
+            <span>交换机：</span>
+            <span class="count">{{ switchCount }}</span>
+          </div>
+          <div class="divider" />
+          <div class="status-item">
+            <el-icon><Folder /></el-icon>
+            <span>分组：</span>
+            <span class="count">{{ groupCount }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 右侧属性面板 -->
       <div class="right-panel">
@@ -77,26 +119,6 @@
           @update:node="handleNodeUpdate" 
           @update:edge="handleEdgeUpdate"
         />
-      </div>
-    </div>
-
-    <div class="editor-status">
-      <div class="status-item">
-        <el-icon><Box /></el-icon>
-        <span>容器：</span>
-        <span class="count">{{ containerCount }}</span>
-      </div>
-      <div class="divider" />
-      <div class="status-item">
-        <el-icon><Switch /></el-icon>
-        <span>交换机：</span>
-        <span class="count">{{ switchCount }}</span>
-      </div>
-      <div class="divider" />
-      <div class="status-item">
-        <el-icon><Folder /></el-icon>
-        <span>分组：</span>
-        <span class="count">{{ groupCount }}</span>
       </div>
     </div>
   </div>
@@ -130,6 +152,7 @@ interface NodeData {
   properties: Record<string, any>
   parent?: string
   name?: string
+  description?: string  // 添加描述字段
 }
 
 // 定义边数据接口
@@ -705,6 +728,7 @@ const handleCreateGroup = () => {
           data: {
             type: 'group',
             name: groupName.value,
+            description: '',  // 添加默认的空描述
             properties: {},
           },
           attrs: {
@@ -1022,6 +1046,10 @@ onUnmounted(() => {
     graph.off('cell:added', updateCounts)
     graph.off('cell:removed', updateCounts)
     graph.off('node:change:data', updateCounts)
+    graph.off('node:added', updateGroups)
+    graph.off('node:removed', updateGroups)
+    graph.off('node:change:data', updateGroups)
+    graph.off('node:change:parent', updateGroups)
     graph.dispose()
   }
   // 移除键盘事件监听
@@ -1260,8 +1288,8 @@ const initGraph = async () => {
             connector: cell.getConnector()?.name || 'normal',
             attrs: cell.getAttrs()
           }
-        } else if (cell.isNode() && cell.getData()?.type !== 'group') {
-          // 设置节点的高亮效果
+        } else if (cell.isNode() && cell.getData()?.type === 'group') {
+          // 设置分组节点的高亮效果
           cell.setAttrs({
             body: {
               ...cell.getAttrs().body,
@@ -1277,6 +1305,8 @@ const initGraph = async () => {
             type: cell.getData()?.type,
             data: {
               type: cell.getData()?.type,
+              name: cell.getData()?.name || '未命名分组',
+              description: cell.getData()?.description || '',  // 添加描述字段
               properties: cell.getData()?.properties || {},
             },
             position: cell.getPosition(),
@@ -1425,6 +1455,8 @@ const initGraph = async () => {
           type: node.getData()?.type,
           data: {
             type: node.getData()?.type,
+            name: node.getData()?.name || '未命名分组',
+            description: node.getData()?.description || '',  // 添加描述字段
             properties: node.getData()?.properties || {},
           },
           position: node.getPosition(),
@@ -1552,6 +1584,8 @@ const initGraph = async () => {
           type: node.data?.type,
           data: {
             type: node.data?.type,
+            name: node.data?.name || '未命名分组',
+            description: node.data?.description || '',  // 添加描述字段
             properties: node.data?.properties || {},
           },
           position: node.getPosition(),
@@ -1569,6 +1603,8 @@ const initGraph = async () => {
           type: node.data?.type,
           data: {
             type: node.data?.type,
+            name: node.data?.name || '未命名分组',
+            description: node.data?.description || '',  // 添加描述字段
             properties: node.data?.properties || {},
           },
           position: node.getPosition(),
@@ -1628,10 +1664,87 @@ const initGraph = async () => {
       }
     })
 
+    // 监听节点变化，更新分组数据
+    graph.on('node:added', updateGroups)
+    graph.on('node:removed', updateGroups)
+    graph.on('node:change:data', updateGroups)
+    graph.on('node:change:parent', updateGroups)
+
+    // 在创建图形实例后添加事件监听
+    graph.on('node:added', updateGroups)
+    graph.on('node:removed', updateGroups)
+    graph.on('node:change:data', updateGroups)
+    graph.on('node:change:parent', updateGroups)
+    graph.on('node:change:attrs', updateGroups)
+    
+    // 初始化时调用一次更新
+    updateGroups()
+
     return graph
   } catch (error) {
     console.error('Failed to initialize graph:', error)
     throw error
+  }
+}
+
+// 添加分组数据计算属性
+const groups = ref([])
+
+// 添加更新分组的函数
+const updateGroups = () => {
+  if (!graph) return
+  
+  const allNodes = graph.getNodes()
+  const groupNodes = allNodes.filter(node => node.getData()?.type === 'group')
+  
+  groups.value = groupNodes.map(group => {
+    const children = allNodes.filter(node => node.getData()?.parent === group.id)
+    return {
+      id: group.id,
+      name: group.getData()?.name || '未命名分组',
+      nodes: children.map(node => ({
+        id: node.id,
+        type: node.getData()?.type,
+        name: node.getAttrs()?.label?.text || (node.getData()?.type === 'container' ? '容器' : '交换机')
+      }))
+    }
+  })
+}
+
+// 添加分组面板的点击处理函数
+const handleGroupNodeClick = (groupId: string, nodeId: string) => {
+  if (!graph) return
+  
+  const node = graph.getCellById(nodeId)
+  if (node) {
+    // 定位到节点
+    graph.centerCell(node)
+    
+    // 选中节点
+    graph.resetSelection()
+    graph.select(node)
+    
+    // 高亮显示
+    graph.getNodes().forEach(n => {
+      if (n.getData()?.type !== 'group') {
+        n.setAttrs({
+          body: {
+            ...n.getAttrs().body,
+            stroke: 'none',
+            strokeWidth: 0
+          }
+        })
+      }
+    })
+    
+    node.setAttrs({
+      body: {
+        ...node.getAttrs().body,
+        stroke: '#1890ff',
+        strokeWidth: 2,
+        strokeDasharray: '5 5'
+      }
+    })
   }
 }
 </script>
@@ -1671,19 +1784,176 @@ const initGraph = async () => {
         font-size: 16px;
         font-weight: 500;
         border-bottom: 1px solid var(--el-border-color-light);
+
+        &:not(:first-child) {
+          border-top: 1px solid var(--el-border-color-light);
+        }
       }
       
       :deep(.panel-content) {
+        flex: 0 0 auto;  // 修改为固定高度
+        overflow: auto;
+      }
+
+      .group-panel {
         flex: 1;
         overflow: auto;
+        padding: 8px;
+
+        :deep(.el-collapse) {
+          border: none;
+          --el-collapse-header-height: 48px;  // 增加标题高度
+
+          .el-collapse-item__header {
+            font-size: 14px;
+            font-weight: 500;  // 加粗标题
+            color: var(--el-text-color-primary);
+            padding: 0 12px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background-color: var(--el-bg-color-page);
+            
+            &:hover {
+              background-color: var(--el-fill-color-light);
+              border-color: var(--el-border-color);
+            }
+            
+            &.is-active {
+              color: var(--el-color-primary);
+              background-color: var(--el-color-primary-light-9);
+              border-color: var(--el-color-primary-light-5);
+              border-bottom-right-radius: 0;
+              border-bottom-left-radius: 0;
+              margin-bottom: 0;
+            }
+
+            .el-collapse-item__arrow {
+              margin-right: 4px;
+              transition: transform 0.3s ease;
+            }
+          }
+
+          .el-collapse-item__wrap {
+            border: none;
+            
+            .el-collapse-item__content {
+              padding: 0;
+              border: 1px solid var(--el-border-color-lighter);
+              border-top: none;
+              border-bottom-right-radius: 6px;
+              border-bottom-left-radius: 6px;
+              margin-bottom: 8px;
+            }
+          }
+        }
+
+        .group-nodes {
+          padding: 8px;
+
+          .group-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            &:hover {
+              background-color: var(--el-fill-color-light);
+              border-color: var(--el-border-color);
+            }
+
+            &:active {
+              transform: scale(0.98);
+            }
+
+            .el-icon {
+              font-size: 16px;
+              color: var(--el-color-primary);
+              flex-shrink: 0;
+            }
+
+            span {
+              font-size: 13px;
+              color: var(--el-text-color-regular);
+              flex: 1;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+        }
       }
     }
 
     .editor-container {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       background-color: var(--el-fill-color-light);
       position: relative;
       overflow: hidden;
+
+      // 添加画布容器
+      .canvas-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+
+      // 添加底部统计栏
+      .editor-status {
+        height: 40px;
+        border-top: 1px solid var(--el-border-color-light);
+        background-color: var(--el-bg-color);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        color: var(--el-text-color-regular);
+        font-size: 13px;
+        gap: 24px;
+
+        .status-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          border-radius: 4px;
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: var(--el-fill-color-light);
+          }
+
+          .el-icon {
+            font-size: 16px;
+            color: var(--el-color-primary);
+          }
+
+          .count {
+            color: var(--el-color-primary);
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 24px;
+            text-align: center;
+          }
+        }
+
+        .divider {
+          width: 1px;
+          height: 16px;
+          background-color: var(--el-border-color-light);
+        }
+      }
     }
 
     .right-panel {
@@ -1706,50 +1976,6 @@ const initGraph = async () => {
         flex: 1;
         overflow: auto;
       }
-    }
-  }
-
-  .editor-status {
-    height: 40px;  // 增加高度
-    border-top: 1px solid var(--el-border-color-light);
-    background-color: var(--el-bg-color);
-    display: flex;
-    align-items: center;
-    padding: 0 24px;  // 增加内边距
-    color: var(--el-text-color-regular);  // 调整文字颜色
-    font-size: 13px;  // 增加字体大小
-    gap: 24px;  // 增加间距
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;  // 增加图标和文字的间距
-      padding: 6px 12px;  // 添加内边距
-      border-radius: 4px;  // 添加圆角
-      transition: background-color 0.2s;  // 添加过渡效果
-
-      &:hover {
-        background-color: var(--el-fill-color-light);  // 悬停效果
-      }
-
-      .el-icon {
-        font-size: 16px;  // 增加图标大小
-        color: var(--el-color-primary);  // 使用主题色
-      }
-
-      .count {
-        color: var(--el-color-primary);  // 使用主题色
-        font-weight: 600;  // 加粗
-        font-size: 14px;  // 增加数字大小
-        min-width: 24px;  // 固定最小宽度
-        text-align: center;  // 居中对齐
-      }
-    }
-
-    .divider {
-      width: 1px;
-      height: 16px;
-      background-color: var(--el-border-color-light);
     }
   }
 }

@@ -7,6 +7,19 @@
           <el-input v-model="formData.name" @change="handleNameChange" />
         </el-form-item>
         
+        <!-- 分组节点特有属性 -->
+        <template v-if="isGroup">
+          <el-form-item label="描述">
+            <el-input 
+              v-model="formData.description" 
+              type="textarea"
+              :rows="3"
+              placeholder="请输入分组描述"
+              @change="handleDescriptionChange" 
+            />
+          </el-form-item>
+        </template>
+
         <!-- 容器节点特有属性 -->
         <template v-if="isContainer">
           <el-form-item label="IP地址">
@@ -119,6 +132,7 @@ const props = defineProps<{
 const formData = ref({
   name: '',
   type: '',
+  description: '',
   properties: {} as Record<string, any>
 })
 
@@ -133,6 +147,7 @@ const edgeFormData = ref({
 // 计算属性
 const isContainer = computed(() => formData.value.type === 'container')
 const isSwitch = computed(() => formData.value.type === 'switch')
+const isGroup = computed(() => formData.value.type === 'group')
 
 // 监听节点数据变化
 watch(() => props.selectedNode, (node) => {
@@ -140,6 +155,7 @@ watch(() => props.selectedNode, (node) => {
     formData.value = {
       name: node.attrs?.label?.text || '',
       type: node.data?.type || '',
+      description: node.data?.description || '',
       properties: {
         ...(node.data?.type === 'container' ? { 
           ip: '192.168.1.100',
@@ -223,6 +239,20 @@ const handleEdgeStyleChange = () => {
     }
   }
   emit('update:edge', updatedEdge)
+}
+
+// 处理分组描述变更
+const handleDescriptionChange = () => {
+  if (!props.selectedNode) return
+
+  const updatedNode = {
+    ...props.selectedNode,
+    data: {
+      ...props.selectedNode.data,
+      description: formData.value.description
+    }
+  }
+  emit('update:node', updatedNode)
 }
 </script>
 
