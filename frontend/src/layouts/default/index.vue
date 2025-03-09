@@ -178,7 +178,8 @@ const handleLogout = () => {
 }
 
 :deep(.el-main) {
-  padding: 24px;
+  padding: 0;
   background-color: var(--el-bg-color-page);
+  overflow: hidden;
 }
 </style> 

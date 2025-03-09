@@ -127,7 +127,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .topology-editor {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
