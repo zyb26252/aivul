@@ -270,13 +270,44 @@ watchEffect(() => {
   }
 })
 
-// 在图形发生变化时更新统计
-const setupGraphListeners = () => {
-  if (!graph) return
+// 添加历史记录状态
+const history = ref<{
+  past: TopologyData[]
+  future: TopologyData[]
+}>({
+  past: [],
+  future: []
+})
 
-  graph.on('cell:added', updateCounts)
-  graph.on('cell:removed', updateCounts)
-  graph.on('node:change:data', updateCounts)
+// 最大历史记录数
+const MAX_HISTORY = 50
+
+// 修改保存历史记录函数
+const saveToHistory = () => {
+  if (!graph) return
+  
+  try {
+    const currentState = getData()
+    
+    // 检查是否与最后一个状态相同
+    const lastState = history.value.past[history.value.past.length - 1]
+    if (lastState && JSON.stringify(lastState) === JSON.stringify(currentState)) {
+      return
+    }
+    
+    // 保存当前状态到历史记录
+    history.value.past.push(currentState)
+    
+    // 清空未来状态
+    history.value.future = []
+    
+    // 限制历史记录数量
+    if (history.value.past.length > MAX_HISTORY) {
+      history.value.past.shift()
+    }
+  } catch (error) {
+    console.error('保存历史记录失败:', error)
+  }
 }
 
 // 获取拓扑数据
@@ -1970,32 +2001,110 @@ const handlePaste = () => {
   }
 }
 
+// 修改撤销功能
 const handleUndo = () => {
-  if (!graph) return
+  if (!graph || history.value.past.length === 0) {
+    ElMessage.info('没有可撤销的操作')
+    return
+  }
   
   try {
-    if (graph.history.canUndo()) {
-      graph.history.undo()
-      ElMessage.success('撤销操作')
+    // 获取上一个状态
+    const previousState = history.value.past.pop()
+    if (previousState) {
+      // 获取当前状态并保存到 future
+      const currentState = getData()
+      history.value.future.push(currentState)
+      
+      // 立即应用上一个状态
+      setData(previousState)
+      
+      // 清除选中状态
+      selectedNode.value = undefined
+      selectedEdge.value = null
+      selectedCells.value = []
+      
+      ElMessage.success('撤销成功')
     }
   } catch (error) {
     console.error('撤销失败:', error)
     ElMessage.error('撤销失败')
+    // 发生错误时恢复历史记录状态
+    if (history.value.future.length > 0) {
+      history.value.past.push(history.value.future.pop()!)
+    }
   }
 }
 
+// 修改重做功能
 const handleRedo = () => {
-  if (!graph) return
+  if (!graph || history.value.future.length === 0) {
+    ElMessage.info('没有可重做的操作')
+    return
+  }
   
   try {
-    if (graph.history.canRedo()) {
-      graph.history.redo()
-      ElMessage.success('重做操作')
+    // 获取下一个状态
+    const nextState = history.value.future.pop()
+    if (nextState) {
+      // 获取当前状态并保存到 past
+      const currentState = getData()
+      history.value.past.push(currentState)
+      
+      // 立即应用下一个状态
+      setData(nextState)
+      
+      // 清除选中状态
+      selectedNode.value = undefined
+      selectedEdge.value = null
+      selectedCells.value = []
+      
+      ElMessage.success('重做成功')
     }
   } catch (error) {
     console.error('重做失败:', error)
     ElMessage.error('重做失败')
+    // 发生错误时恢复历史记录状态
+    if (history.value.past.length > 0) {
+      history.value.future.push(history.value.past.pop()!)
+    }
   }
+}
+
+// 修改图形监听器设置
+const setupGraphListeners = () => {
+  if (!graph) return
+
+  // 监听所有可能改变状态的事件
+  const events = [
+    'cell:added',
+    'cell:removed',
+    'node:moved',
+    'edge:connected',
+    'node:change:data',
+    'edge:change:data',
+    'node:change:position',
+    'node:change:size',
+    'edge:change:vertices',
+    'edge:change:source',
+    'edge:change:target'
+  ]
+
+  // 立即保存初始状态
+  saveToHistory()
+
+  // 为每个事件添加监听器
+  events.forEach(event => {
+    graph.on(event, () => {
+      // 直接保存状态，不使用防抖
+      saveToHistory()
+    })
+  })
+
+  // 更新统计数据的监听器
+  graph.on('cell:added', updateCounts)
+  graph.on('cell:removed', updateCounts)
+  graph.on('node:change:data', updateCounts)
 }
 </script>
 
