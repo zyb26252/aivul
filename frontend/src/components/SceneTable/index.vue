@@ -114,6 +114,10 @@ const updateThumbnail = async (scene: Scene) => {
         preventDefaultBlankAction: false,
         options: {
           passive: true
+        },
+        zIndex: {
+          node: 2,
+          edge: 1
         }
       })
       
@@ -140,6 +144,10 @@ const updateThumbnail = async (scene: Scene) => {
         shape: 'rect',
         markup: [
           {
+            tagName: 'rect',
+            selector: 'body',
+          },
+          {
             tagName: 'image',
             selector: 'image',
           },
@@ -149,6 +157,12 @@ const updateThumbnail = async (scene: Scene) => {
           },
         ],
         attrs: {
+          body: {
+            fill: '#fff',
+            stroke: 'none',
+            refWidth: '100%',
+            refHeight: '100%',
+          },
           image: {
             'xlink:href': node.type === 'container' 
               ? '/src/assets/icons/container.svg'
@@ -168,6 +182,7 @@ const updateThumbnail = async (scene: Scene) => {
             textVerticalAnchor: 'middle',
           },
         },
+        zIndex: 2
       })
     })
 
@@ -177,34 +192,46 @@ const updateThumbnail = async (scene: Scene) => {
         source: {
           cell: edge.source,
           anchor: {
-            name: 'center'
+            name: 'center',
+            args: {
+              dx: 0,
+              dy: 0
+            }
           }
         },
         target: {
           cell: edge.target,
           anchor: {
-            name: 'center'
+            name: 'center',
+            args: {
+              dx: 0,
+              dy: 0
+            }
           }
         },
         attrs: {
           line: {
-            stroke: '#A2B1C3',
-            strokeWidth: 1,
+            stroke: edge.attrs?.line?.stroke || '#333333',
+            strokeWidth: edge.attrs?.line?.strokeWidth || 1,
+            strokeDasharray: edge.attrs?.line?.strokeDasharray || '',
             targetMarker: null,
+            pointerEvents: 'none'
           },
         },
         router: {
-          name: 'manhattan',
+          name: 'orth',
           args: {
-            padding: 10,
-          },
+            padding: 20,
+            direction: 'H'
+          }
         },
         connector: {
-          name: 'rounded',
+          name: edge.connector || 'rounded',
           args: {
-            radius: 8,
-          },
+            radius: 8
+          }
         },
+        zIndex: 1
       })
     })
 
@@ -266,6 +293,10 @@ const handlePreview = (scene: Scene) => {
       interacting: false,
       connecting: false,
       mousewheel: false,
+      zIndex: {
+        node: 2,
+        edge: 1
+      }
     })
 
     const topologyData = typeof scene.topology === 'string' 
@@ -286,6 +317,10 @@ const handlePreview = (scene: Scene) => {
         shape: 'rect',
         markup: [
           {
+            tagName: 'rect',
+            selector: 'body',
+          },
+          {
             tagName: 'image',
             selector: 'image',
           },
@@ -295,6 +330,12 @@ const handlePreview = (scene: Scene) => {
           },
         ],
         attrs: {
+          body: {
+            fill: '#fff',
+            stroke: 'none',
+            refWidth: '100%',
+            refHeight: '100%',
+          },
           image: {
             'xlink:href': node.type === 'container' 
               ? '/src/assets/icons/container.svg'
@@ -314,6 +355,7 @@ const handlePreview = (scene: Scene) => {
             textVerticalAnchor: 'middle',
           },
         },
+        zIndex: 2
       })
     })
 
@@ -323,34 +365,46 @@ const handlePreview = (scene: Scene) => {
         source: {
           cell: edge.source,
           anchor: {
-            name: 'center'
+            name: 'center',
+            args: {
+              dx: 0,
+              dy: 0
+            }
           }
         },
         target: {
           cell: edge.target,
           anchor: {
-            name: 'center'
+            name: 'center',
+            args: {
+              dx: 0,
+              dy: 0
+            }
           }
         },
         attrs: {
           line: {
-            stroke: '#A2B1C3',
-            strokeWidth: 1,
+            stroke: edge.attrs?.line?.stroke || '#333333',
+            strokeWidth: edge.attrs?.line?.strokeWidth || 1,
+            strokeDasharray: edge.attrs?.line?.strokeDasharray || '',
             targetMarker: null,
+            pointerEvents: 'none'
           },
         },
         router: {
-          name: 'manhattan',
+          name: 'orth',
           args: {
-            padding: 10,
-          },
+            padding: 20,
+            direction: 'H'
+          }
         },
         connector: {
-          name: 'rounded',
+          name: edge.connector || 'rounded',
           args: {
-            radius: 8,
-          },
+            radius: 8
+          }
         },
+        zIndex: 1
       })
     })
 
