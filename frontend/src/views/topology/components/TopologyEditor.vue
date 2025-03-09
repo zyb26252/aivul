@@ -82,15 +82,20 @@
 
     <div class="editor-status">
       <div class="status-item">
-        <span>容器数量：</span>
+        <el-icon><Box /></el-icon>
+        <span>容器：</span>
         <span class="count">{{ containerCount }}</span>
       </div>
+      <div class="divider" />
       <div class="status-item">
-        <span>交换机数量：</span>
+        <el-icon><Switch /></el-icon>
+        <span>交换机：</span>
         <span class="count">{{ switchCount }}</span>
       </div>
+      <div class="divider" />
       <div class="status-item">
-        <span>分组数量：</span>
+        <el-icon><Folder /></el-icon>
+        <span>分组：</span>
         <span class="count">{{ groupCount }}</span>
       </div>
     </div>
@@ -107,7 +112,10 @@ import {
   ZoomOut, 
   FullScreen, 
   Connection, 
-  Delete
+  Delete,
+  Box,  // 容器图标
+  Switch,  // 交换机图标
+  Folder  // 分组图标
 } from '@element-plus/icons-vue'
 import { Graph, Cell } from '@antv/x6'
 import { register } from '@antv/x6-vue-shape'
@@ -1702,25 +1710,46 @@ const initGraph = async () => {
   }
 
   .editor-status {
-    height: 32px;
+    height: 40px;  // 增加高度
     border-top: 1px solid var(--el-border-color-light);
     background-color: var(--el-bg-color);
     display: flex;
     align-items: center;
-    padding: 0 16px;
-    color: var(--el-text-color-secondary);
-    font-size: 12px;
-    gap: 16px;
+    padding: 0 24px;  // 增加内边距
+    color: var(--el-text-color-regular);  // 调整文字颜色
+    font-size: 13px;  // 增加字体大小
+    gap: 24px;  // 增加间距
 
     .status-item {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 8px;  // 增加图标和文字的间距
+      padding: 6px 12px;  // 添加内边距
+      border-radius: 4px;  // 添加圆角
+      transition: background-color 0.2s;  // 添加过渡效果
+
+      &:hover {
+        background-color: var(--el-fill-color-light);  // 悬停效果
+      }
+
+      .el-icon {
+        font-size: 16px;  // 增加图标大小
+        color: var(--el-color-primary);  // 使用主题色
+      }
 
       .count {
-        color: var(--el-text-color-primary);
-        font-weight: 500;
+        color: var(--el-color-primary);  // 使用主题色
+        font-weight: 600;  // 加粗
+        font-size: 14px;  // 增加数字大小
+        min-width: 24px;  // 固定最小宽度
+        text-align: center;  // 居中对齐
       }
+    }
+
+    .divider {
+      width: 1px;
+      height: 16px;
+      background-color: var(--el-border-color-light);
     }
   }
 }
