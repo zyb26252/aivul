@@ -15,46 +15,60 @@
     <!-- 工具栏 -->
     <div class="editor-toolbar">
       <el-button-group>
-        <el-button @click="handleZoomIn">
-          <el-icon><ZoomIn /></el-icon>
-          放大
-        </el-button>
-        <el-button @click="handleZoomOut">
-          <el-icon><ZoomOut /></el-icon>
-          缩小
-        </el-button>
-        <el-button @click="handleFitContent">
-          <el-icon><FullScreen /></el-icon>
-          适应画布
-        </el-button>
+        <el-tooltip :content="shortcuts.zoom_in.label" placement="bottom">
+          <el-button @click="handleZoomIn">
+            <el-icon><ZoomIn /></el-icon>
+            放大
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="shortcuts.zoom_out.label" placement="bottom">
+          <el-button @click="handleZoomOut">
+            <el-icon><ZoomOut /></el-icon>
+            缩小
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="shortcuts.fit_content.label" placement="bottom">
+          <el-button @click="handleFitContent">
+            <el-icon><FullScreen /></el-icon>
+            适应画布
+          </el-button>
+        </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
-          <el-icon><FolderAdd /></el-icon>
-          {{ groupButtonText }}
-        </el-button>
-        <el-button @click="handleUngroup" :disabled="!canUngroup">
-          <el-icon><FolderRemove /></el-icon>
-          取消分组
-        </el-button>
+        <el-tooltip :content="shortcuts.create_group.label" placement="bottom">
+          <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
+            <el-icon><FolderAdd /></el-icon>
+            {{ groupButtonText }}
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="shortcuts.ungroup.label" placement="bottom">
+          <el-button @click="handleUngroup" :disabled="!canUngroup">
+            <el-icon><FolderRemove /></el-icon>
+            取消分组
+          </el-button>
+        </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-button 
-          :type="isConnecting ? 'primary' : 'default'"
-          @click="toggleConnecting"
-        >
-          <el-icon><Connection /></el-icon>
-          连线模式
-        </el-button>
+        <el-tooltip :content="shortcuts.connect.label" placement="bottom">
+          <el-button 
+            :type="isConnecting ? 'primary' : 'default'"
+            @click="toggleConnecting"
+          >
+            <el-icon><Connection /></el-icon>
+            连线模式
+          </el-button>
+        </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-button 
-          @click="handleDelete" 
-          :disabled="!canDelete"
-        >
-          <el-icon><Delete /></el-icon>
-          删除
-        </el-button>
+        <el-tooltip :content="shortcuts.delete.label" placement="bottom">
+          <el-button 
+            @click="handleDelete" 
+            :disabled="!canDelete"
+          >
+            <el-icon><Delete /></el-icon>
+            删除
+          </el-button>
+        </el-tooltip>
       </el-button-group>
     </div>
 
@@ -708,6 +722,21 @@ const nodeConfig: Record<string, NodeConfig> = {
   },
 }
 
+// 快捷键配置
+const shortcuts = {
+  zoom_in: { key: '=', ctrl: true, label: 'Ctrl + =' },
+  zoom_out: { key: '-', ctrl: true, label: 'Ctrl + -' },
+  fit_content: { key: '0', ctrl: true, label: 'Ctrl + 0' },
+  create_group: { key: 'g', ctrl: true, label: 'Ctrl + G' },
+  ungroup: { key: 'g', ctrl: true, shift: true, label: 'Ctrl + Shift + G' },
+  connect: { key: 'l', ctrl: true, label: 'Ctrl + L' },
+  delete: { key: 'Delete', label: 'Delete' },
+  copy: { key: 'c', ctrl: true, label: 'Ctrl + C' },
+  paste: { key: 'v', ctrl: true, label: 'Ctrl + V' },
+  undo: { key: 'z', ctrl: true, label: 'Ctrl + Z' },
+  redo: { key: 'z', ctrl: true, shift: true, label: 'Ctrl + Shift + Z' },
+}
+
 // 创建分组
 const handleCreateGroup = () => {
   if (!graph) return
@@ -1059,9 +1088,62 @@ onUnmounted(() => {
 
 // 键盘事件处理
 const handleKeyDown = (e: KeyboardEvent) => {
-  // 如果按下Delete键且可以删除
-  if (e.key === 'Delete' && canDelete.value) {
-    handleDelete()
+  // 如果正在输入，不处理快捷键
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    return
+  }
+
+  // 检查是否匹配快捷键配置
+  const matchShortcut = (shortcut: typeof shortcuts[keyof typeof shortcuts]) => {
+    return e.key.toLowerCase() === shortcut.key.toLowerCase() &&
+      !!e.ctrlKey === !!shortcut.ctrl &&
+      !!e.shiftKey === !!shortcut.shift
+  }
+
+  if (matchShortcut(shortcuts.zoom_in)) {
+    e.preventDefault()
+    handleZoomIn()
+    ElMessage.success('放大画布')
+  } else if (matchShortcut(shortcuts.zoom_out)) {
+    e.preventDefault()
+    handleZoomOut()
+    ElMessage.success('缩小画布')
+  } else if (matchShortcut(shortcuts.fit_content)) {
+    e.preventDefault()
+    handleFitContent()
+    ElMessage.success('适应画布大小')
+  } else if (matchShortcut(shortcuts.create_group)) {
+    e.preventDefault()
+    if (canCreateGroup.value) {
+      handleCreateGroup()
+      ElMessage.success(isGrouping.value ? '请选择要添加到分组的节点' : '开始创建分组')
+    }
+  } else if (matchShortcut(shortcuts.ungroup)) {
+    e.preventDefault()
+    if (canUngroup.value) {
+      handleUngroup()
+      ElMessage.success('取消分组成功')
+    }
+  } else if (matchShortcut(shortcuts.connect)) {
+    e.preventDefault()
+    toggleConnecting()
+    ElMessage.success(isConnecting.value ? '已进入连线模式' : '已退出连线模式')
+  } else if (matchShortcut(shortcuts.delete) || e.key === 'Backspace') {
+    if (canDelete.value) {
+      handleDelete()
+    }
+  } else if (matchShortcut(shortcuts.copy)) {
+    e.preventDefault()
+    handleCopy()
+  } else if (matchShortcut(shortcuts.paste)) {
+    e.preventDefault()
+    handlePaste()
+  } else if (matchShortcut(shortcuts.undo)) {
+    e.preventDefault()
+    handleUndo()
+  } else if (matchShortcut(shortcuts.redo)) {
+    e.preventDefault()
+    handleRedo()
   }
 }
 
@@ -1171,8 +1253,19 @@ const initGraph = async () => {
         filter: ['node'],
       },
       keyboard: true,   // 启用键盘事件
-      clipboard: true,  // 启用剪贴板
-      history: true,    // 启用历史记录
+      clipboard: {
+        enabled: true,
+        useLocalStorage: true
+      },
+      history: {
+        enabled: true,
+        beforeAddCommand(event: any, args: any) {
+          if (args.key) {
+            return args.key
+          }
+          return true
+        }
+      },
       // 嵌入功能配置（用于分组）
       embedding: {
         enabled: true,
@@ -1718,10 +1811,10 @@ const handleGroupNodeClick = (groupId: string, nodeId: string) => {
   const node = graph.getCellById(nodeId)
   if (node) {
     // 定位到节点
-    graph.centerCell(node)
+    graph.scrollToCell(node)
     
     // 选中节点
-    graph.resetSelection()
+    graph.cleanSelection()
     graph.select(node)
     
     // 高亮显示
@@ -1745,6 +1838,163 @@ const handleGroupNodeClick = (groupId: string, nodeId: string) => {
         strokeDasharray: '5 5'
       }
     })
+  }
+}
+
+// 修改复制粘贴的处理函数
+const handleCopy = () => {
+  if (!graph || selectedCells.value.length === 0) return
+  
+  const cells = selectedCells.value
+  if (cells.length > 0) {
+    // 过滤掉分组节点，只复制普通节点
+    const validCells = cells.filter(cell => {
+      if (cell.isNode()) {
+        const data = cell.getData()
+        return data?.type !== 'group'
+      }
+      return true
+    })
+    
+    if (validCells.length > 0) {
+      // 收集节点数据
+      const copiedData = validCells.map(cell => {
+        if (cell.isNode()) {
+          const pos = cell.getPosition()
+          const size = cell.getSize()
+          const data = cell.getData()
+          const attrs = cell.getAttrs()
+          
+          return {
+            type: 'node',
+            nodeType: data?.type,
+            position: pos,
+            size: size,
+            data: data,
+            attrs: attrs
+          }
+        } else {
+          // 如果是边，则保存源节点和目标节点的信息
+          const source = cell.getSource()
+          const target = cell.getTarget()
+          return {
+            type: 'edge',
+            source: source,
+            target: target,
+            attrs: cell.getAttrs(),
+            data: cell.getData()
+          }
+        }
+      })
+      
+      // 保存到 localStorage
+      localStorage.setItem('topology-clipboard', JSON.stringify(copiedData))
+      ElMessage.success('已复制选中元素')
+    }
+  }
+}
+
+const handlePaste = () => {
+  if (!graph) return
+  
+  try {
+    const clipboardData = localStorage.getItem('topology-clipboard')
+    if (clipboardData) {
+      const copiedElements = JSON.parse(clipboardData)
+      
+      // 计算偏移量
+      const dx = 20
+      const dy = 20
+      
+      // 创建新元素
+      const newCells = copiedElements.map((element: any) => {
+        if (element.type === 'node') {
+          // 获取对应的节点配置
+          const config = nodeConfig[element.nodeType]
+          if (!config) return null
+
+          // 创建新节点
+          return graph.addNode({
+            ...config,
+            x: element.position.x + dx,
+            y: element.position.y + dy,
+            width: element.size.width,
+            height: element.size.height,
+            attrs: element.attrs,
+            data: element.data,
+            zIndex: 1
+          })
+        } else {
+          // 暂存边的信息，等节点都创建完后再创建边
+          return element
+        }
+      }).filter(Boolean)
+      
+      // 添加边
+      const edges = copiedElements.filter((cell: any) => cell.type === 'edge')
+      edges.forEach((edge: any) => {
+        // 创建新的边
+        graph.addEdge({
+          source: edge.source,
+          target: edge.target,
+          attrs: edge.attrs,
+          data: edge.data,
+          router: {
+            name: 'orth',
+            args: {
+              padding: 10,
+              direction: 'H'
+            }
+          },
+          connector: {
+            name: 'rounded',
+            args: {
+              radius: 8
+            }
+          }
+        })
+      })
+      
+      // 选中新创建的元素
+      const nodes = newCells.filter((cell: any) => cell.type === 'node')
+      if (nodes.length > 0) {
+        graph.resetSelection()
+        graph.select(nodes)
+      }
+      
+      ElMessage.success('已粘贴元素')
+    }
+  } catch (error) {
+    console.error('粘贴失败:', error)
+    ElMessage.error('粘贴失败')
+  }
+}
+
+const handleUndo = () => {
+  if (!graph) return
+  
+  try {
+    if (graph.history.canUndo()) {
+      graph.history.undo()
+      ElMessage.success('撤销操作')
+    }
+  } catch (error) {
+    console.error('撤销失败:', error)
+    ElMessage.error('撤销失败')
+  }
+}
+
+const handleRedo = () => {
+  if (!graph) return
+  
+  try {
+    if (graph.history.canRedo()) {
+      graph.history.redo()
+      ElMessage.success('重做操作')
+    }
+  } catch (error) {
+    console.error('重做失败:', error)
+    ElMessage.error('重做失败')
   }
 }
 </script>
