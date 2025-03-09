@@ -154,11 +154,16 @@ import {
   Folder  // 分组图标
 } from '@element-plus/icons-vue'
 import { Graph, Cell } from '@antv/x6'
-import { register } from '@antv/x6-vue-shape'
+import '@antv/x6-vue-shape'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import containerIcon from '@/assets/icons/container.svg'
 import switchIcon from '@/assets/icons/switch.svg'
+
+// 定义emit事件
+const emit = defineEmits<{
+  (e: 'save'): void
+}>()
 
 // 定义节点数据接口
 interface NodeData {
@@ -200,16 +205,6 @@ interface TopologyData {
   }>
   groups: GroupData[]
 }
-
-// 注册自定义节点
-register({
-  shape: 'custom-node',
-  width: 100,
-  height: 40,
-  component: {
-    template: '<div>Custom Node</div>'
-  }
-})
 
 // 状态
 const container = ref<HTMLElement>()
@@ -766,6 +761,7 @@ const shortcuts = {
   paste: { key: 'v', ctrl: true, label: 'Ctrl + V' },
   undo: { key: 'z', ctrl: true, label: 'Ctrl + Z' },
   redo: { key: 'z', ctrl: true, shift: true, label: 'Ctrl + Shift + Z' },
+  save: { key: 's', ctrl: true, label: 'Ctrl + S' },  // 添加保存快捷键配置
 }
 
 // 创建分组
@@ -1175,6 +1171,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
   } else if (matchShortcut(shortcuts.redo)) {
     e.preventDefault()
     handleRedo()
+  } else if (matchShortcut(shortcuts.save)) {  // 添加保存快捷键处理
+    e.preventDefault()
+    emit('save')  // 触发保存事件
+    ElMessage.success('正在保存...')
   }
 }
 
@@ -1319,9 +1319,9 @@ const initGraph = async () => {
       },
       // 移动限制配置
       translating: {
-        restrict: (view) => {
-          const cell = view.cell
-          if (cell.getData()?.type === 'group') {
+        restrict: (view: any) => {
+          const cell = view?.cell
+          if (cell?.getData?.()?.type === 'group') {
             return {
               x: cell.getPosition().x,
               y: cell.getPosition().y,

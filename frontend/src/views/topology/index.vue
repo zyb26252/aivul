@@ -23,7 +23,7 @@
 
     <!-- 主要内容区域 -->
     <div class="topology-content">
-      <TopologyEditor ref="editorRef" />
+      <TopologyEditor ref="editorRef" @save="handleSave" />
     </div>
   </div>
 </template>
@@ -39,11 +39,39 @@ import { getScene, updateScene } from '@/api/scenes'
 const route = useRoute()
 const router = useRouter()
 const editorRef = ref()
+const lastSavedData = ref<string>('')  // 添加最后保存的数据引用
 
 const sceneId = computed(() => Number(route.params.id))
 
-const handleBack = () => {
-  router.back()
+// 检查是否有未保存的更改
+const hasUnsavedChanges = () => {
+  if (!editorRef.value) return false
+  const currentData = JSON.stringify(editorRef.value.getData())
+  return currentData !== lastSavedData.value
+}
+
+const handleBack = async () => {
+  // 检查是否有未保存的更改
+  if (hasUnsavedChanges()) {
+    try {
+      await ElMessageBox.confirm(
+        '有未保存的更改，确定要离开吗？',
+        '提示',
+        {
+          confirmButtonText: '确定离开',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+      // 用户确认离开
+      router.back()
+    } catch (error) {
+      // 用户取消离开，不做任何操作
+    }
+  } else {
+    // 没有未保存的更改，直接返回
+    router.back()
+  }
 }
 
 const handleSave = async () => {
@@ -59,6 +87,9 @@ const handleSave = async () => {
     await updateScene(sceneId.value, {
       topology
     })
+
+    // 保存成功后更新最后保存的数据
+    lastSavedData.value = JSON.stringify(topology)
 
     ElMessage.success('保存成功')
   } catch (error) {
@@ -107,14 +138,16 @@ onMounted(async () => {
   try {
     // 加载场景数据
     const scene = await getScene(sceneId.value)
-    console.log('Scene Response:', scene) // 添加日志
+    console.log('Scene Response:', scene)
     
     // 如果编辑器已初始化，加载数据
     if (editorRef.value) {
       // 确保 topology 存在，如果不存在则使用空对象
       const topology = scene?.topology || {}
-      console.log('Loading topology:', topology) // 添加日志
+      console.log('Loading topology:', topology)
       editorRef.value.setData(topology)
+      // 初始化最后保存的数据
+      lastSavedData.value = JSON.stringify(topology)
     } else {
       throw new Error('编辑器未初始化')
     }
