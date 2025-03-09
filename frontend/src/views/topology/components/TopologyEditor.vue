@@ -1319,9 +1319,10 @@ const initGraph = async () => {
       },
       // 移动限制配置
       translating: {
-        restrict: (view: any) => {
-          const cell = view?.cell
-          if (cell?.getData?.()?.type === 'group') {
+        restrict: (view) => {
+          if (!view || !view.cell) return null
+          const cell = view.cell
+          if (cell.getData?.()?.type === 'group') {
             return {
               x: cell.getPosition().x,
               y: cell.getPosition().y,

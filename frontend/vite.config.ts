@@ -22,19 +22,30 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
-    minify: 'terser',
+    minify: 'esbuild',
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-          'vue': ['vue', 'vue-router', 'pinia']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus')) {
+              return 'element-plus-vendor'
+            }
+            if (id.includes('vue') || id.includes('pinia')) {
+              return 'vue-vendor'
+            }
+            return 'vendor'
+          }
         }
       }
     }
   },
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', 'element-plus']
+    include: ['vue', 'vue-router', 'pinia', 'element-plus'],
+    force: true,
+    entries: [
+      './src/**/*.vue'
+    ]
   },
   logLevel: 'warn',
   clearScreen: false
