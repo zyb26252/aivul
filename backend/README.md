@@ -1,154 +1,190 @@
-# 网络靶场后端服务
-
-## 项目介绍
-
-后端服务是网络靶场自动化构建系统的核心组件，负责处理业务逻辑、AI分析和容器管理。基于 FastAPI 框架开发，提供 RESTful API 接口。
-
-## 主要功能
-
-### 认证服务 (/api/v1/auth)
-- 用户认证和授权
-- JWT token 管理
-- 权限控制
-
-### 镜像管理服务 (/api/v1/images)
-- 基础镜像的CRUD操作
-- 镜像元数据管理
-- 镜像仓库集成
-
-### 软件仓库服务 (/api/v1/software)
-- 软件包管理
-- 版本控制
-- 依赖分析
-
-### AI分析服务 (/api/v1/ai)
-- 软件兼容性分析
-- 环境依赖检测
-- 构建建议生成
-
-### 靶标服务 (/api/v1/targets)
-- Dockerfile生成
-- 靶标构建和管理
-- 构建日志记录
-
-### 实例管理 (/api/v1/instances)
-- 容器生命周期管理
-- 资源监控和调度
-- 实例状态维护
-
-### 仪表盘服务 (/api/v1/dashboard)
-- 系统状态概览
-- 资源使用统计
-- 操作日志查看
+# 网络靶场后端
 
 ## 技术栈
 
-- FastAPI: Web框架
-- SQLAlchemy: ORM框架
-- SQLite: 数据库
-- Pydantic: 数据验证
-- Docker SDK: 容器管理
-- OpenAI: AI分析服务
+- Python 3.8+
+- FastAPI
+- SQLite
+- Docker
+- SQLAlchemy
+- Pydantic
+- Uvicorn
 
-## 目录结构
+## 项目结构
 
 ```
 backend/
-├── app/                # 应用源码
-│   ├── api/           # API路由
-│   ├── core/          # 核心配置
-│   ├── crud/          # 数据库操作
-│   ├── db/            # 数据库会话
-│   ├── models/        # 数据模型
-│   ├── schemas/       # 数据校验
-│   ├── services/      # 业务逻辑
-│   └── utils/         # 工具函数
-├── main.py            # 应用入口
-└── requirements.txt    # 项目依赖
+├── app/
+│   ├── api/          # API 路由
+│   ├── core/         # 核心配置
+│   ├── crud/         # 数据库操作
+│   ├── db/           # 数据库配置
+│   ├── models/       # 数据库模型
+│   ├── schemas/      # Pydantic 模型
+│   └── utils/        # 工具函数
+├── tests/            # 测试文件
+├── .env             # 环境变量
+├── .env.example     # 环境变量示例
+├── main.py          # 应用入口
+└── requirements.txt  # 项目依赖
 ```
 
-## 本地开发
+## 主要功能模块
 
-1. 创建虚拟环境
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或
-venv\Scripts\activate     # Windows
-```
+### 1. 场景管理
+- 场景创建和配置
+- 场景数据持久化
+- 场景状态管理
+- 拓扑数据存储
 
-2. 安装依赖
-```bash
-pip install -r requirements.txt
-```
+### 2. 计划开发功能
+- Docker 容器管理
+- 容器网络配置
+- AI 服务集成
+- 实时状态更新
 
-3. 配置环境变量
-复制 `.env.example` 到 `.env` 并设置必要的环境变量。
+## API 文档
 
-4. 启动开发服务器
-```bash
-# 普通模式
-uvicorn main:app --host 0.0.0.0 --port 8000
+启动服务后访问：
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-# 调试模式（自动重载）
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
+## 开发环境设置
 
-## 环境变量
+### 前置要求
+- Python 3.8+
+- pip
+- Docker & Docker Compose
+- SQLite3
 
-需要配置以下环境变量：
-- `SECRET_KEY`: JWT密钥（必填，默认：your-secret-key）
-- `DOCKER_HOST`: Docker守护进程地址（默认：unix://var/run/docker.sock）
-- `BAILIAN_API_KEY`: 百炼 API 密钥（必填）
-- `API_BASE_URL`: API基础URL（默认：https://dashscope.aliyuncs.com/compatible-mode/v1）
-- `DEBUG`: 调试模式开关（默认：False）
-
-注意：数据库配置 `SQLALCHEMY_DATABASE_URL` 默认为 `sqlite:///{项目根目录}/sql_app.db`，通常不需要修改。
-
-可以通过以下方式设置环境变量：
-
-1. 创建 `.env` 文件：
-```bash
-# .env 文件示例
-SECRET_KEY=your-secret-key
-BAILIAN_API_KEY=your_bailian_api_key
-API_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-DEBUG=True
-```
-
-2. 或者直接在系统中设置环境变量：
-```bash
-export SECRET_KEY=your-secret-key
-export BAILIAN_API_KEY=your_bailian_api_key
-```
-
-## 部署
-
-### 生产环境部署
-
-1. 安装依赖
+### 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 配置环境变量
-```bash
-# 创建并编辑 .env 文件，设置必要的环境变量
-SECRET_KEY=your_production_secret_key
-BAILIAN_API_KEY=your_production_api_key
-DEBUG=False
+### 配置环境变量
+复制 `.env.example` 到 `.env` 并配置：
+
+```env
+# 基础配置
+API_V1_STR=/api/v1
+PROJECT_NAME=aivul
+
+# 数据库配置
+SQLITE_DATABASE_URL=sqlite:///./sql_app.db
+
+# Docker配置
+DOCKER_API_URL=unix://var/run/docker.sock
 ```
 
-3. 启动服务器
+### 启动开发服务器
 ```bash
-# 使用 gunicorn 作为生产环境 WSGI 服务器
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-建议使用 systemd 或 supervisor 等进程管理工具来管理服务进程。
+## Docker 部署
 
-## 监控和日志
+### 使用 Docker Compose
+```bash
+docker-compose up -d
+```
 
-- 应用日志：通过标准输出和 logging 模块记录
-- 性能监控：`/api/v1/dashboard/metrics`
-- 健康检查：`/api/v1/dashboard/health` 
+### 手动构建镜像
+```bash
+docker build -t aivul-backend .
+docker run -d -p 8000:8000 aivul-backend
+```
+
+## 数据库管理
+
+### 数据库迁移
+```bash
+# 生成迁移脚本
+alembic revision --autogenerate -m "description"
+
+# 应用迁移
+alembic upgrade head
+```
+
+### 数据库备份
+```bash
+# 备份数据库
+sqlite3 sql_app.db .dump > backup.sql
+
+# 恢复数据库
+sqlite3 sql_app.db < backup.sql
+```
+
+## 开发规范
+
+### 代码风格
+- 遵循 PEP 8 规范
+- 使用 Black 进行代码格式化
+- 使用 isort 进行导入排序
+- 使用 flake8 进行代码检查
+
+### API 开发规范
+- 使用 RESTful 设计原则
+- 请求/响应使用 Pydantic 模型
+- 统一错误处理
+- 完整的类型注解
+
+### Git 提交规范
+```
+feat: 新功能
+fix: 修复
+docs: 文档更新
+style: 代码格式
+refactor: 重构
+perf: 性能优化
+test: 测试
+chore: 构建/工具
+```
+
+## 主要依赖版本
+
+```
+fastapi==0.103.1
+uvicorn==0.23.2
+sqlalchemy==2.0.20
+pydantic==2.3.0
+python-dotenv==1.0.0
+docker==6.1.3
+```
+
+## 测试
+
+### 运行测试
+```bash
+pytest
+```
+
+### 测试覆盖率
+```bash
+pytest --cov=app tests/
+```
+
+## 已知问题
+
+- [ ] 需要实现容器管理功能
+- [ ] 需要实现网络配置功能
+
+## 后续计划
+
+- [ ] 实现容器管理功能
+- [ ] 实现网络配置功能
+- [ ] 添加 WebSocket 支持实时状态更新
+- [ ] 集成 AI 服务
+- [ ] 添加更多单元测试
+
+## 贡献指南
+
+1. Fork 项目
+2. 创建功能分支
+3. 提交更改
+4. 推送到分支
+5. 创建 Pull Request
+
+## 许可证
+
+MIT License 

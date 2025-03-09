@@ -1,223 +1,172 @@
-# AI驱动的网络靶场前端
+# 网络靶场前端
 
-本项目是基于 Vue 3 + TypeScript + Vite 构建的现代化前端应用。
+## 技术栈
 
-## 环境要求
+- Vue 3
+- TypeScript
+- Element Plus
+- Vite
+- Pinia
+- Vue Router
+- Sass
+- X6 (拓扑编辑器)
 
-- Node.js 18+
-- Docker
-- Docker Compose
+## 项目结构
 
-## 快速开始
-
-### 本地开发环境
-
-1. 克隆项目：
-```bash
-git clone <repository_url>
-cd frontend
+```
+frontend/
+├── src/
+│   ├── api/          # API 接口定义
+│   ├── assets/       # 静态资源
+│   ├── components/   # 公共组件
+│   ├── router/       # 路由配置
+│   ├── stores/       # Pinia 状态管理
+│   ├── styles/       # 全局样式
+│   ├── types/        # TypeScript 类型定义
+│   ├── utils/        # 工具函数
+│   └── views/        # 页面组件
+│       ├── topology/     # 拓扑编辑器相关
+│       │   ├── components/   # 拓扑编辑器组件
+│       │   └── index.vue     # 拓扑编辑器页面
+│       └── ...
+├── public/           # 公共资源
+├── .env             # 环境变量
+├── .env.example     # 环境变量示例
+├── vite.config.ts   # Vite 配置
+├── tsconfig.json    # TypeScript 配置
+└── package.json     # 项目依赖
 ```
 
-2. 安装依赖：
+## 主要功能模块
+
+### 1. 拓扑编辑器
+- 基于 X6 的可视化网络拓扑编辑器
+- 支持容器和交换机节点
+- 节点拖拽和连线功能
+- 分组管理功能
+- 快捷键支持
+- 自动保存和加载
+
+### 2. 场景管理
+- 场景列表展示
+- 场景创建和编辑
+- 场景状态管理
+
+## 开发环境设置
+
+### 前置要求
+- Node.js 16+
+- npm 或 yarn
+- 现代浏览器（Chrome/Firefox/Safari）
+
+### 安装依赖
 ```bash
 npm install
+# 或
+yarn install
 ```
 
-3. 启动开发服务器：
+### 开发服务器启动
 ```bash
 npm run dev
-```
-
-### Docker 开发环境
-
-开发环境提供热重载功能，适合日常开发使用。
-
-1. 启动开发容器：
-```bash
-# 前台运行（可以看到实时日志）
-docker-compose up frontend-dev
-
-# 或后台运行
-docker-compose up -d frontend-dev
-```
-
-2. 访问应用：
-- 地址：http://localhost:3000
-
-3. 查看日志：
-```bash
-docker-compose logs -f frontend-dev
-```
-
-4. 停止服务：
-```bash
-docker-compose down
-```
-
-### Docker 生产环境
-
-生产环境使用 Nginx 作为 Web 服务器，提供更好的性能和安全性。
-
-1. 启动生产容器：
-```bash
-# 前台运行
-docker-compose up frontend-prod
-
-# 或后台运行
-docker-compose up -d frontend-prod
-```
-
-2. 访问应用：
-- 地址：http://localhost:80
-
-3. 查看日志：
-```bash
-docker-compose logs -f frontend-prod
-```
-
-4. 停止服务：
-```bash
-docker-compose down
-```
-
-## Docker 构建说明
-
-### 构建行为
-Docker Compose 的构建行为取决于不同的命令和场景：
-
-1. **普通启动（不重新构建）**：
-```bash
-# 使用现有镜像（如果存在）
-docker-compose up frontend-dev
 # 或
-docker-compose up frontend-prod
+yarn dev
 ```
 
-2. **强制重新构建**：
+### 生产环境构建
 ```bash
-# 重新执行 Dockerfile 中的构建步骤
-docker-compose up --build frontend-dev
+npm run build
 # 或
-docker-compose up --build frontend-prod
+yarn build
 ```
 
-3. **单独构建**：
+### 代码检查
 ```bash
-# 只构建不启动
-docker-compose build frontend-dev
+npm run lint
 # 或
-docker-compose build frontend-prod
-```
-
-### 常见场景说明
-
-1. **首次运行**：
-   - 会自动构建镜像
-   - 推荐使用：`docker-compose up frontend-dev`
-
-2. **修改了 Dockerfile**：
-   - 需要重新构建
-   - 推荐使用：`docker-compose up --build frontend-dev`
-
-3. **修改了源代码**：
-   - 开发环境：不需要重新构建（热重载）
-   - 生产环境：需要重新构建
-   - 推荐使用：
-     - 开发：`docker-compose up frontend-dev`
-     - 生产：`docker-compose up --build frontend-prod`
-
-4. **修改了 package.json**：
-   - 需要重新构建
-   - 推荐使用：`docker-compose up --build frontend-dev`
-
-5. **修改了环境变量**：
-   - 如果只改了 docker-compose.yml 中的环境变量，不需要重新构建
-   - 推荐使用：`docker-compose up frontend-dev`
-
-### 最佳实践命令
-
-```bash
-# 开发环境日常使用（代码会热更新）
-docker-compose up frontend-dev
-
-# 开发环境修改了依赖时
-docker-compose up --build frontend-dev
-
-# 生产环境部署（总是使用最新代码）
-docker-compose up --build frontend-prod
-
-# 停止并删除所有容器
-docker-compose down
-
-# 完全重新构建（清除缓存）
-docker-compose build --no-cache frontend-prod
-
-# 查看构建日志
-docker-compose build --progress=plain frontend-prod
-```
-
-## 常用命令
-
-```bash
-# 重新构建并启动容器
-docker-compose up -d --build frontend-dev  # 开发环境
-docker-compose up -d --build frontend-prod # 生产环境
-
-# 查看容器状态
-docker-compose ps
-
-# 查看容器日志
-docker-compose logs -f frontend-dev
-docker-compose logs -f frontend-prod
-
-# 停止并删除所有容器
-docker-compose down
+yarn lint
 ```
 
 ## 环境变量配置
 
-开发环境和生产环境的环境变量可以在 `docker-compose.yml` 中配置：
+在 `.env` 文件中配置以下环境变量：
 
-```yaml
-environment:
-  - VITE_API_BASE_URL=http://47.86.184.188:8000
-  - VITE_API_TIMEOUT=30000
+```env
+VITE_API_BASE_URL=http://localhost:8000  # 后端API地址
 ```
 
-## 目录结构
+## Docker 部署
 
-```
-frontend/
-├── src/                # 源代码目录
-├── public/            # 静态资源
-├── Dockerfile         # Docker 配置文件
-├── docker-compose.yml # Docker Compose 配置
-├── nginx.conf         # Nginx 配置（生产环境）
-└── ...
+### 使用 Docker Compose
+```bash
+docker-compose up -d
 ```
 
-## 开发和生产环境的区别
+### 手动构建镜像
+```bash
+docker build -t aivul-frontend .
+docker run -d -p 80:80 aivul-frontend
+```
 
-### 开发环境 (frontend-dev)
-- 使用 Node.js 开发服务器
-- 支持热重载
-- 运行在 3000 端口
-- 挂载本地代码，便于实时开发
-- 未经过代码优化和压缩
+## 开发规范
 
-### 生产环境 (frontend-prod)
-- 使用 Nginx 服务器
-- 代码经过构建优化和压缩
-- 运行在 80 端口
-- 更好的性能和安全性
-- 包含生产级别的配置
+### 代码风格
+- 使用 TypeScript 编写代码
+- 遵循 Vue 3 组合式 API 风格
+- 使用 ESLint 和 Prettier 进行代码格式化
 
-## 注意事项
+### 组件开发规范
+- 组件名使用 PascalCase
+- Props 必须定义类型
+- 使用 `<script setup>` 语法
+- 样式使用 scoped SCSS
 
-1. 确保 Docker 和 Docker Compose 已正确安装
-2. 开发环境下代码修改会自动热重载
-3. 生产环境的代码修改需要重新构建才能生效
-4. 注意检查环境变量配置是否正确
-5. 如遇到权限问题，可能需要使用 sudo 运行命令
-6. 首次构建可能需要较长时间，后续构建会使用缓存加速
-7. 如遇构建问题，可以尝试清除缓存重新构建
+### Git 提交规范
+```
+feat: 新功能
+fix: 修复
+docs: 文档更新
+style: 代码格式（不影响代码运行的变动）
+refactor: 重构
+perf: 性能优化
+test: 测试
+chore: 构建过程或辅助工具的变动
+```
+
+## 主要依赖版本
+
+```json
+{
+  "vue": "^3.3.4",
+  "typescript": "^5.0.2",
+  "element-plus": "^2.3.14",
+  "@antv/x6": "^2.11.5",
+  "pinia": "^2.1.6",
+  "vue-router": "^4.2.4"
+}
+```
+
+## 已知问题
+
+- [ ] 拓扑编辑器在某些情况下可能出现性能问题
+- [ ] 部分浏览器兼容性问题待解决
+
+## 后续计划
+
+- [ ] 优化拓扑编辑器性能
+- [ ] 添加更多快捷键支持
+- [ ] 实现容器管理功能
+- [ ] 实现网络配置功能
+- [ ] 优化移动端适配
+
+## 贡献指南
+
+1. Fork 项目
+2. 创建功能分支
+3. 提交更改
+4. 推送到分支
+5. 创建 Pull Request
+
+## 许可证
+
+MIT License
