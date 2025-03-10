@@ -113,33 +113,21 @@
                   <span class="resource-label">{{ $t('home.systemResources.cpu') }}</span>
                   <span class="resource-value">{{ stats.resourceUsage.cpuUsage }}%</span>
                 </div>
-                <el-progress type="circle" 
-                  :percentage="stats.resourceUsage.cpuUsage"
-                  :color="getProgressColor(stats.resourceUsage.cpuUsage)"
-                  :stroke-width="10"
-                />
+                <div class="chart-container" ref="cpuChartRef"></div>
               </div>
               <div class="resource-item">
                 <div class="resource-info">
                   <span class="resource-label">{{ $t('home.systemResources.memory') }}</span>
                   <span class="resource-value">{{ stats.resourceUsage.memoryUsage }}%</span>
                 </div>
-                <el-progress type="circle" 
-                  :percentage="stats.resourceUsage.memoryUsage"
-                  :color="getProgressColor(stats.resourceUsage.memoryUsage)"
-                  :stroke-width="10"
-                />
+                <div class="chart-container" ref="memoryChartRef"></div>
               </div>
               <div class="resource-item">
                 <div class="resource-info">
                   <span class="resource-label">{{ $t('home.systemResources.disk') }}</span>
                   <span class="resource-value">{{ stats.resourceUsage.diskUsage }}%</span>
                 </div>
-                <el-progress type="circle" 
-                  :percentage="stats.resourceUsage.diskUsage"
-                  :color="getProgressColor(stats.resourceUsage.diskUsage)"
-                  :stroke-width="10"
-                />
+                <div class="chart-container" ref="diskChartRef"></div>
               </div>
             </div>
           </el-card>
@@ -186,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Picture, Monitor, Aim, Box, Plus, Refresh,
@@ -200,6 +188,8 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import 'dayjs/locale/ja'
 import 'dayjs/locale/zh-tw'
+import * as echarts from 'echarts'
+import type { EChartsOption } from 'echarts'
 
 // 设置dayjs插件和语言
 dayjs.extend(relativeTime)
@@ -226,15 +216,221 @@ const instanceGrowth = ref(8)
 const targetGrowth = ref(12)
 const softwareGrowth = ref(5)
 
-const getProgressColor = (percentage: number) => {
-  if (percentage < 60) return '#67C23A'
-  if (percentage < 80) return '#E6A23C'
-  return '#F56C6C'
+// 图表相关
+const MAX_DATA_POINTS = 30 // 保留30个数据点
+const cpuChartRef = ref<HTMLElement | null>(null)
+const memoryChartRef = ref<HTMLElement | null>(null)
+const diskChartRef = ref<HTMLElement | null>(null)
+let cpuChart: echarts.ECharts | null = null
+let memoryChart: echarts.ECharts | null = null
+let diskChart: echarts.ECharts | null = null
+
+// 历史数据
+const cpuData = ref<number[]>([])
+const memoryData = ref<number[]>([])
+const diskData = ref<number[]>([])
+const timeData = ref<string[]>([])
+
+// 初始化图表
+const initChart = (
+  el: HTMLElement,
+  data: number[],
+  name: string,
+  color: string
+): echarts.ECharts => {
+  const chart = echarts.init(el)
+  const option: EChartsOption = {
+    grid: {
+      top: 15,      // 减小顶部空间
+      right: 20,
+      bottom: 30,   // 减小底部空间
+      left: 55,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: timeData.value,
+      axisLabel: {
+        show: true,
+        color: 'var(--el-text-color-secondary)',
+        fontSize: 12,
+        interval: Math.floor(MAX_DATA_POINTS / 6),
+        formatter: (value: string) => value,
+        rotate: 45
+      },
+      axisLine: {
+        show: true,
+        lineStyle: {
+          color: 'var(--el-border-color-lighter)'
+        }
+      },
+      axisTick: {
+        show: true,
+        alignWithLabel: true,
+        interval: Math.floor(MAX_DATA_POINTS / 6),
+        lineStyle: {
+          color: 'var(--el-border-color-lighter)'
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 100,
+      splitNumber: 5,    // 增加分割线数量
+      interval: 20,      // 固定间隔为20
+      axisLabel: {
+        formatter: '{value}%',
+        color: 'var(--el-text-color-secondary)',
+        fontSize: 12,
+        margin: 16,      // 增加标签与轴的距离
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: 'var(--el-border-color-lighter)',
+          type: 'dashed',
+          width: 1
+        }
+      }
+    },
+    series: [{
+      name: name,
+      type: 'line',
+      data: data,
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 8,
+      showSymbol: true,
+      emphasis: {
+        scale: true,
+        focus: 'series',
+        itemStyle: {
+          borderWidth: 2
+        }
+      },
+      lineStyle: {
+        color: color,
+        width: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.2)',
+        shadowBlur: 10
+      },
+      itemStyle: {
+        color: color,
+        borderWidth: 2,
+        borderColor: '#fff'
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          {
+            offset: 0,
+            color: color.replace('1)', '0.2)')
+          },
+          {
+            offset: 1,
+            color: color.replace('1)', '0.02)')
+          }
+        ])
+      }
+    }],
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const data = params[0]
+        return `${data.name}<br/>${data.value}%`
+      },
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderColor: 'var(--el-border-color-lighter)',
+      textStyle: {
+        color: 'var(--el-text-color-primary)'
+      },
+      extraCssText: 'box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);'
+    },
+    animation: true
+  }
+  chart.setOption(option)
+  return chart
 }
 
-// 格式化时间为相对时间
-const formatTime = (time: string) => {
-  return dayjs(time).fromNow()
+// 更新图表数据
+const updateChartData = (
+  chart: echarts.ECharts | null,
+  data: number[],
+  value: number
+) => {
+  if (!chart) return
+
+  const now = dayjs().format('HH:mm:ss')  // 改为时:分:秒格式
+  
+  // 更新数据数组
+  data.push(value)
+  if (data.length > MAX_DATA_POINTS) {
+    data.shift()
+  }
+  
+  // 更新时间数组
+  timeData.value.push(now)
+  if (timeData.value.length > MAX_DATA_POINTS) {
+    timeData.value.shift()
+  }
+
+  // 重新设置图表选项
+  chart.setOption({
+    xAxis: {
+      data: timeData.value
+    },
+    series: [{
+      data: data
+    }]
+  })
+}
+
+// 初始化所有图表
+const initCharts = () => {
+  // 销毁现有图表
+  cpuChart?.dispose()
+  memoryChart?.dispose()
+  diskChart?.dispose()
+
+  // 重新初始化图表
+  if (cpuChartRef.value) {
+    cpuChart = initChart(
+      cpuChartRef.value,
+      cpuData.value,
+      'CPU',
+      'rgba(64, 158, 255, 1)'
+    )
+  }
+  if (memoryChartRef.value) {
+    memoryChart = initChart(
+      memoryChartRef.value,
+      memoryData.value,
+      'Memory',
+      'rgba(103, 194, 58, 1)'
+    )
+  }
+  if (diskChartRef.value) {
+    diskChart = initChart(
+      diskChartRef.value,
+      diskData.value,
+      'Disk',
+      'rgba(230, 162, 60, 1)'
+    )
+  }
+}
+
+// 更新所有图表
+const updateCharts = () => {
+  updateChartData(cpuChart, cpuData.value, stats.value.resourceUsage.cpuUsage)
+  updateChartData(memoryChart, memoryData.value, stats.value.resourceUsage.memoryUsage)
+  updateChartData(diskChart, diskData.value, stats.value.resourceUsage.diskUsage)
+}
+
+// 处理窗口大小变化
+const handleResize = () => {
+  cpuChart?.resize()
+  memoryChart?.resize()
+  diskChart?.resize()
 }
 
 // 获取活动图标
@@ -269,12 +465,28 @@ const getActivityText = (type: string) => {
   return textMap[type] || type
 }
 
+// 格式化时间为相对时间
+const formatTime = (time: string) => {
+  return dayjs(time).fromNow()
+}
+
 // 获取所有仪表盘数据
 const fetchDashboardData = async () => {
   try {
     loading.value = true
     const data = await getDashboardStats()
     stats.value = data
+    
+    // 初始化数据数组
+    const now = dayjs().format('HH:mm:ss')  // 改为时:分:秒格式
+    cpuData.value = [data.resourceUsage.cpuUsage]
+    memoryData.value = [data.resourceUsage.memoryUsage]
+    diskData.value = [data.resourceUsage.diskUsage]
+    timeData.value = [now]
+    
+    // 等待 DOM 更新后初始化图表
+    await nextTick()
+    initCharts()
   } catch (error) {
     ElMessage.error('获取仪表盘数据失败')
   } finally {
@@ -287,6 +499,14 @@ const refreshResourceUsage = async () => {
   try {
     const data = await getDashboardStats()
     stats.value.resourceUsage = data.resourceUsage
+    
+    // 确保图表存在
+    if (!cpuChart || !memoryChart || !diskChart) {
+      await nextTick()
+      initCharts()
+    } else {
+      updateCharts()
+    }
   } catch (error) {
     console.error('刷新资源使用情况失败')
   }
@@ -294,15 +514,20 @@ const refreshResourceUsage = async () => {
 
 let refreshInterval: number | null = null
 
-onMounted(() => {
-  fetchDashboardData()
+onMounted(async () => {
+  await fetchDashboardData()
   refreshInterval = window.setInterval(refreshResourceUsage, 5000)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval)
   }
+  window.removeEventListener('resize', handleResize)
+  cpuChart?.dispose()
+  memoryChart?.dispose()
+  diskChart?.dispose()
 })
 </script>
 
@@ -363,6 +588,23 @@ onUnmounted(() => {
 
 .mt-20 {
   margin-top: 20px;
+
+  // 修复 el-col 的边距问题
+  :deep(.el-col) {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .el-card {
+    height: 100%;
+    margin-bottom: 0;
+    border-radius: 12px;  // 添加圆角
+    overflow: hidden;     // 确保内容不会溢出圆角
+
+    :deep(.el-card__body) {
+      height: 100%;      // 确保内容区域填充满整个卡片
+    }
+  }
 }
 
 .stat-card {
@@ -427,11 +669,14 @@ onUnmounted(() => {
 
 .resource-card {
   height: 100%;
+  margin-bottom: 0;
+  border-radius: 12px;  // 添加圆角
   
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-bottom: 12px;  // 减小头部与内容的间距
     
     span {
       font-size: 16px;
@@ -440,21 +685,25 @@ onUnmounted(() => {
   }
   
   .resource-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;    // 减小卡片之间的间距
     
     .resource-item {
-      text-align: center;
+      text-align: left;
+      background: var(--el-bg-color-page);
+      border-radius: 8px;
+      padding: 16px;    // 减小内边距
       
       .resource-info {
-        margin-bottom: 12px;
+        margin-bottom: 12px;   // 减小信息与图表的间距
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         
         .resource-label {
-          display: block;
           color: var(--el-text-color-secondary);
           font-size: 14px;
-          margin-bottom: 4px;
         }
         
         .resource-value {
@@ -463,12 +712,19 @@ onUnmounted(() => {
           color: var(--el-text-color-primary);
         }
       }
+
+      .chart-container {
+        height: 180px;    // 调整图表高度
+        width: 100%;
+      }
     }
   }
 }
 
 .activity-card {
   height: 100%;
+  margin-bottom: 0;
+  border-radius: 12px;  // 添加圆角
   
   .card-header {
     display: flex;
@@ -558,7 +814,13 @@ onUnmounted(() => {
   
   .resource-card {
     .resource-grid {
-      grid-template-columns: 1fr;
+      gap: 16px;
+      
+      .resource-item {
+        .chart-container {
+          height: 200px;    // 保持移动端的图表高度一致
+        }
+      }
     }
   }
 }
