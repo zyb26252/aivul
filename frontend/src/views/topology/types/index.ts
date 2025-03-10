@@ -10,6 +10,11 @@ export interface Topology {
 // 节点
 export interface NodeProperties {
   // 容器节点属性
+  image?: string    // 镜像ID
+  imageName?: string // 镜像名称
+  ip?: string
+  netmask?: string
+  gateway?: string
   cpu?: number
   memory?: number
   // 交换机节点属性

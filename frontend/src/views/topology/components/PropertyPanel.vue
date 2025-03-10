@@ -22,6 +22,20 @@
 
         <!-- 容器节点特有属性 -->
         <template v-if="isContainer">
+          <el-form-item label="镜像">
+            <el-select 
+              v-model="formData.properties.image" 
+              placeholder="请选择镜像"
+              @change="handlePropertyChange"
+            >
+              <el-option
+                v-for="image in imageList"
+                :key="image.id"
+                :label="image.name"
+                :value="image.id"
+              />
+            </el-select>
+          </el-form-item>
           <el-form-item label="IP地址">
             <el-input 
               v-model="formData.properties.ip" 
@@ -120,20 +134,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import type { Node } from '../types'
+import { getImages } from '@/api/image'
 
 const props = defineProps<{
   selectedNode?: Node
   selectedEdge?: any
 }>()
 
+// 镜像列表
+const imageList = ref<any[]>([])
+
+// 获取镜像列表
+const fetchImageList = async () => {
+  try {
+    const response = await getImages()
+    imageList.value = response
+  } catch (error) {
+    console.error('Failed to fetch images:', error)
+  }
+}
+
+// 在组件挂载时获取镜像列表
+onMounted(() => {
+  fetchImageList()
+})
+
 // 节点表单数据
 const formData = ref({
   name: '',
   type: '',
   description: '',
-  properties: {} as Record<string, any>
+  properties: {
+    image: '',  // 添加镜像字段
+    ip: '',
+    netmask: '',
+    gateway: ''
+  } as Record<string, any>
 })
 
 // 连线表单数据
