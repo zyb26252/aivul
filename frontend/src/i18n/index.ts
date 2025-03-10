@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import zh from './locales/zh'
 import zhTW from './locales/zh-TW'
 import en from './locales/en'
+import ja from './locales/ja'
 
 const i18n = createI18n({
   legacy: false, // 使用 Composition API
@@ -12,7 +13,8 @@ const i18n = createI18n({
   messages: {
     zh,
     'zh-TW': zhTW,
-    en
+    en,
+    ja
   }
 })
 

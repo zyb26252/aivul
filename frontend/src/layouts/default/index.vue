@@ -70,6 +70,13 @@
                 >
                   EN
                 </button>
+                <button 
+                  class="lang-btn" 
+                  :class="{ active: currentLocale === 'ja' }" 
+                  @click="changeLanguage('ja')"
+                >
+                  日本語
+                </button>
               </div>
             </div>
             <div class="divider"></div>
