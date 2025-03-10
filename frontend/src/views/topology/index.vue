@@ -8,7 +8,7 @@
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
-        <h2>拓扑编辑器</h2>
+        <h2 class="page-title">拓扑编辑器</h2>
       </div>
       <div class="right">
         <el-button @click="handleReset">
@@ -16,6 +16,7 @@
           重置
         </el-button>
         <el-button type="primary" @click="handleSave">
+          <el-icon><Check /></el-icon>
           保存
         </el-button>
       </div>
@@ -32,7 +33,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, RefreshRight } from '@element-plus/icons-vue'
+import { ArrowLeft, RefreshRight, Check } from '@element-plus/icons-vue'
 import TopologyEditor from './components/TopologyEditor.vue'
 import { getScene, updateScene } from '@/api/scenes'
 
@@ -163,26 +164,45 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--el-bg-color);
+  background: var(--bg-color);
 
   .topology-toolbar {
     height: 64px;
-    padding: 0 24px;
-    border-bottom: 1px solid var(--el-border-color-light);
+    padding: 0 var(--spacing-large);
+    border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: var(--el-bg-color);
+    background: var(--bg-lighter);
 
     .left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: var(--spacing-large);
 
-      h2 {
+      .page-title {
         margin: 0;
         font-size: 20px;
         font-weight: 500;
+        color: var(--text-primary);
+      }
+      
+      .el-button {
+        .el-icon {
+          margin-right: 4px;
+        }
+      }
+    }
+    
+    .right {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-base);
+      
+      .el-button {
+        .el-icon {
+          margin-right: 4px;
+        }
       }
     }
   }
@@ -190,6 +210,25 @@ onMounted(async () => {
   .topology-content {
     flex: 1;
     overflow: hidden;
+    background: var(--bg-lighter);
+  }
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .topology-editor {
+    .topology-toolbar {
+      height: auto;
+      padding: var(--spacing-base);
+      flex-direction: column;
+      gap: var(--spacing-base);
+      
+      .left,
+      .right {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
   }
 }
 </style> 
