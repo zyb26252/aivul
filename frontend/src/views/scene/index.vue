@@ -20,31 +20,37 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          添加场景
+          <el-icon><Plus /></el-icon>添加场景
         </el-button>
       </div>
 
-      <SceneTable
-        :loading="loading"
-        :scenes="filteredScenes"
-        @selection-change="handleSelectionChange"
-        @edit="handleEdit"
-        @topology="handleTopology"
-        @delete="handleDelete"
-        @batch-delete="handleBatchDelete"
-      />
+      <div class="main-content">
+        <el-card class="table-card">
+          <SceneTable
+            :loading="loading"
+            :scenes="filteredScenes"
+            @selection-change="handleSelectionChange"
+            @edit="handleEdit"
+            @topology="handleTopology"
+            @delete="handleDelete"
+            @batch-delete="handleBatchDelete"
+          />
+        </el-card>
+      </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
         :title="dialogType === 'add' ? '添加场景' : '编辑场景'"
-        width="500px"
+        width="600px"
+        destroy-on-close
       >
         <el-form
           ref="formRef"
           :model="formData"
           :rules="rules"
           label-width="100px"
+          class="dialog-form"
         >
           <el-form-item label="名称" prop="name">
             <el-input v-model="formData.name" placeholder="请输入场景名称" />
@@ -53,15 +59,18 @@
             <el-input
               v-model="formData.description"
               type="textarea"
+              :rows="4"
               placeholder="请输入场景描述"
             />
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit(formRef)">
-            确定
-          </el-button>
+          <div class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleSubmit(formRef)">
+              确定
+            </el-button>
+          </div>
         </template>
       </el-dialog>
     </template>
@@ -71,7 +80,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import type { Scene } from '@/types/scene'
 import { getSceneList, deleteScene, copyScene, updateScene, createScene } from '@/services/scene'
@@ -245,11 +254,106 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
+.page-container {
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
+}
 
-.search-container {
-  .search-input {
-    width: 300px;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-large);
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-large);
+    
+    .page-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: var(--spacing-base);
+      
+      .search-input {
+        width: 320px;
+      }
+    }
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.main-content {
+  background: var(--bg-lighter);
+  border-radius: var(--border-radius-base);
+  
+  .table-card {
+    background: transparent;
+    border: none;
+    
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
+}
+
+.dialog-form {
+  padding: var(--spacing-large) var(--spacing-huge);
+  
+  .el-form-item {
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-base);
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-base);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: var(--spacing-base);
+    
+    .header-left {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      
+      .search-container {
+        flex-direction: column;
+        
+        .search-input {
+          width: 100%;
+        }
+      }
+    }
+  }
+  
+  .dialog-form {
+    padding: var(--spacing-base);
   }
 }
 </style> 

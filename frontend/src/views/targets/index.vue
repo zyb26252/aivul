@@ -947,39 +947,214 @@ onMounted(() => {
 <style lang="scss" scoped>
 @import '@/styles/common.scss';
 
-.architecture-tag {
-  margin-left: 8px;
+.page-container {
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
 }
 
-.version-tag {
-  margin-left: 8px;
-  background-color: var(--el-color-success-light-9);
-  border-color: var(--el-color-success-light-8);
-  color: var(--el-color-success);
-}
-
-.port-list {
+.page-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.port-tag {
-  margin-right: 6px;
-  margin-bottom: 4px;
-}
-
-.software-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-large);
   
-  .software-item {
-    color: var(--el-text-color-regular);
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-large);
+    
+    .page-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: var(--spacing-base);
+      
+      .search-input {
+        width: 320px;
+      }
+    }
   }
   
-  .software-separator {
-    color: var(--el-text-color-secondary);
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.main-content {
+  background: var(--bg-lighter);
+  border-radius: var(--border-radius-base);
+  
+  .table-card {
+    background: transparent;
+    border: none;
+    
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
+}
+
+.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: var(--bg-light);
+  --el-table-row-hover-bg-color: var(--primary-light);
+  
+  .name-column {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .name {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+  }
+  
+  .software-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    
+    .software-item {
+      color: var(--text-regular);
+    }
+    
+    .software-separator {
+      color: var(--text-secondary);
+    }
+  }
+  
+  .port-tag {
+    margin: 2px;
+  }
+  
+  .description-cell {
+    color: var(--text-regular);
+    line-height: 1.5;
+  }
+}
+
+.batch-operation {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-base);
+  margin-top: var(--spacing-base);
+  padding: var(--spacing-base);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-base);
+  
+  .selected-count {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.target-dialog {
+  :deep(.el-dialog__body) {
+    padding: var(--spacing-large);
+  }
+  
+  .el-steps {
+    margin-bottom: var(--spacing-large);
+    padding: 0 var(--spacing-huge);
+  }
+  
+  .dialog-form {
+    padding: 0 var(--spacing-huge);
+    
+    .el-form-item {
+      margin-bottom: var(--spacing-large);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    .form-tips {
+      margin-top: 4px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    
+    .compatibility-check {
+      margin-top: 8px;
+    }
+    
+    .ports-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      
+      .port-tag {
+        margin: 2px;
+      }
+    }
+  }
+}
+
+.dockerfile-dialog {
+  :deep(.el-dialog__body) {
+    padding: var(--spacing-large);
+  }
+}
+
+.dockerfile-container {
+  display: flex;
+  gap: var(--spacing-large);
+  margin: var(--spacing-base) 0;
+  
+  .dockerfile-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-base);
+    
+    &.full-width {
+      width: 100%;
+    }
+    
+    .dockerfile-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 var(--spacing-base);
+      
+      span {
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+    }
+    
+    .editor-wrapper {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-base);
+      overflow: hidden;
+      height: 500px;
+    }
+  }
+}
+
+.dockerfile-header,
+.dockerfile-footer {
+  padding: var(--spacing-base) var(--spacing-huge);
+  border-bottom: 1px solid var(--border-light);
+  
+  &:last-child {
+    border-bottom: none;
   }
 }
 
@@ -988,240 +1163,63 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-}
-
-.ports-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.compatibility-check {
-  margin-top: 8px;
-}
-
-.compatibility-dialog {
-  :deep(.el-dialog__body) {
-    padding: 20px;
-  }
-}
-
-.command-preview {
-  font-family: monospace;
-  background-color: var(--el-fill-color-light);
-  padding: 8px 12px;
-  border-radius: 4px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.description-cell {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.5;
-}
-
-.batch-operation {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
+  gap: var(--spacing-base);
   
-  .selected-count {
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
+  .architecture-tag {
+    flex-shrink: 0;
   }
 }
 
-:deep(.el-steps) {
-  .el-step.is-current {
-    .el-step__title {
-      color: var(--el-color-primary);
-      font-weight: bold;
-    }
-  }
-}
-
-.dockerfile-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.dockerfile-container {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 16px;
-  height: 600px;
-}
-
-.dockerfile-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  overflow: hidden;
-  
-  &.full-width {
-    width: 100%;
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-base);
   }
   
-  .dockerfile-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    padding: 12px;
-    background-color: var(--el-fill-color-light);
-    border-bottom: 1px solid var(--el-border-color-light);
-  }
-
-  .editor-wrapper {
-    flex: 1;
-    overflow: hidden;
-    
-    :deep(.monaco-editor) {
-      height: 100% !important;
-    }
-  }
-}
-
-.dockerfile-footer {
-  display: none;
-}
-
-.target-dialog {
-  :deep(.el-dialog) {
-    --el-dialog-margin-top: 5vh;
-    height: 90vh;
-    margin: var(--el-dialog-margin-top) auto 0;
-    display: flex;
+  .page-header {
     flex-direction: column;
+    gap: var(--spacing-base);
     
-    .el-dialog__body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    .el-dialog__header {
-      margin: 0;
-      padding: 20px 20px 0;
-    }
-
-    .el-dialog__footer {
-      margin: 0;
-      padding: 0 20px 20px;
-      border-top: 1px solid var(--el-border-color-light);
-    }
-  }
-}
-
-.compatibility-result {
-  white-space: pre-wrap;
-  font-family: monospace;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-
-// 修改 Markdown 样式
-:deep(.markdown-body) {
-  box-sizing: border-box;
-  min-width: 200px;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #fff;
-  
-  @media (max-width: 767px) {
-    padding: 15px;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    margin-top: 24px;
-    margin-bottom: 16px;
-    font-weight: 600;
-    line-height: 1.25;
-  }
-  
-  p {
-    margin-top: 0;
-    margin-bottom: 16px;
-  }
-  
-  ul {
-    padding-left: 2em;
-    margin-top: 0;
-    margin-bottom: 16px;
-  }
-}
-
-.dockerfile-dialog {
-  :deep(.el-dialog) {
-    --el-dialog-margin-top: 5vh;
-    height: 80vh;
-    margin: var(--el-dialog-margin-top) auto 0;
-    display: flex;
-    flex-direction: column;
-    
-    .el-dialog__body {
-      flex: 1;
-      overflow-y: hidden;
-      padding: 20px;
-      display: flex;
+    .header-left {
       flex-direction: column;
-    }
-
-    .el-dialog__header {
-      margin: 0;
-      padding: 20px 20px 0;
-    }
-
-    .el-dialog__footer {
-      margin: 0;
-      padding: 0 20px 20px;
-      border-top: 1px solid var(--el-border-color-light);
-    }
-  }
-  
-  .dockerfile-view-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    
-    .dockerfile-column {
-      height: 100%;
+      align-items: stretch;
+      width: 100%;
       
-      .editor-wrapper {
-        height: 100%;
+      .search-container {
+        flex-direction: column;
         
-        :deep(.monaco-editor) {
-          height: 100% !important;
-          
-          .monaco-scrollable-element {
-            height: 100% !important;
-          }
-          
-          .editor-scrollable {
-            height: 100% !important;
-          }
+        .search-input {
+          width: 100%;
         }
       }
     }
+  }
+  
+  .target-dialog {
+    .el-steps {
+      padding: 0 var(--spacing-base);
+    }
+    
+    .dialog-form {
+      padding: 0 var(--spacing-base);
+    }
+  }
+  
+  .dockerfile-container {
+    flex-direction: column;
+    
+    .dockerfile-column {
+      width: 100%;
+      
+      .editor-wrapper {
+        height: 300px;
+      }
+    }
+  }
+  
+  .dockerfile-header,
+  .dockerfile-footer {
+    padding: var(--spacing-base);
   }
 }
 </style> 

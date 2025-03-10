@@ -7,8 +7,14 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" />
-      <el-table-column prop="name" label="场景名称" width="200" />
-      <el-table-column prop="description" label="描述" show-overflow-tooltip />
+      <el-table-column prop="name" label="场景名称" min-width="150">
+        <template #default="{ row }">
+          <div class="name-column">
+            <span class="name">{{ row.name }}</span>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
       
       <el-table-column label="拓扑预览" width="200" align="center">
         <template #default="{ row }">
@@ -35,7 +41,7 @@
           {{ new Date(row.createdAt).toLocaleString() }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200">
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <div class="operation-group">
             <el-button type="primary" link @click="$emit('edit', row)">
@@ -54,7 +60,9 @@
 
     <div v-if="selectedRows.length > 0" class="batch-operation">
       <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
-      <el-button type="danger" @click="$emit('batch-delete', selectedRows)">批量删除</el-button>
+      <el-button type="danger" @click="$emit('batch-delete', selectedRows)">
+        <el-icon><Delete /></el-icon>批量删除
+      </el-button>
     </div>
 
     <el-dialog
@@ -62,8 +70,14 @@
       title="拓扑预览"
       width="800px"
       destroy-on-close
+      class="preview-dialog"
     >
       <div class="preview-container" ref="previewContainer"></div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="previewVisible = false">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -71,6 +85,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import { Graph } from '@antv/x6'
+import { Delete } from '@element-plus/icons-vue'
 import type { Scene } from '@/types/scene'
 
 const props = defineProps<{
@@ -425,42 +440,67 @@ const emit = defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+.scene-table {
+  .el-table {
+    --el-table-border-color: var(--border-light);
+    --el-table-header-bg-color: var(--bg-light);
+    --el-table-row-hover-bg-color: var(--primary-light);
+    
+    .name-column {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .name {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+    }
+  }
+}
+
 .operation-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-base);
 }
 
 .batch-operation {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
+  gap: var(--spacing-base);
+  margin-top: var(--spacing-base);
+  padding: var(--spacing-base);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-base);
   
   .selected-count {
-    color: var(--el-text-color-secondary);
+    color: var(--text-secondary);
     font-size: 14px;
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
   }
 }
 
 .topology-thumbnail {
   width: 180px;
   height: 100px;
-  background: #fff;
+  background: var(--bg-lighter);
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius-base);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: var(--transition-smooth);
   
   &:hover {
-    transform: scale(1.2);
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
-    z-index: 1;
+    transform: scale(1.05);
+    box-shadow: var(--shadow-base);
+    border-color: var(--primary-color);
   }
   
   .thumbnail-container {
@@ -478,11 +518,37 @@ const emit = defineEmits<{
   }
 }
 
+.preview-dialog {
+  :deep(.el-dialog__body) {
+    padding: var(--spacing-large);
+  }
+}
+
 .preview-container {
   width: 760px;
   height: 500px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius-base);
   overflow: hidden;
+  background: var(--bg-lighter);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-base);
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .topology-thumbnail {
+    width: 140px;
+    height: 80px;
+  }
+  
+  .preview-container {
+    width: 100%;
+    height: 300px;
+  }
 }
 </style> 
