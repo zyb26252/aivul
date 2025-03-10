@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">实例管理</h2>
+          <h2 class="page-title">{{ $t('instances.title') }}</h2>
           <div class="search-container">
             <el-input
               v-model="searchQuery"
-              placeholder="搜索实例名称"
+              :placeholder="$t('instances.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon>创建实例
+          <el-icon><Plus /></el-icon>{{ $t('instances.addButton') }}
         </el-button>
       </div>
 
@@ -31,28 +31,28 @@
             :data="instances"
             style="width: 100%"
           >
-            <el-table-column prop="name" label="名称" min-width="150">
+            <el-table-column prop="name" :label="$t('table.name')" min-width="150">
               <template #default="{ row }">
                 <div class="name-column">
                   <span class="name">{{ row.name }}</span>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="靶标" min-width="150">
+            <el-table-column :label="$t('table.target')" min-width="150">
               <template #default="{ row }">
                 <el-tag size="small" type="info">
                   {{ row.target?.name }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column :label="$t('table.status')" width="100">
               <template #default="{ row }">
                 <el-tag :type="getStatusType(row.status)" size="small" class="status-tag">
-                  {{ getStatusText(row.status) }}
+                  {{ $t(`instances.status.${row.status}`) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="端口映射" min-width="200" show-overflow-tooltip>
+            <el-table-column :label="$t('instances.portMappings')" min-width="200" show-overflow-tooltip>
               <template #default="{ row }">
                 <template v-if="row.port_mappings">
                   <div class="port-mappings">
@@ -68,12 +68,12 @@
                 </template>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="180">
+            <el-table-column prop="created_at" :label="$t('table.createdAt')" width="180">
               <template #default="{ row }">
                 {{ new Date(row.created_at).toLocaleString() }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column :label="$t('table.operation')" width="200" fixed="right">
               <template #default="{ row }">
                 <el-button
                   v-if="row.status === 'stopped'"
@@ -81,7 +81,7 @@
                   link
                   @click="handleStart(row)"
                 >
-                  启动
+                  {{ $t('instances.operation.start') }}
                 </el-button>
                 <el-button
                   v-if="row.status === 'running'"
@@ -89,13 +89,13 @@
                   link
                   @click="handleStop(row)"
                 >
-                  停止
+                  {{ $t('instances.operation.stop') }}
                 </el-button>
                 <el-button type="primary" link @click="handleEdit(row)">
-                  编辑
+                  {{ $t('common.edit') }}
                 </el-button>
                 <el-button type="danger" link @click="handleDelete(row)">
-                  删除
+                  {{ $t('common.delete') }}
                 </el-button>
               </template>
             </el-table-column>
@@ -106,7 +106,7 @@
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="dialogType === 'add' ? '创建实例' : '编辑实例'"
+        :title="dialogType === 'add' ? $t('instances.form.addTitle') : $t('instances.form.editTitle')"
         width="600px"
         destroy-on-close
       >
@@ -117,11 +117,11 @@
           label-width="100px"
           class="dialog-form"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="form.name" placeholder="请输入实例名称" />
+          <el-form-item :label="$t('table.name')" prop="name">
+            <el-input v-model="form.name" :placeholder="$t('instances.form.namePlaceholder')" />
           </el-form-item>
-          <el-form-item v-if="dialogType === 'add'" label="靶标" prop="target_id">
-            <el-select v-model="form.target_id" placeholder="请选择靶标" class="full-width">
+          <el-form-item v-if="dialogType === 'add'" :label="$t('table.target')" prop="target_id">
+            <el-select v-model="form.target_id" :placeholder="$t('instances.form.targetPlaceholder')" class="full-width">
               <el-option
                 v-for="item in targets"
                 :key="item.id"
@@ -130,14 +130,14 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item v-if="dialogType === 'add'" label="端口映射">
+          <el-form-item v-if="dialogType === 'add'" :label="$t('instances.form.portMappings')">
             <div class="port-mappings-form">
               <div v-for="(mapping, index) in portMappings" :key="index" class="port-mapping">
                 <el-input-number
                   v-model="mapping.host_port"
                   :min="1"
                   :max="65535"
-                  placeholder="主机端口"
+                  :placeholder="$t('instances.form.hostPort')"
                   class="port-input"
                 />
                 <span class="port-separator">:</span>
@@ -145,7 +145,7 @@
                   v-model="mapping.container_port"
                   :min="1"
                   :max="65535"
-                  placeholder="容器端口"
+                  :placeholder="$t('instances.form.containerPort')"
                   class="port-input"
                 />
                 <el-select v-model="mapping.protocol" class="protocol-select">
@@ -157,16 +157,16 @@
                 </el-button>
               </div>
               <el-button type="primary" link @click="addPortMapping" class="add-mapping-btn">
-                <el-icon><Plus /></el-icon>添加端口映射
+                <el-icon><Plus /></el-icon>{{ $t('instances.form.addPortMapping') }}
               </el-button>
             </div>
           </el-form-item>
         </el-form>
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-              确定
+              {{ $t('common.confirm') }}
             </el-button>
           </div>
         </template>
@@ -179,6 +179,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Delete } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import type { FormInstance } from 'element-plus'
 import {
   getInstances,
@@ -193,6 +194,7 @@ import type { Instance, PortMapping } from '@/types/instance'
 import type { Target } from '@/types/target'
 import TableSkeleton from '@/components/TableSkeleton.vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const instances = ref<Instance[]>([])
 const targets = ref<Target[]>([])
@@ -213,11 +215,11 @@ const portMappings = ref<PortMapping[]>([
 
 const rules = {
   name: [
-    { required: true, message: '请输入实例名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { required: true, message: t('instances.form.nameRequired'), trigger: 'blur' },
+    { min: 2, max: 50, message: t('common.lengthLimit', { min: 2, max: 50 }), trigger: 'blur' }
   ],
   target_id: [
-    { required: true, message: '请选择靶标', trigger: 'change' }
+    { required: true, message: t('instances.form.targetRequired'), trigger: 'change' }
   ]
 }
 
@@ -236,7 +238,7 @@ const fetchTargets = async () => {
   try {
     targets.value = await getTargets()
   } catch (error) {
-    ElMessage.error('获取靶标列表失败')
+    ElMessage.error(t('instances.messages.getTargetsFailed'))
   }
 }
 
@@ -254,8 +256,8 @@ const removePortMapping = (index: number) => {
   portMappings.value.splice(index, 1)
 }
 
-// 解析端口映射字符串
-const parsePortMappings = (mappings: string): PortMapping[] => {
+// 解析端口映射
+const parsePortMappings = (mappings: string) => {
   try {
     return JSON.parse(mappings)
   } catch {
@@ -265,70 +267,69 @@ const parsePortMappings = (mappings: string): PortMapping[] => {
 
 // 获取状态类型
 const getStatusType = (status: string) => {
-  const types = {
+  const statusMap: Record<string, string> = {
     running: 'success',
     stopped: 'info',
-    error: 'danger'
+    failed: 'danger',
+    starting: 'warning',
+    stopping: 'warning',
+    restarting: 'warning'
   }
-  return types[status] || 'info'
-}
-
-// 获取状态文本
-const getStatusText = (status: string) => {
-  const texts = {
-    running: '运行中',
-    stopped: '已停止',
-    error: '错误'
-  }
-  return texts[status] || status
+  return statusMap[status] || 'info'
 }
 
 // 添加实例
 const handleAdd = () => {
   dialogType.value = 'add'
+  dialogVisible.value = true
   form.value = {
     id: 0,
     name: '',
     target_id: undefined
   }
-  portMappings.value = [
-    { host_port: undefined, container_port: undefined, protocol: 'tcp' }
-  ]
-  dialogVisible.value = true
+  portMappings.value = [{ host_port: undefined, container_port: undefined, protocol: 'tcp' }]
 }
 
 // 编辑实例
 const handleEdit = (row: Instance) => {
   dialogType.value = 'edit'
+  dialogVisible.value = true
   form.value = {
-    ...row,
+    id: row.id,
+    name: row.name,
     target_id: row.target_id
   }
-  dialogVisible.value = true
 }
 
 // 删除实例
-const handleDelete = async (row: Instance) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该实例吗？', '提示', {
+const handleDelete = (row: Instance) => {
+  ElMessageBox.confirm(
+    t('instances.messages.deleteConfirm'),
+    t('common.tips'),
+    {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
-    })
-    await deleteInstance(row.id)
-    ElMessage.success('删除成功')
-    await fetchInstances()
-  } catch (error) {
-    // 用户取消删除或删除失败
-  }
+    }
+  ).then(async () => {
+    try {
+      await deleteInstance(row.id)
+      ElMessage.success(t('instances.messages.deleteSuccess'))
+      fetchInstances()
+    } catch {
+      ElMessage.error(t('instances.messages.deleteFailed'))
+    }
+  })
 }
 
 // 启动实例
 const handleStart = async (row: Instance) => {
   try {
     await startInstance(row.id)
-    ElMessage.success('启动成功')
-    await fetchInstances()
-  } catch (error) {
-    // 错误已在请求拦截器中处理
+    ElMessage.success(t('instances.messages.startSuccess'))
+    fetchInstances()
+  } catch {
+    ElMessage.error(t('instances.messages.startFailed'))
   }
 }
 
@@ -336,10 +337,10 @@ const handleStart = async (row: Instance) => {
 const handleStop = async (row: Instance) => {
   try {
     await stopInstance(row.id)
-    ElMessage.success('停止成功')
-    await fetchInstances()
-  } catch (error) {
-    // 错误已在请求拦截器中处理
+    ElMessage.success(t('instances.messages.stopSuccess'))
+    fetchInstances()
+  } catch {
+    ElMessage.error(t('instances.messages.stopFailed'))
   }
 }
 
@@ -352,22 +353,22 @@ const handleSubmit = async () => {
       submitLoading.value = true
       try {
         if (dialogType.value === 'add') {
-          const validPortMappings = portMappings.value.filter(
-            m => m.host_port && m.container_port
-          )
           await createInstance({
             ...form.value,
-            port_mappings: JSON.stringify(validPortMappings)
+            port_mappings: JSON.stringify(portMappings.value)
           })
-          ElMessage.success('创建成功')
+          ElMessage.success(t('instances.messages.addSuccess'))
         } else {
-          await updateInstance(form.value.id, {
-            name: form.value.name
-          })
-          ElMessage.success('更新成功')
+          await updateInstance(form.value)
+          ElMessage.success(t('instances.messages.updateSuccess'))
         }
         dialogVisible.value = false
-        await fetchInstances()
+        fetchInstances()
+      } catch (error) {
+        ElMessage.error(dialogType.value === 'add' 
+          ? t('instances.messages.addFailed')
+          : t('instances.messages.updateFailed')
+        )
       } finally {
         submitLoading.value = false
       }

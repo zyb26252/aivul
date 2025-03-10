@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">靶标管理</h2>
+          <h2 class="page-title">{{ t('targets.title') }}</h2>
           <div class="search-container">
             <el-input
               v-model="searchQuery"
-              placeholder="搜索靶标名称"
+              :placeholder="t('targets.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          添加靶标
+          {{ t('targets.addButton') }}
         </el-button>
       </div>
 
@@ -31,8 +31,8 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" label="名称" />
-        <el-table-column label="基础镜像">
+        <el-table-column prop="name" :label="t('table.name')" />
+        <el-table-column :label="t('table.baseImage')">
           <template #default="{ row }">
             <el-tooltip
               v-if="row.base_image?.description"
@@ -55,7 +55,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="软件">
+        <el-table-column :label="t('table.software')">
           <template #default="{ row }">
             <div class="software-list">
               <template v-for="(item, index) in row.software_list" :key="item.id">
@@ -73,7 +73,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="端口">
+        <el-table-column :label="t('table.port')">
           <template #default="{ row }">
             <el-tag
               v-for="port in row.ports"
@@ -85,11 +85,11 @@
               {{ port }}
             </el-tag>
             <el-text v-if="!row.ports?.length" type="info" size="small">
-              无
+              {{ t('common.none') }}
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="300" show-overflow-tooltip="{
+        <el-table-column prop="description" :label="t('table.description')" min-width="300" show-overflow-tooltip="{
           effect: 'dark',
           placement: 'top',
           enterable: true,
@@ -98,45 +98,45 @@
           showArrow: true
         }">
           <template #default="{ row }">
-            <div class="description-cell">{{ row.description }}</div>
+            <div class="description-cell">{{ row.description || t('common.noDescription') }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间">
+        <el-table-column prop="created_at" :label="t('table.createdAt')">
           <template #default="{ row }">
             {{ new Date(row.created_at).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300">
+        <el-table-column :label="t('table.operation')" width="300">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleViewDockerfile(row)">
-              查看 Dockerfile
+              {{ t('targets.viewDockerfile') }}
             </el-button>
             <el-button type="primary" link @click="handleEdit(row)">
-              编辑
+              {{ t('common.edit') }}
             </el-button>
             <el-button type="danger" link @click="handleDelete(row)">
-              删除
+              {{ t('common.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div v-if="selectedRows.length > 0" class="batch-operation">
-        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
-        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+        <span class="selected-count">{{ t('common.selected') }} {{ selectedRows.length }} {{ t('common.items') }}</span>
+        <el-button type="danger" @click="handleBatchDelete">{{ t('common.batchDelete') }}</el-button>
       </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="dialogType === 'add' ? '添加靶标' : '编辑靶标'"
+        :title="dialogType === 'add' ? t('targets.form.addTitle') : t('targets.form.editTitle')"
         width="1200px"
         top="5vh"
         class="target-dialog"
       >
         <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
-          <el-step title="基本信息" :class="{ 'is-current': currentStep === 0 }" />
-          <el-step title="确认 Dockerfile" :class="{ 'is-current': currentStep === 1 }" />
+          <el-step :title="t('targets.steps.basicInfo')" :class="{ 'is-current': currentStep === 0 }" />
+          <el-step :title="t('targets.steps.dockerfile')" :class="{ 'is-current': currentStep === 1 }" />
         </el-steps>
 
         <!-- 第一步：基本信息 -->
@@ -148,13 +148,13 @@
           label-width="100px"
           validate-on-rule-change="false"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="form.name" placeholder="请输入靶标名称" />
+          <el-form-item :label="t('table.name')" prop="name">
+            <el-input v-model="form.name" :placeholder="t('targets.form.namePlaceholder')" />
           </el-form-item>
-          <el-form-item label="基础镜像" prop="base_image_id">
+          <el-form-item :label="t('table.baseImage')" prop="base_image_id">
             <el-select
               v-model="form.base_image_id"
-              placeholder="请选择基础镜像"
+              :placeholder="t('targets.form.selectBaseImage')"
               style="width: 100%"
               @change="handleImageChange"
             >
@@ -177,12 +177,12 @@
               </el-option-group>
             </el-select>
           </el-form-item>
-          <el-form-item label="软件" prop="software_ids">
+          <el-form-item :label="t('table.software')" prop="software_ids">
             <el-select
               v-model="form.software_ids"
               multiple
               filterable
-              placeholder="请选择软件"
+              :placeholder="t('targets.form.selectSoftware')"
               style="width: 100%"
               :disabled="!selectedArchitecture"
               @change="handleSoftwareChange"
@@ -200,7 +200,7 @@
               </el-option>
             </el-select>
             <div class="form-tips" v-if="!selectedArchitecture">
-              <el-text class="text-sm" type="info">请先选择基础镜像</el-text>
+              <el-text class="text-sm" type="info">{{ t('targets.form.selectBaseImageFirst') }}</el-text>
             </div>
             <div class="compatibility-check" v-if="form.software_ids.length > 0">
               <el-button
@@ -209,11 +209,11 @@
                 @click="checkSoftwareCompatibility"
                 link
               >
-                检查软件兼容性
+                {{ t('targets.form.checkCompatibility') }}
               </el-button>
             </div>
           </el-form-item>
-          <el-form-item label="端口">
+          <el-form-item :label="t('table.port')">
             <div class="ports-container">
               <el-tag
                 v-for="port in selectedPorts"
@@ -224,20 +224,20 @@
               </el-tag>
             </div>
             <div class="form-tips">
-              <el-text class="text-sm" type="info">端口列表根据所选软件自动生成</el-text>
+              <el-text class="text-sm" type="info">{{ t('targets.form.portsAutoGenerated') }}</el-text>
             </div>
           </el-form-item>
-          <el-form-item label="描述" prop="description">
+          <el-form-item :label="t('table.description')" prop="description">
             <el-input
               v-model="form.description"
               type="textarea"
               :rows="6"
               :autosize="{ minRows: 6, maxRows: 10 }"
-              placeholder="请输入靶标描述"
+              :placeholder="t('targets.form.descriptionPlaceholder')"
               :loading="descriptionLoading"
             />
             <div class="form-tips" v-if="descriptionLoading">
-              <el-text class="text-sm" type="info">正在生成描述，请稍候...</el-text>
+              <el-text class="text-sm" type="info">{{ t('targets.form.generatingDescription') }}</el-text>
             </div>
           </el-form-item>
         </el-form>
@@ -412,6 +412,9 @@ import type { Software } from '@/types/software'
 import MonacoEditor from '@/components/MonacoEditor.vue'
 import { Search } from '@element-plus/icons-vue'
 import TableSkeleton from '@/components/TableSkeleton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const targets = ref<Target[]>([])

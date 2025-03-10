@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">场景管理</h2>
+          <h2 class="page-title">{{ $t('scene.title') }}</h2>
           <div class="search-container">
             <el-input
               v-model="keyword"
-              placeholder="搜索场景名称或描述"
+              :placeholder="$t('scene.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon>添加场景
+          <el-icon><Plus /></el-icon>{{ $t('scene.addButton') }}
         </el-button>
       </div>
 
@@ -41,7 +41,7 @@
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="dialogType === 'add' ? '添加场景' : '编辑场景'"
+        :title="$t(dialogType === 'add' ? 'scene.form.addTitle' : 'scene.form.editTitle')"
         width="600px"
         destroy-on-close
       >
@@ -52,23 +52,23 @@
           label-width="100px"
           class="dialog-form"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="formData.name" placeholder="请输入场景名称" />
+          <el-form-item :label="$t('scene.form.name')" prop="name">
+            <el-input v-model="formData.name" :placeholder="$t('scene.form.namePlaceholder')" />
           </el-form-item>
-          <el-form-item label="描述" prop="description">
+          <el-form-item :label="$t('scene.form.description')" prop="description">
             <el-input
               v-model="formData.description"
               type="textarea"
               :rows="4"
-              placeholder="请输入场景描述"
+              :placeholder="$t('scene.form.descriptionPlaceholder')"
             />
           </el-form-item>
         </el-form>
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit(formRef)">
-              确定
+              {{ $t('common.confirm') }}
             </el-button>
           </div>
         </template>
@@ -83,10 +83,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import type { Scene } from '@/types/scene'
-import { getSceneList, deleteScene, copyScene, updateScene, createScene } from '@/services/scene'
+import { getScenes, deleteScene, copyScene, updateScene, createScene } from '@/api/scene'
 import TableSkeleton from '@/components/TableSkeleton.vue'
 import SceneTable from '@/components/SceneTable/index.vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const scenes = ref<Scene[]>([])
@@ -116,18 +119,18 @@ const formData = reactive({
 
 const rules = {
   name: [
-    { required: true, message: '请输入场景名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { required: true, message: t('scene.form.namePlaceholder'), trigger: 'blur' },
+    { min: 2, max: 50, message: t('common.lengthLimit', { min: 2, max: 50 }), trigger: 'blur' }
   ],
   description: [
-    { required: true, message: '请输入场景描述', trigger: 'blur' }
+    { required: true, message: t('scene.form.descriptionPlaceholder'), trigger: 'blur' }
   ]
 }
 
 const fetchScenes = async () => {
   try {
     loading.value = true
-    const response = await getSceneList()
+    const response = await getScenes()
     scenes.value = response.items.map((item: any) => ({
       ...item,
       nodeCount: item.node_count,
@@ -136,7 +139,7 @@ const fetchScenes = async () => {
     }))
   } catch (error) {
     console.error('Error fetching scenes:', error)
-    ElMessage.error('获取场景列表失败')
+    ElMessage.error(t('scene.messages.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -153,15 +156,15 @@ const handleSelectionChange = (rows: Scene[]) => {
 const handleBatchDelete = async (rows: Scene[]) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${rows.length} 个场景吗？`,
-      '提示',
+      t('scene.messages.batchDeleteConfirm', { count: rows.length }),
+      t('common.tips'),
       {
         type: 'warning'
       }
     )
     const promises = rows.map(row => deleteScene(row.id))
     await Promise.all(promises)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('scene.messages.deleteSuccess'))
     await fetchScenes()
   } catch (error) {
     // 用户取消删除或删除失败
@@ -170,11 +173,11 @@ const handleBatchDelete = async (rows: Scene[]) => {
 
 const handleDelete = async (row: Scene) => {
   try {
-    await ElMessageBox.confirm('确定要删除该场景吗？', '提示', {
+    await ElMessageBox.confirm(t('scene.messages.deleteConfirm'), t('common.tips'), {
       type: 'warning'
     })
     await deleteScene(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('scene.messages.deleteSuccess'))
     await fetchScenes()
   } catch (error) {
     // 用户取消删除或删除失败
@@ -184,11 +187,11 @@ const handleDelete = async (row: Scene) => {
 const handleCopy = async (id: number) => {
   try {
     await copyScene(id)
-    ElMessage.success('复制成功')
+    ElMessage.success(t('scene.messages.copySuccess'))
     await fetchScenes()
   } catch (error) {
-    console.error('复制场景失败:', error)
-    ElMessage.error('复制失败')
+    console.error('Error copying scene:', error)
+    ElMessage.error(t('scene.messages.copyFailed'))
   }
 }
 
@@ -218,19 +221,19 @@ const handleSubmit = async (formEl: FormInstance | undefined) => {
             name: formData.name,
             description: formData.description
           })
-          ElMessage.success('添加成功')
+          ElMessage.success(t('scene.messages.addSuccess'))
         } else {
           await updateScene(formData.id, {
             name: formData.name,
             description: formData.description
           })
-          ElMessage.success('更新成功')
+          ElMessage.success(t('scene.messages.updateSuccess'))
         }
         dialogVisible.value = false
         await fetchScenes()
       } catch (error) {
-        console.error('保存场景失败:', error)
-        ElMessage.error('保存失败')
+        console.error('Error saving scene:', error)
+        ElMessage.error(t('scene.messages.saveFailed'))
       }
     }
   })

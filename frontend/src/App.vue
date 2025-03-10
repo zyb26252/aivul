@@ -1,5 +1,21 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
+
+const { t, locale } = useI18n()
+const route = useRoute()
+
+// 更新页面标题
+const updateTitle = () => {
+  const baseTitle = t('header.title')
+  const pageTitle = route.meta.title ? t(`menu.${route.meta.title}`) : ''
+  document.title = pageTitle ? `${pageTitle} - ${baseTitle}` : baseTitle
+}
+
+// 监听路由和语言变化
+watch(() => [route.path, locale.value], updateTitle, { immediate: true })
 </script>
 
 <template>

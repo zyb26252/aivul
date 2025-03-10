@@ -1,6 +1,6 @@
 // 运行时配置类型
 export interface RuntimeConfig {
-  API_URL: string
+  API_URL?: string
   API_TIMEOUT?: number
   ENABLE_CACHE?: boolean
   MAX_RETRIES?: number

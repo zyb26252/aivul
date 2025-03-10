@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">场景管理</h2>
+          <h2 class="page-title">{{ $t('scene.title') }}</h2>
           <div class="search-container">
             <el-input
               v-model="keyword"
-              placeholder="搜索场景名称或描述"
+              :placeholder="$t('scene.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          添加场景
+          {{ $t('scene.addButton') }}
         </el-button>
       </div>
 
@@ -29,24 +29,24 @@
         v-loading="loading"
         style="width: 100%"
       >
-        <el-table-column prop="name" label="场景名称" min-width="150" />
-        <el-table-column prop="description" label="场景描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="nodeCount" label="节点数量" width="100" align="center" />
-        <el-table-column prop="createdAt" label="创建时间" width="180">
+        <el-table-column prop="name" :label="$t('table.name')" min-width="150" />
+        <el-table-column prop="description" :label="$t('table.description')" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="nodeCount" :label="$t('table.nodeCount')" width="100" align="center" />
+        <el-table-column prop="createdAt" :label="$t('table.createdAt')" width="180">
           <template #default="{ row }">
             {{ new Date(row.createdAt).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column :label="$t('table.operation')" width="200" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleCopy(row.id)">
-              复制
+              {{ $t('common.copy') }}
             </el-button>
             <el-button type="primary" link @click="handleEdit(row)">
-              编辑
+              {{ $t('common.edit') }}
             </el-button>
             <el-button type="danger" link @click="handleDelete(row.id)">
-              删除
+              {{ $t('common.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -72,8 +72,11 @@ import { ref, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Scene } from '@/types/scene'
-import { getSceneList, deleteScene, copyScene } from '@/services/scene'
+import { getScenes, deleteScene, copyScene } from '@/api/scene'
 import TableSkeleton from '@/components/TableSkeleton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const keyword = ref('')
@@ -85,7 +88,7 @@ const data = ref<Scene[]>([])
 const fetchScenes = async () => {
   try {
     loading.value = true
-    const res = await getSceneList({
+    const res = await getScenes({
       keyword: keyword.value,
       page: current.value,
       pageSize: pageSize.value,
@@ -93,7 +96,7 @@ const fetchScenes = async () => {
     data.value = res.items
     total.value = res.total
   } catch (error) {
-    ElMessage.error('获取场景列表失败')
+    ElMessage.error(t('scene.messages.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -115,15 +118,15 @@ const handleCurrentChange = (val: number) => {
 }
 
 const handleDelete = (id: string) => {
-  ElMessageBox.confirm('确定要删除这个场景吗？', '提示', {
+  ElMessageBox.confirm(t('scene.messages.deleteConfirm'), t('common.tips'), {
     type: 'warning',
   }).then(async () => {
     try {
       await deleteScene(id)
-      ElMessage.success('删除成功')
+      ElMessage.success(t('scene.messages.deleteSuccess'))
       fetchScenes()
     } catch (error) {
-      ElMessage.error('删除失败')
+      ElMessage.error(t('scene.messages.deleteFailed'))
     }
   })
 }
@@ -131,10 +134,10 @@ const handleDelete = (id: string) => {
 const handleCopy = async (id: string) => {
   try {
     await copyScene(id)
-    ElMessage.success('复制成功')
+    ElMessage.success(t('scene.messages.copySuccess'))
     fetchScenes()
   } catch (error) {
-    ElMessage.error('复制失败')
+    ElMessage.error(t('scene.messages.copyFailed'))
   }
 }
 

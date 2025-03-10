@@ -14,6 +14,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 interface Element {
   type: string
   name: string
@@ -23,12 +27,12 @@ interface Element {
 const elements: Element[] = [
   {
     type: 'container',
-    name: '容器',
+    name: t('scene.topology.node.types.container'),
     icon: '/public/icons/container.svg',
   },
   {
     type: 'switch',
-    name: '交换机',
+    name: t('scene.topology.node.types.switch'),
     icon: '/public/icons/switch.svg',
   },
 ]

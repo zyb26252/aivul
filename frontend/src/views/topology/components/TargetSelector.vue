@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="选择靶标"
+    :title="t('scene.topology.targetSelector.title')"
     width="84%"
     class="target-selector-dialog"
     destroy-on-close
@@ -12,7 +12,7 @@
         <div class="search-container">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索靶标名称、描述或软件"
+            :placeholder="t('scene.topology.targetSelector.searchPlaceholder')"
             class="search-input"
             clearable
             @input="handleSearch"
@@ -27,10 +27,10 @@
         <div class="filters-container">
           <div class="filter-group">
             <div class="filter-item">
-              <span class="filter-label">架构</span>
+              <span class="filter-label">{{ t('table.architecture') }}</span>
               <el-select
                 v-model="selectedArchitecture"
-                placeholder="全部架构"
+                :placeholder="t('scene.topology.targetSelector.allArchitectures')"
                 clearable
                 @change="applyFilters"
               >
@@ -49,10 +49,10 @@
             </div>
             
             <div class="filter-item">
-              <span class="filter-label">基础镜像</span>
+              <span class="filter-label">{{ t('table.baseImage') }}</span>
               <el-select
                 v-model="selectedBaseImage"
-                placeholder="全部镜像"
+                :placeholder="t('scene.topology.targetSelector.allImages')"
                 clearable
                 @change="applyFilters"
               >
@@ -71,10 +71,10 @@
             </div>
             
             <div class="filter-item">
-              <span class="filter-label">软件类型</span>
+              <span class="filter-label">{{ t('scene.topology.targetSelector.softwareType') }}</span>
               <el-select
                 v-model="selectedSoftwareType"
-                placeholder="全部软件"
+                :placeholder="t('scene.topology.targetSelector.allSoftware')"
                 clearable
                 @change="applyFilters"
               >
@@ -100,7 +100,7 @@
             class="reset-button"
           >
             <el-icon><Refresh /></el-icon>
-            重置筛选
+            {{ t('scene.topology.targetSelector.resetFilters') }}
           </el-button>
         </div>
         
@@ -114,7 +114,7 @@
             @close="selectedArchitecture = ''"
             class="filter-tag"
           >
-            架构: {{ selectedArchitecture }}
+            {{ t('table.architecture') }}: {{ selectedArchitecture }}
           </el-tag>
           <el-tag 
             v-if="selectedBaseImage" 
@@ -124,7 +124,7 @@
             @close="selectedBaseImage = ''"
             class="filter-tag"
           >
-            基础镜像: {{ getBaseImageName(selectedBaseImage) }}
+            {{ t('table.baseImage') }}: {{ getBaseImageName(selectedBaseImage) }}
           </el-tag>
           <el-tag 
             v-if="selectedSoftwareType" 
@@ -134,16 +134,16 @@
             @close="selectedSoftwareType = ''"
             class="filter-tag"
           >
-            软件类型: {{ selectedSoftwareType }}
+            {{ t('scene.topology.targetSelector.softwareType') }}: {{ selectedSoftwareType }}
           </el-tag>
         </div>
       </div>
 
       <div class="result-count" v-if="filteredTargets.length > 0">
-        找到 <span class="count">{{ filteredTargets.length }}</span> 个靶标
+        {{ t('scene.topology.targetSelector.foundTargets', { count: filteredTargets.length }) }}
       </div>
       <div class="no-data" v-else-if="!loading">
-        <el-empty description="没有找到符合条件的靶标" />
+        <el-empty :description="t('scene.topology.targetSelector.noTargetsFound')" />
       </div>
 
       <el-table
@@ -157,7 +157,7 @@
         :row-class-name="tableRowClassName"
         border
       >
-        <el-table-column prop="name" label="名称" min-width="120">
+        <el-table-column prop="name" :label="t('table.name')" min-width="120">
           <template #default="{ row }">
             <div class="name-cell">
               <el-icon><Suitcase /></el-icon>
@@ -165,7 +165,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="基础镜像" min-width="150">
+        <el-table-column :label="t('table.baseImage')" min-width="150">
           <template #default="{ row }">
             <el-tooltip
               v-if="row.base_image?.description"
@@ -188,7 +188,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="软件" min-width="200">
+        <el-table-column :label="t('table.software')" min-width="200">
           <template #default="{ row }">
             <div class="software-list">
               <template v-for="(item, index) in row.software_list" :key="item.id">
@@ -209,7 +209,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="端口" min-width="120">
+        <el-table-column :label="t('table.port')" min-width="120">
           <template #default="{ row }">
             <div class="port-list">
               <el-tag
@@ -223,19 +223,19 @@
                 {{ port }}
               </el-tag>
               <el-text v-if="!row.ports?.length" type="info" size="small">
-                无
+                {{ t('common.none') }}
               </el-text>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="250" show-overflow-tooltip>
+        <el-table-column prop="description" :label="t('table.description')" min-width="250" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="description-cell">
-              <el-text class="description-text">{{ row.description || '无描述' }}</el-text>
+              <el-text class="description-text">{{ row.description || t('common.noDescription') }}</el-text>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" min-width="150">
+        <el-table-column prop="created_at" :label="t('table.createdAt')" min-width="150">
           <template #default="{ row }">
             <div class="time-cell">
               <el-icon><Calendar /></el-icon>
@@ -247,7 +247,7 @@
           <template #default="{ row }">
             <el-button type="primary" text @click.stop="handleSelectTarget(row)">
               <el-icon><Select /></el-icon>
-              选择
+              {{ t('scene.topology.targetSelector.select') }}
             </el-button>
           </template>
         </el-table-column>
@@ -276,6 +276,9 @@ import {
   Calendar,
   Select
 } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // 对话框可见性
 const dialogVisible = ref(false)

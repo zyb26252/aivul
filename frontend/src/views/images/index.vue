@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">镜像管理</h2>
+          <h2 class="page-title">{{ $t('menu.images') }}</h2>
           <div class="search-container">
             <el-input
               v-model="searchQuery"
-              placeholder="搜索镜像名称"
+              :placeholder="$t('images.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
             
             <el-select
               v-model="selectedArchitecture"
-              placeholder="选择架构"
+              :placeholder="$t('images.selectArchitecture')"
               clearable
               @change="handleSearch"
               class="architecture-select"
@@ -31,7 +31,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon>添加镜像
+          <el-icon><Plus /></el-icon>{{ $t('images.addButton') }}
         </el-button>
       </div>
 
@@ -44,7 +44,7 @@
             @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="name" label="镜像名称" min-width="150">
+            <el-table-column prop="name" :label="$t('table.name')" min-width="150">
               <template #default="{ row }">
                 <div class="name-column">
                   <span class="name">{{ row.name }}</span>
@@ -52,36 +52,36 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="registry_path" label="镜像路径" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="architecture" label="架构" width="100">
+            <el-table-column prop="registry_path" :label="$t('table.registryPath')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="architecture" :label="$t('table.architecture')" width="100">
               <template #default="{ row }">
                 <el-tag size="small" :type="row.architecture === 'x86' ? 'success' : 'warning'">
                   {{ row.architecture }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="created_at" label="创建时间" width="180">
+            <el-table-column prop="description" :label="$t('table.description')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="created_at" :label="$t('table.createdAt')" width="180">
               <template #default="{ row }">
                 {{ new Date(row.created_at).toLocaleString() }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="150" fixed="right">
+            <el-table-column :label="$t('table.operation')" width="150" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" link @click="handleEdit(row)">
-                  编辑
+                  {{ $t('common.edit') }}
                 </el-button>
                 <el-button type="danger" link @click="handleDelete(row)">
-                  删除
+                  {{ $t('common.delete') }}
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
 
           <div v-if="selectedRows.length > 0" class="batch-operation">
-            <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+            <span class="selected-count">{{ $t('common.selected') }} {{ selectedRows.length }} {{ $t('common.items') }}</span>
             <el-button type="danger" @click="handleBatchDelete">
-              <el-icon><Delete /></el-icon>批量删除
+              <el-icon><Delete /></el-icon>{{ $t('common.batchDelete') }}
             </el-button>
           </div>
         </el-card>
@@ -90,7 +90,7 @@
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="dialogType === 'add' ? '添加镜像' : '编辑镜像'"
+        :title="dialogType === 'add' ? $t('images.form.addTitle') : $t('images.form.editTitle')"
         width="600px"
         destroy-on-close
       >
@@ -101,35 +101,35 @@
           label-width="100px"
           class="dialog-form"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="form.name" placeholder="请输入镜像名称" />
+          <el-form-item :label="$t('images.form.name')" prop="name">
+            <el-input v-model="form.name" :placeholder="$t('images.form.namePlaceholder')" />
           </el-form-item>
-          <el-form-item label="镜像路径" prop="registry_path">
-            <el-input v-model="form.registry_path" placeholder="请输入镜像路径" />
+          <el-form-item :label="$t('images.form.registryPath')" prop="registry_path">
+            <el-input v-model="form.registry_path" :placeholder="$t('images.form.registryPathPlaceholder')" />
           </el-form-item>
-          <el-form-item label="架构" prop="architecture">
-            <el-select v-model="form.architecture" placeholder="请选择架构" class="full-width">
+          <el-form-item :label="$t('images.form.architecture')" prop="architecture">
+            <el-select v-model="form.architecture" :placeholder="$t('images.form.architecturePlaceholder')" class="full-width">
               <el-option label="x86" value="x86" />
               <el-option label="arm" value="arm" />
             </el-select>
           </el-form-item>
-          <el-form-item label="版本" prop="version">
-            <el-input v-model="form.version" placeholder="请输入版本号" />
+          <el-form-item :label="$t('images.form.version')" prop="version">
+            <el-input v-model="form.version" :placeholder="$t('images.form.versionPlaceholder')" />
           </el-form-item>
-          <el-form-item label="描述" prop="description">
+          <el-form-item :label="$t('images.form.description')" prop="description">
             <el-input
               v-model="form.description"
               type="textarea"
               :rows="4"
-              placeholder="请输入镜像描述"
+              :placeholder="$t('images.form.descriptionPlaceholder')"
             />
           </el-form-item>
         </el-form>
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-              确定
+              {{ $t('common.confirm') }}
             </el-button>
           </div>
         </template>
@@ -146,6 +146,9 @@ import type { FormInstance } from 'element-plus'
 import { getImages, createImage, updateImage, deleteImage } from '@/api/image'
 import type { Image } from '@/types/image'
 import TableSkeleton from '@/components/TableSkeleton.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const images = ref<Image[]>([])
@@ -168,17 +171,17 @@ const form = ref({
 
 const rules = {
   name: [
-    { required: true, message: '请输入镜像名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { required: true, message: t('images.form.namePlaceholder'), trigger: 'blur' },
+    { min: 2, max: 50, message: t('common.lengthLimit', { min: 2, max: 50 }), trigger: 'blur' }
   ],
   registry_path: [
-    { required: true, message: '请输入镜像路径', trigger: 'blur' }
+    { required: true, message: t('images.form.registryPathPlaceholder'), trigger: 'blur' }
   ],
   architecture: [
-    { required: true, message: '请选择架构', trigger: 'change' }
+    { required: true, message: t('images.form.architecturePlaceholder'), trigger: 'change' }
   ],
   version: [
-    { required: true, message: '请输入版本号', trigger: 'blur' }
+    { required: true, message: t('images.form.versionPlaceholder'), trigger: 'blur' }
   ]
 }
 
@@ -229,11 +232,11 @@ const handleEdit = (row: Image) => {
 // 删除镜像
 const handleDelete = async (row: Image) => {
   try {
-    await ElMessageBox.confirm('确定要删除该镜像吗？', '提示', {
+    await ElMessageBox.confirm(t('images.messages.deleteConfirm'), t('common.tips'), {
       type: 'warning'
     })
     await deleteImage(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('images.messages.deleteSuccess'))
     await fetchImages()
   } catch (error) {
     // 用户取消删除或删除失败
@@ -250,10 +253,10 @@ const handleSubmit = async () => {
       try {
         if (dialogType.value === 'add') {
           await createImage(form.value)
-          ElMessage.success('添加成功')
+          ElMessage.success(t('images.messages.addSuccess'))
         } else {
           await updateImage(form.value.id, form.value)
-          ElMessage.success('更新成功')
+          ElMessage.success(t('images.messages.updateSuccess'))
         }
         dialogVisible.value = false
         await fetchImages()
@@ -275,23 +278,23 @@ const handleBatchDelete = async () => {
   
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedRows.value.length} 个镜像吗？`, 
-      '批量删除确认', 
+      t('images.messages.batchDeleteConfirm', { count: selectedRows.value.length }), 
+      t('common.batchDeleteConfirm'), 
       {
         type: 'warning',
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消'
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel')
       }
     )
     
     loading.value = true
     try {
       await Promise.all(selectedRows.value.map(row => deleteImage(row.id)))
-      ElMessage.success('批量删除成功')
+      ElMessage.success(t('images.messages.batchDeleteSuccess'))
       await fetchImages()
       selectedRows.value = []
     } catch (error) {
-      ElMessage.error('批量删除失败')
+      ElMessage.error(t('images.messages.batchDeleteError'))
     } finally {
       loading.value = false
     }

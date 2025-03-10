@@ -3,18 +3,18 @@
     <!-- 节点属性 -->
     <div v-if="selectedNode" class="panel-content">
       <el-form :model="formData" label-width="100px">
-        <el-form-item label="名称">
+        <el-form-item :label="t('scene.topology.node.name')">
           <el-input v-model="formData.name" @change="handleNameChange" />
         </el-form-item>
         
         <!-- 分组节点特有属性 -->
         <template v-if="isGroup">
-          <el-form-item label="描述">
+          <el-form-item :label="t('table.description')">
             <el-input 
               v-model="formData.description" 
               type="textarea"
               :rows="3"
-              placeholder="请输入分组描述"
+              :placeholder="t('scene.topology.editor.group.descriptionPlaceholder')"
               @change="handleDescriptionChange" 
             />
           </el-form-item>
@@ -22,7 +22,7 @@
 
         <!-- 容器节点特有属性 -->
         <template v-if="isContainer">
-          <el-form-item label="镜像">
+          <el-form-item :label="t('scene.topology.node.image')">
             <div class="image-selector">
               <div v-if="selectedTarget" class="selected-target">
                 <div class="target-name">{{ selectedTarget.name }}</div>
@@ -33,28 +33,28 @@
                   </span>
                 </div>
               </div>
-              <div v-else class="no-target-selected">未选择靶标</div>
-              <el-button type="primary" @click="showTargetSelector">选择靶标</el-button>
+              <div v-else class="no-target-selected">{{ t('scene.topology.node.selectTarget') }}</div>
+              <el-button type="primary" @click="showTargetSelector">{{ t('scene.topology.node.selectTarget') }}</el-button>
             </div>
           </el-form-item>
-          <el-form-item label="IP地址">
+          <el-form-item label="IP">
             <el-input 
               v-model="formData.properties.ip" 
-              placeholder="请输入IP地址"
+              :placeholder="t('scene.topology.node.ipPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
-          <el-form-item label="子网掩码">
+          <el-form-item :label="t('scene.topology.node.netmask')">
             <el-input 
               v-model="formData.properties.netmask" 
-              placeholder="请输入子网掩码"
+              :placeholder="t('scene.topology.node.netmaskPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
-          <el-form-item label="网关">
+          <el-form-item :label="t('scene.topology.node.gateway')">
             <el-input 
               v-model="formData.properties.gateway" 
-              placeholder="请输入网关地址"
+              :placeholder="t('scene.topology.node.gatewayPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
@@ -62,24 +62,24 @@
 
         <!-- 交换机节点特有属性 -->
         <template v-if="isSwitch">
-          <el-form-item label="网关">
+          <el-form-item :label="t('scene.topology.node.gateway')">
             <el-input 
               v-model="formData.properties.gateway" 
-              placeholder="请输入网关地址"
+              :placeholder="t('scene.topology.node.gatewayPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
-          <el-form-item label="DHCP起始">
+          <el-form-item :label="t('scene.topology.node.dhcpStart')">
             <el-input 
               v-model="formData.properties.dhcpStart" 
-              placeholder="请输入DHCP起始地址"
+              :placeholder="t('scene.topology.node.dhcpStartPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
-          <el-form-item label="DHCP结束">
+          <el-form-item :label="t('scene.topology.node.dhcpEnd')">
             <el-input 
               v-model="formData.properties.dhcpEnd" 
-              placeholder="请输入DHCP结束地址"
+              :placeholder="t('scene.topology.node.dhcpEndPlaceholder')"
               @change="handlePropertyChange" 
             />
           </el-form-item>
@@ -90,23 +90,23 @@
     <!-- 连线属性 -->
     <div v-else-if="selectedEdge" class="panel-content">
       <el-form :model="edgeFormData" label-width="100px">
-        <el-form-item label="连线形状">
+        <el-form-item :label="t('scene.topology.edge.style')">
           <el-select 
             v-model="edgeFormData.connector" 
             @change="handleEdgeStyleChange"
           >
-            <el-option label="直线" value="normal" />
-            <el-option label="折线" value="smooth" />
-            <el-option label="曲线" value="rounded" />
+            <el-option :label="t('scene.topology.edge.styles.straight')" value="normal" />
+            <el-option :label="t('scene.topology.edge.styles.polyline')" value="smooth" />
+            <el-option :label="t('scene.topology.edge.styles.curve')" value="rounded" />
           </el-select>
         </el-form-item>
-        <el-form-item label="线条颜色">
+        <el-form-item :label="t('scene.topology.edge.color')">
           <el-color-picker 
             v-model="edgeFormData.stroke" 
             @change="handleEdgeStyleChange" 
           />
         </el-form-item>
-        <el-form-item label="线条宽度">
+        <el-form-item :label="t('scene.topology.edge.width')">
           <el-input-number 
             v-model="edgeFormData.strokeWidth" 
             :min="1" 
@@ -114,14 +114,14 @@
             @change="handleEdgeStyleChange" 
           />
         </el-form-item>
-        <el-form-item label="线条样式">
+        <el-form-item :label="t('scene.topology.edge.pattern')">
           <el-select 
             v-model="edgeFormData.strokeDasharray" 
             @change="handleEdgeStyleChange"
           >
-            <el-option label="实线" value="none" />
-            <el-option label="虚线" value="5 5" />
-            <el-option label="点线" value="2 2" />
+            <el-option :label="t('scene.topology.edge.patterns.solid')" value="none" />
+            <el-option :label="t('scene.topology.edge.patterns.dashed')" value="5 5" />
+            <el-option :label="t('scene.topology.edge.patterns.dotted')" value="2 2" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -129,7 +129,7 @@
 
     <!-- 空状态 -->
     <div v-else class="panel-empty">
-      <span class="text-muted">请选择节点或连线</span>
+      <span class="text-muted">{{ t('scene.topology.messages.selectNodeOrEdge') }}</span>
     </div>
   </div>
 
@@ -143,10 +143,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Node } from '../types'
 import type { Target } from '@/types/target'
 import { getTargets } from '@/api/target'
 import TargetSelector from './TargetSelector.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   selectedNode?: Node

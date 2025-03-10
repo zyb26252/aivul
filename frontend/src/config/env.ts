@@ -25,8 +25,6 @@ const getEnvConfig = () => {
     ENV: currentEnv,
     // API服务器地址（优先使用环境变量）
     API_BASE_URL: envSpecificConfig.API_BASE_URL.replace(/\/+$/, ''),
-    // API路径
-    API_PATH: '/api/v1',
     // API超时时间
     API_TIMEOUT: envSpecificConfig.API_TIMEOUT,
     // 开发服务器配置（仅开发环境使用）

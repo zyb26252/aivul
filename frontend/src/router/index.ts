@@ -9,13 +9,13 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: () => import('../views/login/index.vue'),
-      meta: { title: '登录' }
+      meta: { title: 'login' }
     },
     {
       path: '/register',
       name: 'Register',
       component: () => import('../views/register/index.vue'),
-      meta: { title: '注册' }
+      meta: { title: 'register' }
     },
     {
       path: '/',
@@ -25,52 +25,45 @@ const router = createRouter({
           path: '',
           name: 'Home',
           component: () => import('../views/home/index.vue'),
-          meta: { title: '首页', requiresAuth: true }
+          meta: { title: 'home', requiresAuth: true }
         },
         {
           path: 'scenes',
           name: 'Scenes',
           component: () => import('../views/scene/index.vue'),
-          meta: { title: '场景管理', requiresAuth: true }
+          meta: { title: 'scenes', requiresAuth: true }
         },
         {
           path: 'images',
           name: 'Images',
           component: () => import('../views/images/index.vue'),
-          meta: { title: '镜像管理', requiresAuth: true }
+          meta: { title: 'images', requiresAuth: true }
         },
         {
           path: 'software',
           name: 'Software',
           component: () => import('../views/software/index.vue'),
-          meta: { title: '软件管理', requiresAuth: true }
+          meta: { title: 'software', requiresAuth: true }
         },
         {
           path: 'targets',
           name: 'Targets',
           component: () => import('../views/targets/index.vue'),
-          meta: { title: '靶标管理', requiresAuth: true }
+          meta: { title: 'targets', requiresAuth: true }
         },
         {
           path: 'instances',
           name: 'Instances',
           component: () => import('../views/instances/index.vue'),
-          meta: { title: '实例管理', requiresAuth: true }
-        },
-        {
-          path: 'scene',
-          name: 'Scene',
-          component: () => import('../views/scene/index.vue'),
-          meta: {
-            title: '场景管理'
-          }
+          meta: { title: 'instances', requiresAuth: true }
         },
         {
           path: 'scene/:id/topology',
           name: 'Topology',
           component: () => import('../views/topology/index.vue'),
           meta: {
-            title: '拓扑编辑器'
+            title: 'topology',
+            requiresAuth: true
           }
         }
       ]
@@ -81,7 +74,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  document.title = to.meta.title ? `${to.meta.title} - AI驱动的网络靶场驱动自动化构建引擎` : 'AI驱动的网络靶场驱动自动化构建引擎'
+  document.title = to.meta.title ? `${to.meta.title} - AI驱动的网络靶场自动化构建引擎` : 'AI驱动的网络靶场自动化构建引擎'
   
   if (to.meta.requiresAuth && !token) {
     ElMessage.warning('请先登录')

@@ -11,14 +11,14 @@ export const getTargets = () => {
 
 export const getTarget = (id: number) => {
   return request<Target>({
-    url: `/api/v1/targets/${id}`,
+    url: getApiUrl(`/targets/${id}`),
     method: 'get'
   })
 }
 
 export const createTarget = (data: Target) => {
   return request({
-    url: '/api/v1/targets',
+    url: getApiUrl('/targets'),
     method: 'post',
     data
   })
@@ -26,7 +26,7 @@ export const createTarget = (data: Target) => {
 
 export const updateTarget = (id: number, data: Target) => {
   return request({
-    url: `/api/v1/targets/${id}`,
+    url: getApiUrl(`/targets/${id}`),
     method: 'put',
     data
   })
@@ -34,14 +34,14 @@ export const updateTarget = (id: number, data: Target) => {
 
 export const deleteTarget = (id: number) => {
   return request({
-    url: `/api/v1/targets/${id}`,
+    url: getApiUrl(`/targets/${id}`),
     method: 'delete'
   })
 }
 
 export const generateDockerfile = (id: number) => {
   return request({
-    url: `/api/v1/targets/${id}/dockerfile`,
+    url: getApiUrl(`/targets/${id}/dockerfile`),
     method: 'get'
   })
 } 

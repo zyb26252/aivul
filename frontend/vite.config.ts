@@ -6,14 +6,20 @@ import path from 'path'
 export default defineConfig({
   plugins: [vue()],
 
+  base: '/',
+
   // 开发服务器配置
   server: {
     host: '0.0.0.0',
     port: 3000,
     strictPort: true,
     cors: true,
+    origin: 'http://8.210.223.197:3000',
     allowedHosts: ['8.210.223.197'],
     hmr: {
+      protocol: 'http',
+      host: '8.210.223.197',
+      port: 3000,
       clientPort: 3000
     },
     proxy: {
@@ -23,20 +29,8 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     },
-    // 强制预构建依赖
-    force: true,
-    // 预构建依赖配置
-    optimizeDeps: {
-      entries: ['src/**/*.vue'],
-      include: [
-        'vue',
-        'vue-router',
-        'pinia',
-        'element-plus',
-        '@antv/x6',
-        '@antv/x6-vue-shape',
-        'axios'
-      ]
+    watch: {
+      usePolling: true
     }
   },
 
@@ -44,7 +38,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
   },
 
   // 构建配置
@@ -52,6 +47,7 @@ export default defineConfig({
     target: 'es2015',
     minify: 'esbuild',
     cssCodeSplit: true,
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -69,7 +65,8 @@ export default defineConfig({
           }
         }
       }
-    }
+    },
+    chunkSizeWarningLimit: 2000
   },
 
   // 依赖优化配置
@@ -83,13 +80,22 @@ export default defineConfig({
       '@antv/x6-vue-shape',
       'axios'
     ],
+    exclude: [],
     force: true,
-    entries: [
-      './src/**/*.vue'
-    ]
+    entries: ['src/**/*.vue'],
+    esbuildOptions: {
+      target: 'es2015'
+    }
   },
 
   // 日志级别
   logLevel: 'info',
-  clearScreen: false
+  clearScreen: false,
+
+  // 预览配置
+  preview: {
+    port: 3000,
+    host: '0.0.0.0',
+    strictPort: true
+  }
 })

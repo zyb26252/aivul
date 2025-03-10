@@ -2,13 +2,13 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { getConfig } from './config'
+import { API_CONFIG } from '@/config'
 
-export const BASE_API_PATH = '/api/v1'
-export const getApiUrl = (path: string) => `${BASE_API_PATH}${path}`
+export const getApiUrl = (path: string) => `${API_CONFIG.PATH}${path}`
 
 const service = axios.create({
   baseURL: getConfig().apiUrl,
-  timeout: 5000,
+  timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json'
   }

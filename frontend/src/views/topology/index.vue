@@ -6,18 +6,18 @@
       <div class="left">
         <el-button @click="handleBack">
           <el-icon><ArrowLeft /></el-icon>
-          返回
+          {{ t('common.back') }}
         </el-button>
-        <h2 class="page-title">拓扑编辑器</h2>
+        <h2 class="page-title">{{ t('scene.topology.topologyEditor') }}</h2>
       </div>
       <div class="right">
         <el-button @click="handleReset">
           <el-icon><RefreshRight /></el-icon>
-          重置
+          {{ t('common.reset') }}
         </el-button>
         <el-button type="primary" @click="handleSave">
           <el-icon><Check /></el-icon>
-          保存
+          {{ t('common.save') }}
         </el-button>
       </div>
     </div>
@@ -32,11 +32,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, RefreshRight, Check } from '@element-plus/icons-vue'
 import TopologyEditor from './components/TopologyEditor.vue'
-import { getScene, updateScene } from '@/api/scenes'
+import { getScene, updateScene } from '@/api/scene'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const editorRef = ref()
@@ -56,11 +58,11 @@ const handleBack = async () => {
   if (hasUnsavedChanges()) {
     try {
       await ElMessageBox.confirm(
-        '有未保存的更改，确定要离开吗？',
-        '提示',
+        t('scene.topology.messages.unsavedChanges'),
+        t('common.tips'),
         {
-          confirmButtonText: '确定离开',
-          cancelButtonText: '取消',
+          confirmButtonText: t('scene.topology.messages.confirmLeave'),
+          cancelButtonText: t('common.cancel'),
           type: 'warning',
         }
       )
@@ -78,7 +80,7 @@ const handleBack = async () => {
 const handleSave = async () => {
   try {
     if (!editorRef.value) {
-      throw new Error('编辑器未初始化')
+      throw new Error(t('scene.topology.messages.editorNotInitialized'))
     }
 
     // 获取编辑器中的拓扑数据
@@ -92,10 +94,10 @@ const handleSave = async () => {
     // 保存成功后更新最后保存的数据
     lastSavedData.value = JSON.stringify(topology)
 
-    ElMessage.success('保存成功')
+    ElMessage.success(t('scene.topology.messages.saveSuccess'))
   } catch (error) {
     console.error('保存失败:', error)
-    ElMessage.error('保存失败')
+    ElMessage.error(t('scene.topology.messages.saveFailed'))
   }
 }
 
@@ -104,33 +106,33 @@ const handleReset = async () => {
   try {
     // 弹出确认对话框
     await ElMessageBox.confirm(
-      '重置将丢失所有未保存的修改，确定要重置吗？',
-      '警告',
+      t('scene.topology.messages.resetConfirm'),
+      t('common.warning'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
       }
     )
 
     // 重新加载场景数据
     const scene = await getScene(sceneId.value)
-    console.log('Scene Response:', scene) // 添加日志
+    console.log('Scene Response:', scene)
     
     // 如果编辑器已初始化，重新加载数据
     if (editorRef.value) {
       // 确保 topology 存在，如果不存在则使用空对象
       const topology = scene?.topology || {}
-      console.log('Loading topology:', topology) // 添加日志
+      console.log('Loading topology:', topology)
       editorRef.value.setData(topology)
-      ElMessage.success('已重置为最后保存的状态')
+      ElMessage.success(t('scene.topology.messages.resetSuccess'))
     } else {
-      throw new Error('编辑器未初始化')
+      throw new Error(t('scene.topology.messages.editorNotInitialized'))
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('重置失败:', error)
-      ElMessage.error(error instanceof Error ? error.message : '重置失败')
+      ElMessage.error(error instanceof Error ? error.message : t('scene.topology.messages.resetFailed'))
     }
   }
 }

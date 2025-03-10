@@ -1,10 +1,10 @@
-import { isDevelopment, isProduction } from './env'
+import { isDevelopment, isProduction, ENV_CONFIG } from './env'
 import type { RuntimeConfig, EnvConfig, ApiConfig, AppConfig, DevConfig } from '@/types/config'
 
 // 声明全局配置类型
 declare global {
   interface Window {
-    APP_CONFIG?: RuntimeConfig
+    APP_CONFIG?: Partial<RuntimeConfig>
   }
 }
 
@@ -29,24 +29,19 @@ const currentEnvConfig = envConfig[currentEnv]
 // 获取运行时配置
 const getRuntimeConfig = (): Partial<RuntimeConfig> | null => {
   if (isProduction && window.APP_CONFIG) {
-    return {
-      API_URL: window.APP_CONFIG.API_URL,
-      API_TIMEOUT: window.APP_CONFIG.API_TIMEOUT,
-      ENABLE_CACHE: window.APP_CONFIG.ENABLE_CACHE,
-      MAX_RETRIES: window.APP_CONFIG.MAX_RETRIES
-    }
+    return window.APP_CONFIG
   }
   return null
 }
 
 // API 配置
 export const API_CONFIG: ApiConfig = {
-  BASE_URL: isProduction && getRuntimeConfig()?.API_URL 
-    ? getRuntimeConfig()!.API_URL 
-    : currentEnvConfig.API_BASE_URL.replace(/\/+$/, ''),
-  PATH: '/api/v1',
-  TIMEOUT: getRuntimeConfig()?.API_TIMEOUT || currentEnvConfig.API_TIMEOUT,
+  BASE_URL: (isProduction && getRuntimeConfig()?.API_URL) || currentEnvConfig.API_BASE_URL.replace(/\/+$/, ''),
   VERSION: 'v1',
+  get PATH() {
+    return `/api/${this.VERSION}`
+  },
+  TIMEOUT: getRuntimeConfig()?.API_TIMEOUT || currentEnvConfig.API_TIMEOUT,
   ENABLE_CACHE: getRuntimeConfig()?.ENABLE_CACHE ?? true,
   MAX_RETRIES: getRuntimeConfig()?.MAX_RETRIES ?? 3,
   get URL() {
@@ -102,11 +97,9 @@ export default {
   getConfig
 }
 
+// 开发环境下的调试信息
 if (ENV_CONFIG.IS_DEV) {
-  // 开发环境下的代码
-}
-
-// 或者通过 ENV 字符串判断
-if (ENV_CONFIG.ENV === 'development') {
-  // 开发环境下的代码
+  console.log('API Config:', API_CONFIG)
+  console.log('App Config:', APP_CONFIG)
+  console.log('Dev Config:', DEV_CONFIG)
 } 

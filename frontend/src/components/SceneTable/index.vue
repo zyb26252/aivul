@@ -7,16 +7,16 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" />
-      <el-table-column prop="name" label="场景名称" min-width="150">
+      <el-table-column prop="name" :label="$t('table.name')" min-width="150">
         <template #default="{ row }">
           <div class="name-column">
             <span class="name">{{ row.name }}</span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="description" :label="$t('table.description')" min-width="200" show-overflow-tooltip />
       
-      <el-table-column label="拓扑预览" width="200" align="center">
+      <el-table-column :label="$t('scene.topology.preview')" width="200" align="center">
         <template #default="{ row }">
           <div class="topology-thumbnail" @click="handlePreview(row)">
             <div v-if="row.topology" class="thumbnail-container">
@@ -26,32 +26,32 @@
                 style="position: relative;"
               ></div>
             </div>
-            <el-empty v-else description="暂无拓扑" :image-size="50" />
+            <el-empty v-else :description="$t('scene.topology.noTopology')" :image-size="50" />
           </div>
         </template>
       </el-table-column>
 
-      <el-table-column prop="nodeCount" label="节点数量" width="100" align="center">
+      <el-table-column prop="nodeCount" :label="$t('table.nodeCount')" width="100" align="center">
         <template #default="{ row }">
           <el-tag size="small" type="info">{{ row.nodeCount }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="180">
+      <el-table-column prop="createdAt" :label="$t('table.createdAt')" width="180">
         <template #default="{ row }">
           {{ new Date(row.createdAt).toLocaleString() }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column :label="$t('table.operation')" width="240" fixed="right">
         <template #default="{ row }">
-          <div class="operation-group">
+          <div class="operation-column">
             <el-button type="primary" link @click="$emit('edit', row)">
-              编辑
+              {{ $t('common.edit') }}
             </el-button>
             <el-button type="primary" link @click="$emit('topology', row)">
-              管理拓扑
+              {{ $t('scene.topology.title') }}
             </el-button>
             <el-button type="danger" link @click="$emit('delete', row)">
-              删除
+              {{ $t('common.delete') }}
             </el-button>
           </div>
         </template>
@@ -59,15 +59,15 @@
     </el-table>
 
     <div v-if="selectedRows.length > 0" class="batch-operation">
-      <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+      <span class="selected-count">{{ $t('common.selected') }} {{ selectedRows.length }} {{ $t('common.items') }}</span>
       <el-button type="danger" @click="$emit('batch-delete', selectedRows)">
-        <el-icon><Delete /></el-icon>批量删除
+        <el-icon><Delete /></el-icon>{{ $t('common.batchDelete') }}
       </el-button>
     </div>
 
     <el-dialog
       v-model="previewVisible"
-      title="拓扑预览"
+      :title="$t('scene.topology.preview')"
       width="800px"
       destroy-on-close
       class="preview-dialog"
@@ -75,7 +75,7 @@
       <div class="preview-container" ref="previewContainer"></div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="previewVisible = false">关闭</el-button>
+          <el-button @click="previewVisible = false">{{ $t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>

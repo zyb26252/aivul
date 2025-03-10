@@ -4,11 +4,11 @@
     <template v-else>
       <div class="page-header">
         <div class="header-left">
-          <h2 class="page-title">软件管理</h2>
+          <h2 class="page-title">{{ $t('software.title') }}</h2>
           <div class="search-container">
             <el-input
               v-model="searchQuery"
-              placeholder="搜索软件名称"
+              :placeholder="$t('software.searchPlaceholder')"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -20,7 +20,7 @@
             
             <el-select
               v-model="selectedArchitecture"
-              placeholder="选择架构"
+              :placeholder="$t('software.selectArchitecture')"
               clearable
               @change="handleSearch"
               class="architecture-select"
@@ -31,7 +31,7 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon>添加软件
+          <el-icon><Plus /></el-icon>{{ $t('software.addButton') }}
         </el-button>
       </div>
 
@@ -44,7 +44,7 @@
             @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="name" label="名称" min-width="150">
+            <el-table-column prop="name" :label="$t('table.name')" min-width="150">
               <template #default="{ row }">
                 <div class="name-column">
                   <span class="name">{{ row.name }}</span>
@@ -52,15 +52,15 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="architecture" label="架构" width="100">
+            <el-table-column prop="description" :label="$t('table.description')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="architecture" :label="$t('table.architecture')" width="100">
               <template #default="{ row }">
                 <el-tag size="small" :type="row.architecture === 'x86' ? 'success' : 'warning'">
                   {{ row.architecture }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="端口" min-width="120">
+            <el-table-column prop="port" :label="$t('table.port')" min-width="120">
               <template #default="{ row }">
                 <div class="port-tags">
                   <el-tag
@@ -74,22 +74,22 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="180">
+            <el-table-column prop="created_at" :label="$t('table.createdAt')" width="180">
               <template #default="{ row }">
                 {{ new Date(row.created_at).toLocaleString() }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="240" fixed="right">
+            <el-table-column :label="$t('table.operation')" width="240" fixed="right">
               <template #default="{ row }">
                 <div class="operation-column">
                   <el-button type="primary" link @click="handleDetail(row)">
-                    <el-icon><View /></el-icon>详情
+                    <el-icon><View /></el-icon>{{ $t('common.detail') }}
                   </el-button>
                   <el-button type="primary" link @click="handleEdit(row)">
-                    <el-icon><Edit /></el-icon>编辑
+                    <el-icon><Edit /></el-icon>{{ $t('common.edit') }}
                   </el-button>
                   <el-button type="danger" link @click="handleDelete(row)">
-                    <el-icon><Delete /></el-icon>删除
+                    <el-icon><Delete /></el-icon>{{ $t('common.delete') }}
                   </el-button>
                 </div>
               </template>
@@ -97,9 +97,9 @@
           </el-table>
 
           <div v-if="selectedRows.length > 0" class="batch-operation">
-            <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+            <span class="selected-count">{{ $t('common.selected') }} {{ selectedRows.length }} {{ $t('common.items') }}</span>
             <el-button type="danger" @click="handleBatchDelete">
-              <el-icon><Delete /></el-icon>批量删除
+              <el-icon><Delete /></el-icon>{{ $t('common.batchDelete') }}
             </el-button>
           </div>
         </el-card>
@@ -108,31 +108,31 @@
       <!-- 详情对话框 -->
       <el-dialog
         v-model="detailDialogVisible"
-        title="软件详情"
+        :title="$t('software.detail.title')"
         width="700px"
         destroy-on-close
       >
         <div class="detail-container">
           <div class="detail-item">
-            <span class="detail-label">名称：</span>
+            <span class="detail-label">{{ $t('software.detail.name') }}：</span>
             <span>{{ detailData.name }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">版本：</span>
+            <span class="detail-label">{{ $t('software.detail.version') }}：</span>
             <span>{{ detailData.version }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">架构：</span>
+            <span class="detail-label">{{ $t('software.detail.architecture') }}：</span>
             <el-tag size="small" :type="detailData.architecture === 'x86' ? 'success' : 'warning'">
               {{ detailData.architecture }}
             </el-tag>
           </div>
           <div class="detail-item">
-            <span class="detail-label">操作系统：</span>
+            <span class="detail-label">{{ $t('software.detail.osType') }}：</span>
             <span>{{ detailData.os_type }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">端口：</span>
+            <span class="detail-label">{{ $t('software.detail.ports') }}：</span>
             <div class="detail-content">
               <el-tag
                 v-for="port in (detailData.ports || [])"
@@ -145,13 +145,13 @@
             </div>
           </div>
           <div class="detail-item">
-            <span class="detail-label">安装命令：</span>
+            <span class="detail-label">{{ $t('software.detail.installCommand') }}：</span>
             <div class="detail-content">
               <pre class="detail-text">{{ detailData.install_command }}</pre>
             </div>
           </div>
           <div class="detail-item">
-            <span class="detail-label">启动命令：</span>
+            <span class="detail-label">{{ $t('software.detail.startCommand') }}：</span>
             <div class="detail-content command-container">
               <el-tag
                 v-for="(command, index) in (detailData.start_command || [])"
@@ -163,13 +163,13 @@
             </div>
           </div>
           <div class="detail-item">
-            <span class="detail-label">描述：</span>
+            <span class="detail-label">{{ $t('software.detail.description') }}：</span>
             <div class="detail-content">
               <pre class="detail-text">{{ detailData.description }}</pre>
             </div>
           </div>
           <div class="detail-item">
-            <span class="detail-label">创建时间：</span>
+            <span class="detail-label">{{ $t('software.detail.createdAt') }}：</span>
             <span>{{ new Date(detailData.created_at).toLocaleString() }}</span>
           </div>
         </div>
@@ -178,7 +178,7 @@
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="dialogType === 'add' ? '添加软件' : '编辑软件'"
+        :title="$t(dialogType === 'add' ? 'software.form.addTitle' : 'software.form.editTitle')"
         width="600px"
         destroy-on-close
       >
@@ -189,27 +189,27 @@
           label-width="100px"
           class="dialog-form"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="form.name" placeholder="请输入软件名称" />
+          <el-form-item :label="$t('software.form.name')" prop="name">
+            <el-input v-model="form.name" :placeholder="$t('software.form.namePlaceholder')" />
           </el-form-item>
-          <el-form-item label="版本" prop="version">
-            <el-input v-model="form.version" placeholder="请输入软件版本" />
+          <el-form-item :label="$t('software.form.version')" prop="version">
+            <el-input v-model="form.version" :placeholder="$t('software.form.versionPlaceholder')" />
           </el-form-item>
-          <el-form-item label="架构" prop="architecture">
-            <el-select v-model="form.architecture" placeholder="请选择架构" class="full-width">
+          <el-form-item :label="$t('software.form.architecture')" prop="architecture">
+            <el-select v-model="form.architecture" :placeholder="$t('software.form.architecturePlaceholder')" class="full-width">
               <el-option label="x86" value="x86" />
               <el-option label="arm" value="arm" />
             </el-select>
           </el-form-item>
-          <el-form-item label="安装命令" prop="install_command">
+          <el-form-item :label="$t('software.form.installCommand')" prop="install_command">
             <el-input
               v-model="form.install_command"
               type="textarea"
               :rows="4"
-              placeholder="请输入软件安装命令"
+              :placeholder="$t('software.form.installCommandPlaceholder')"
             />
           </el-form-item>
-          <el-form-item label="端口" prop="ports">
+          <el-form-item :label="$t('software.form.ports')" prop="ports">
             <div class="port-container">
               <el-tag
                 v-for="port in form.ports"
@@ -236,11 +236,11 @@
                 size="small"
                 @click="showPortInput"
               >
-                <el-icon><Plus /></el-icon>添加端口
+                <el-icon><Plus /></el-icon>{{ $t('software.form.addPort') }}
               </el-button>
             </div>
           </el-form-item>
-          <el-form-item label="启动命令" prop="start_command">
+          <el-form-item :label="$t('software.form.startCommand')" prop="start_command">
             <div class="command-container">
               <el-tag
                 v-for="(command, index) in form.start_command"
@@ -256,7 +256,7 @@
                 ref="commandInputRef"
                 v-model="commandInputValue"
                 class="command-input"
-                :placeholder="form.start_command.length === 0 ? '输入主命令' : '输入命令参数'"
+                :placeholder="form.start_command.length === 0 ? $t('software.form.addMainCommand') : $t('software.form.addParameter')"
                 size="small"
                 @keyup.enter="handleAddCommand"
                 @blur="handleAddCommand"
@@ -268,27 +268,27 @@
                 @click="showCommandInput"
               >
                 <el-icon><Plus /></el-icon>
-                {{ form.start_command.length === 0 ? '添加主命令' : '添加参数' }}
+                {{ form.start_command.length === 0 ? $t('software.form.addMainCommand') : $t('software.form.addParameter') }}
               </el-button>
             </div>
             <div class="command-tips" v-if="form.start_command.length === 0">
-              <el-text class="text-sm" type="info">例如：httpd 作为主命令，-DFOREGROUND 作为参数</el-text>
+              <el-text class="text-sm" type="info">{{ $t('software.form.commandTip') }}</el-text>
             </div>
           </el-form-item>
-          <el-form-item label="描述" prop="description">
+          <el-form-item :label="$t('software.form.description')" prop="description">
             <el-input
               v-model="form.description"
               type="textarea"
               :rows="4"
-              placeholder="请输入软件描述"
+              :placeholder="$t('software.form.descriptionPlaceholder')"
             />
           </el-form-item>
         </el-form>
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-              确定
+              {{ $t('common.confirm') }}
             </el-button>
           </div>
         </template>
@@ -472,11 +472,11 @@ const handleEdit = (row: Software) => {
 // 删除软件
 const handleDelete = async (row: Software) => {
   try {
-    await ElMessageBox.confirm('确定要删除该软件吗？', '提示', {
+    await ElMessageBox.confirm($t('software.messages.deleteConfirm'), $t('common.tips'), {
       type: 'warning'
     })
     await deleteSoftware(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success($t('software.messages.deleteSuccess'))
     await fetchSoftware()
   } catch (error) {
     // 用户取消删除或删除失败
@@ -557,23 +557,23 @@ const handleBatchDelete = async () => {
   
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedRows.value.length} 个软件吗？`, 
-      '批量删除确认', 
+      $t('software.messages.batchDeleteConfirm', { count: selectedRows.value.length }), 
+      $t('common.batchDelete'), 
       {
         type: 'warning',
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消'
+        confirmButtonText: $t('common.confirm'),
+        cancelButtonText: $t('common.cancel')
       }
     )
     
     loading.value = true
     try {
       await Promise.all(selectedRows.value.map(row => deleteSoftware(row.id)))
-      ElMessage.success('批量删除成功')
+      ElMessage.success($t('software.messages.batchDeleteSuccess'))
       await fetchSoftware()
       selectedRows.value = []
     } catch (error) {
-      ElMessage.error('批量删除失败')
+      ElMessage.error($t('software.messages.batchDeleteFailed'))
     } finally {
       loading.value = false
     }

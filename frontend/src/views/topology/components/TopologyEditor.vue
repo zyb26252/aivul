@@ -15,58 +15,58 @@
     <!-- 工具栏 -->
     <div class="editor-toolbar">
       <el-button-group>
-        <el-tooltip :content="shortcuts.zoom_in.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.zoomIn')" placement="bottom">
           <el-button @click="handleZoomIn">
             <el-icon><ZoomIn /></el-icon>
-            放大
+            {{ t('scene.topology.editor.zoomIn') }}
           </el-button>
         </el-tooltip>
-        <el-tooltip :content="shortcuts.zoom_out.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.zoomOut')" placement="bottom">
           <el-button @click="handleZoomOut">
             <el-icon><ZoomOut /></el-icon>
-            缩小
+            {{ t('scene.topology.editor.zoomOut') }}
           </el-button>
         </el-tooltip>
-        <el-tooltip :content="shortcuts.fit_content.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.fitView')" placement="bottom">
           <el-button @click="handleFitContent">
             <el-icon><FullScreen /></el-icon>
-            适应画布
+            {{ t('scene.topology.editor.fitView') }}
           </el-button>
         </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-tooltip :content="shortcuts.create_group.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.group.create')" placement="bottom">
           <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
             <el-icon><FolderAdd /></el-icon>
-            {{ groupButtonText }}
+            {{ t('scene.topology.editor.group.create') }}
           </el-button>
         </el-tooltip>
-        <el-tooltip :content="shortcuts.ungroup.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.group.delete')" placement="bottom">
           <el-button @click="handleUngroup" :disabled="!canUngroup">
             <el-icon><FolderRemove /></el-icon>
-            取消分组
+            {{ t('scene.topology.editor.group.delete') }}
           </el-button>
         </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-tooltip :content="shortcuts.connect.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.addEdge')" placement="bottom">
           <el-button 
             :type="isConnecting ? 'primary' : 'default'"
             @click="toggleConnecting"
           >
             <el-icon><Connection /></el-icon>
-            连线模式
+            {{ t('scene.topology.editor.addEdge') }}
           </el-button>
         </el-tooltip>
       </el-button-group>
       <el-button-group class="ml-2">
-        <el-tooltip :content="shortcuts.delete.label" placement="bottom">
+        <el-tooltip :content="t('scene.topology.editor.delete')" placement="bottom">
           <el-button 
             @click="handleDelete" 
             :disabled="!canDelete"
           >
             <el-icon><Delete /></el-icon>
-            删除
+            {{ t('scene.topology.editor.delete') }}
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -76,14 +76,14 @@
       <!-- 左侧面板 -->
       <div class="left-panel">
         <!-- 网元部分 -->
-        <h3 class="panel-title">网元</h3>
+        <h3 class="panel-title">{{ t('scene.topology.node.networkElement.title') }}</h3>
         <element-panel />
         
         <!-- 分组部分 -->
-        <h3 class="panel-title">分组</h3>
+        <h3 class="panel-title">{{ t('scene.topology.editor.group.title') }}</h3>
         <div class="group-panel">
           <el-collapse accordion>
-            <el-collapse-item v-for="group in groups" :key="group.id" :title="group.name || '未命名分组'">
+            <el-collapse-item v-for="group in groups" :key="group.id" :title="group.name || t('scene.topology.editor.group.unnamed')">
               <div class="group-nodes">
                 <div 
                   v-for="node in group.nodes" 
@@ -92,7 +92,7 @@
                   @click="handleGroupNodeClick(group.id, node.id)"
                 >
                   <el-icon><component :is="node.type === 'container' ? 'Box' : 'Switch'" /></el-icon>
-                  <span>{{ node.name || (node.type === 'container' ? '容器' : '交换机') }}</span>
+                  <span>{{ node.name || (node.type === 'container' ? t('scene.topology.node.types.container') : t('scene.topology.node.types.switch')) }}</span>
                 </div>
               </div>
             </el-collapse-item>
@@ -106,19 +106,19 @@
         <div class="editor-status">
           <div class="status-item">
             <el-icon><Box /></el-icon>
-            <span>容器：</span>
+            <span>{{ t('scene.topology.node.types.container') }}：</span>
             <span class="count">{{ containerCount }}</span>
           </div>
           <div class="divider" />
           <div class="status-item">
             <el-icon><Switch /></el-icon>
-            <span>交换机：</span>
+            <span>{{ t('scene.topology.node.types.switch') }}：</span>
             <span class="count">{{ switchCount }}</span>
           </div>
           <div class="divider" />
           <div class="status-item">
             <el-icon><Folder /></el-icon>
-            <span>分组：</span>
+            <span>{{ t('scene.topology.editor.group.title') }}：</span>
             <span class="count">{{ groupCount }}</span>
           </div>
         </div>
@@ -126,7 +126,7 @@
 
       <!-- 右侧属性面板 -->
       <div class="right-panel">
-        <h3 class="panel-title">属性</h3>
+        <h3 class="panel-title">{{ t('scene.topology.node.properties.title') }}</h3>
         <property-panel 
           :selected-node="selectedNode" 
           :selected-edge="selectedEdge" 
@@ -140,6 +140,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   FolderAdd, 
@@ -159,6 +160,8 @@ import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import containerIcon from '@/assets/icons/container.svg'
 import switchIcon from '@/assets/icons/switch.svg'
+
+const { t } = useI18n()
 
 // 定义emit事件
 const emit = defineEmits<{
