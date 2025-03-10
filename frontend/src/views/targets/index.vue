@@ -744,13 +744,27 @@ const handleSoftwareChange = async () => {
       descriptionLoading.value = true
       try {
         const response = await generateDescription(selectedImage, selectedSoftware)
-        if (response) {
-          form.value.description = response
+
+        // 解析返回的数据
+        let descriptionText = ''
+        
+        // 判断响应是否包含result
+        if (response && response.result !== undefined) {
+          // 直接使用响应中的result
+          descriptionText = response.result
+        } else if (response && response.data && response.data.result) {
+          // 使用响应的data.result属性
+          descriptionText = response.data.result
+        }
+        
+        if (descriptionText) {
+          form.value.description = descriptionText
         } else {
           form.value.description = ''
           ElMessage.warning('生成的描述为空，请手动填写')
         }
       } catch (error) {
+        console.error('Generate description error:', error)
         form.value.description = ''  // 清空描述，让用户手动填写
         ElMessage.error('生成描述失败，请手动填写')
       } finally {
@@ -771,11 +785,31 @@ const checkSoftwareCompatibility = async () => {
 
   compatibilityLoading.value = true
   try {
-    const result = await checkCompatibility(form.value.base_image_id, form.value.software_ids)
-    // 直接将返回的结果字符串赋值给 compatibilityResult
-    compatibilityResult.value = result.result
-    compatibilityDialogVisible.value = true
+    const response = await checkCompatibility(form.value.base_image_id, form.value.software_ids)
+    
+    // 解析返回数据
+    let compatibilityText = ''
+    
+    // 判断响应是否包含result
+    if (response && response.result !== undefined) {
+      // 直接使用响应中的result
+      compatibilityText = response.result
+    } else if (response && response.data && response.data.result) {
+      // 使用响应的data.result属性
+      compatibilityText = response.data.result
+    } else if (typeof response === 'string') {
+      // 直接使用字符串响应
+      compatibilityText = response
+    }
+    
+    if (compatibilityText) {
+      compatibilityResult.value = compatibilityText
+      compatibilityDialogVisible.value = true
+    } else {
+      ElMessage.warning('兼容性检查结果为空')
+    }
   } catch (error) {
+    console.error('检查软件兼容性时发生错误:', error)
     ElMessage.error('检查软件兼容性时发生错误')
   } finally {
     compatibilityLoading.value = false
@@ -846,14 +880,31 @@ const handleOptimizeDockerfile = async () => {
   optimizingLoading.value = true
   try {
     const response = await optimizeDockerfile(form.value.dockerfile)
-    if (response && typeof response === 'string') {
-      optimizedDockerfile.value = response
-      form.value.optimized_dockerfile = response // 将优化后的版本保存到表单中
+    
+    // 解析返回数据
+    let optimizedText = ''
+    
+    // 判断响应是否包含result
+    if (response && response.result !== undefined) {
+      // 直接使用响应中的result
+      optimizedText = response.result
+    } else if (response && response.data && response.data.result) {
+      // 使用响应的data.result属性
+      optimizedText = response.data.result
+    } else if (typeof response === 'string') {
+      // 直接使用字符串响应
+      optimizedText = response
+    }
+    
+    if (optimizedText) {
+      optimizedDockerfile.value = optimizedText
+      form.value.optimized_dockerfile = optimizedText // 将优化后的版本保存到表单中
       ElMessage.success('Dockerfile 优化成功')
     } else {
       ElMessage.warning('优化失败，请稍后重试')
     }
   } catch (error) {
+    console.error('优化 Dockerfile 时发生错误:', error)
     ElMessage.error('优化 Dockerfile 时发生错误')
   } finally {
     optimizingLoading.value = false

@@ -37,7 +37,7 @@ interface CompatibilityCheckRequest {
   }>;
 }
 
-export const generateDescription = async (image: Image, softwareList: Software[]): Promise<string> => {
+export const generateDescription = async (image: Image, softwareList: Software[]): Promise<any> => {
   try {
     const request_data: GenerateDescriptionRequest = {
       image: {
@@ -52,29 +52,41 @@ export const generateDescription = async (image: Image, softwareList: Software[]
       }))
     }
     
-    const response = await request.post<AIResponse>(getApiUrl('/ai/generate_description'), request_data)
-    return response.data.result
+    const response = await request.post(getApiUrl('/ai/generate_description'), request_data)
+    
+    // 如果响应数据为undefined，则直接返回响应本身
+    if (response.data === undefined) {
+      return response
+    }
+    
+    return response.data
   } catch (error) {
     console.error('Generate description error:', error)
     throw error
   }
 }
 
-export const optimizeDockerfile = async (dockerfile: string): Promise<string> => {
+export const optimizeDockerfile = async (dockerfile: string): Promise<any> => {
   try {
     const request_data: OptimizeDockerfileRequest = {
-      dockerfile
+      dockerfile: dockerfile
     }
     
-    const response = await request.post<AIResponse>(getApiUrl('/ai/optimize_dockerfile'), request_data)
-    return response.data.result
+    const response = await request.post(getApiUrl('/ai/optimize_dockerfile'), request_data)
+    
+    // 如果响应数据为undefined，则直接返回响应本身
+    if (response.data === undefined) {
+      return response
+    }
+    
+    return response.data
   } catch (error) {
     console.error('Optimize Dockerfile error:', error)
     throw error
   }
 }
 
-export const checkCompatibility = async (image: Image, softwareList: Software[]): Promise<string> => {
+export const checkCompatibility = async (image: Image, softwareList: Software[]): Promise<any> => {
   try {
     const request_data: CompatibilityCheckRequest = {
       base_image: {
@@ -89,8 +101,14 @@ export const checkCompatibility = async (image: Image, softwareList: Software[])
       }))
     }
     
-    const response = await request.post<AIResponse>(getApiUrl('/ai/check_compatibility'), request_data)
-    return response.data.result
+    const response = await request.post(getApiUrl('/ai/check_compatibility'), request_data)
+    
+    // 如果响应数据为undefined，则直接返回响应本身
+    if (response.data === undefined) {
+      return response
+    }
+    
+    return response.data
   } catch (error) {
     console.error('Check compatibility error:', error)
     throw error
