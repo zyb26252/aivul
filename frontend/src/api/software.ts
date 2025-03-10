@@ -1,16 +1,17 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 import type { Software, SoftwareCreate, SoftwareUpdate } from '@/types/software'
 
 export const getSoftware = () => {
   return request<Software[]>({
-    url: '/api/v1/software',
+    url: getApiUrl('/software'),
     method: 'get'
   })
 }
 
 export const createSoftware = (data: SoftwareCreate) => {
   return request<Software>({
-    url: '/api/v1/software',
+    url: getApiUrl('/software'),
     method: 'post',
     data
   })
@@ -18,7 +19,7 @@ export const createSoftware = (data: SoftwareCreate) => {
 
 export const updateSoftware = (id: number, data: SoftwareUpdate) => {
   return request<Software>({
-    url: `/api/v1/software/${id}`,
+    url: getApiUrl(`/software/${id}`),
     method: 'put',
     data
   })
@@ -26,14 +27,14 @@ export const updateSoftware = (id: number, data: SoftwareUpdate) => {
 
 export const deleteSoftware = (id: number) => {
   return request({
-    url: `/api/v1/software/${id}`,
+    url: getApiUrl(`/software/${id}`),
     method: 'delete'
   })
 }
 
 export const checkCompatibility = (baseImageId: number, softwareIds: number[]) => {
   return request<any>({
-    url: '/api/v1/ai/check_compatibility',
+    url: getApiUrl('/ai/check_compatibility'),
     method: 'post',
     data: {
       base_image_id: baseImageId,

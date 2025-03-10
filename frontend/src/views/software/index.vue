@@ -60,16 +60,18 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="端口" width="200">
+            <el-table-column label="端口" min-width="120">
               <template #default="{ row }">
-                <el-tag
-                  v-for="port in (row.ports || [])"
-                  :key="port"
-                  size="small"
-                  class="port-tag"
-                >
-                  {{ port }}
-                </el-tag>
+                <div class="port-tags">
+                  <el-tag
+                    v-for="port in (row.ports || [])"
+                    :key="port"
+                    size="small"
+                    class="port-tag"
+                  >
+                    {{ port }}
+                  </el-tag>
+                </div>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="创建时间" width="180">
@@ -77,17 +79,19 @@
                 {{ new Date(row.created_at).toLocaleString() }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="240" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" link @click="handleDetail(row)">
-                  详情
-                </el-button>
-                <el-button type="primary" link @click="handleEdit(row)">
-                  编辑
-                </el-button>
-                <el-button type="danger" link @click="handleDelete(row)">
-                  删除
-                </el-button>
+                <div class="operation-column">
+                  <el-button type="primary" link @click="handleDetail(row)">
+                    <el-icon><View /></el-icon>详情
+                  </el-button>
+                  <el-button type="primary" link @click="handleEdit(row)">
+                    <el-icon><Edit /></el-icon>编辑
+                  </el-button>
+                  <el-button type="danger" link @click="handleDelete(row)">
+                    <el-icon><Delete /></el-icon>删除
+                  </el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -296,7 +300,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Delete } from '@element-plus/icons-vue'
+import { Search, Plus, Delete, View, Edit, ArrowDown } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getSoftware, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
 import type { Software } from '@/types/software'
@@ -650,9 +654,27 @@ onMounted(() => {
   --el-table-header-bg-color: var(--bg-light);
   --el-table-row-hover-bg-color: var(--primary-light);
   
-  .port-tag {
-    margin-right: 4px;
-    margin-bottom: 4px;
+  .name-column {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  
+  .port-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    
+    .port-tag {
+      margin: 0;
+    }
   }
 }
 
@@ -763,6 +785,21 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-base);
+}
+
+.operation-column {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start;
+  
+  .el-button {
+    padding: 4px 8px;
+    height: auto;
+    
+    .el-icon {
+      margin-right: 2px;
+    }
+  }
 }
 
 // 响应式布局

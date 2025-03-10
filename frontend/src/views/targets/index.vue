@@ -106,7 +106,7 @@
             {{ new Date(row.created_at).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280">
+        <el-table-column label="操作" width="300">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleViewDockerfile(row)">
               查看 Dockerfile

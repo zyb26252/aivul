@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 
 export interface TopologyData {
   id?: number
@@ -13,13 +14,13 @@ export interface TopologyData {
 export const saveTopology = (data: TopologyData) => {
   if (data.id) {
     return request({
-      url: `/api/v1/scenes/${data.id}`,
+      url: getApiUrl(`/scenes/${data.id}`),
       method: 'PUT',
       data
     })
   }
   return request({
-    url: '/api/v1/scenes',
+    url: getApiUrl('/scenes'),
     method: 'POST',
     data
   })
@@ -28,7 +29,7 @@ export const saveTopology = (data: TopologyData) => {
 // 获取拓扑图列表
 export const getTopologyList = () => {
   return request({
-    url: '/api/v1/scenes',
+    url: getApiUrl('/scenes'),
     method: 'GET'
   })
 }
@@ -36,7 +37,7 @@ export const getTopologyList = () => {
 // 获取拓扑图详情
 export const getTopologyDetail = (id: number) => {
   return request({
-    url: `/api/v1/scenes/${id}`,
+    url: getApiUrl(`/scenes/${id}`),
     method: 'GET'
   })
 }
@@ -44,7 +45,7 @@ export const getTopologyDetail = (id: number) => {
 // 删除拓扑图
 export const deleteTopology = (id: number) => {
   return request({
-    url: `/api/v1/scenes/${id}`,
+    url: getApiUrl(`/scenes/${id}`),
     method: 'DELETE'
   })
 } 

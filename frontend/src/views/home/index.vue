@@ -146,15 +146,16 @@
                 <span>最近活动</span>
               </div>
             </template>
-            <el-timeline>
+            <el-timeline v-if="stats.recentActivities && stats.recentActivities.length > 0">
               <el-timeline-item
                 v-for="activity in stats.recentActivities"
                 :key="activity.id"
-                :timestamp="activity.createdAt"
+                :timestamp="formatTime(activity.createdAt)"
               >
                 {{ activity.type }} - {{ activity.name }}
               </el-timeline-item>
             </el-timeline>
+            <div v-else class="no-data">暂无活动记录</div>
           </el-card>
         </el-col>
       </el-row>
@@ -168,6 +169,11 @@ import { Picture, Monitor, Aim, Box } from '@element-plus/icons-vue'
 import { getDashboardStats } from '@/api/dashboard'
 import type { DashboardStats } from '@/api/dashboard'
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+
+// 设置为中文
+dayjs.locale('zh-cn')
 
 const loading = ref(true)
 const stats = ref<DashboardStats>({
@@ -187,6 +193,11 @@ const getProgressColor = (percentage: number) => {
   if (percentage < 60) return '#67C23A'
   if (percentage < 80) return '#E6A23C'
   return '#F56C6C'
+}
+
+// 格式化时间
+const formatTime = (time: string) => {
+  return dayjs(time).format('YYYY-MM-DD HH:mm')
 }
 
 // 获取所有仪表盘数据

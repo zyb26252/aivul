@@ -1,47 +1,54 @@
 import request from '@/utils/request'
-import type { Scene, SceneCreate, SceneUpdate } from '@/types/scene'
+import { getApiUrl } from '@/utils/request'
+import type { Scene, SceneCreate, SceneUpdate, SceneSearchParams, SceneList } from '@/types/scene'
 
-export const getScenes = (params?: any) => {
-  return request({
-    url: '/api/v1/scenes/',
+// 获取场景列表
+export const getScenes = (params: SceneSearchParams = {}) => {
+  return request<SceneList>({
+    url: getApiUrl('/scenes'),
     method: 'get',
     params
   })
 }
 
+// 获取单个场景
 export const getScene = (id: number) => {
   return request<Scene>({
-    url: `/api/v1/scenes/${id}`,
+    url: getApiUrl(`/scenes/${id}`),
     method: 'get'
   })
 }
 
-export const createScene = (data: SceneCreate) => {
+// 创建场景
+export const createScene = (data: Partial<Scene>) => {
   return request<Scene>({
-    url: '/api/v1/scenes/',
+    url: getApiUrl('/scenes'),
     method: 'post',
     data
   })
 }
 
-export const updateScene = (id: number, data: SceneUpdate) => {
+// 更新场景
+export const updateScene = (id: number, data: Partial<Scene>) => {
   return request<Scene>({
-    url: `/api/v1/scenes/${id}`,
+    url: getApiUrl(`/scenes/${id}`),
     method: 'put',
     data
   })
 }
 
+// 删除场景
 export const deleteScene = (id: number) => {
-  return request({
-    url: `/api/v1/scenes/${id}`,
+  return request<void>({
+    url: getApiUrl(`/scenes/${id}`),
     method: 'delete'
   })
 }
 
+// 复制场景
 export const copyScene = (id: number) => {
   return request<Scene>({
-    url: `/api/v1/scenes/${id}/copy`,
+    url: getApiUrl(`/scenes/${id}/copy`),
     method: 'post'
   })
 } 

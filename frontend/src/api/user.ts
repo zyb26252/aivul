@@ -1,9 +1,10 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 import type { User } from '@/types/user'
 
 export const getUsers = () => {
   return request<User[]>({
-    url: '/api/v1/users',
+    url: getApiUrl('/users'),
     method: 'get'
   })
 }

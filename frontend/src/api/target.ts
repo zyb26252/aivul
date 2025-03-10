@@ -1,9 +1,10 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 import type { Target } from '@/types/target'
 
 export const getTargets = () => {
   return request<Target[]>({
-    url: '/api/v1/targets',
+    url: getApiUrl('/targets'),
     method: 'get'
   })
 }
