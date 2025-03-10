@@ -54,7 +54,14 @@
                   :class="{ active: currentLocale === 'zh' }" 
                   @click="changeLanguage('zh')"
                 >
-                  中文
+                  简体
+                </button>
+                <button 
+                  class="lang-btn" 
+                  :class="{ active: currentLocale === 'zh-TW' }" 
+                  @click="changeLanguage('zh-TW')"
+                >
+                  繁體
                 </button>
                 <button 
                   class="lang-btn" 

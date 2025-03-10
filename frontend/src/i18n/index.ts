@@ -2,6 +2,7 @@ import { createI18n } from 'vue-i18n'
 
 // 导入语言包
 import zh from './locales/zh'
+import zhTW from './locales/zh-TW'
 import en from './locales/en'
 
 const i18n = createI18n({
@@ -10,6 +11,7 @@ const i18n = createI18n({
   fallbackLocale: 'zh', // 备用语言
   messages: {
     zh,
+    'zh-TW': zhTW,
     en
   }
 })
