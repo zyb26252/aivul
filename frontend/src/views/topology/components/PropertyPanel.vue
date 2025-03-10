@@ -23,18 +23,19 @@
         <!-- 容器节点特有属性 -->
         <template v-if="isContainer">
           <el-form-item label="镜像">
-            <el-select 
-              v-model="formData.properties.image" 
-              placeholder="请选择镜像"
-              @change="handlePropertyChange"
-            >
-              <el-option
-                v-for="image in imageList"
-                :key="image.id"
-                :label="image.name"
-                :value="image.id"
-              />
-            </el-select>
+            <div class="image-selector">
+              <div v-if="selectedTarget" class="selected-target">
+                <div class="target-name">{{ selectedTarget.name }}</div>
+                <div class="target-info">
+                  <span v-if="selectedTarget.base_image">
+                    {{ selectedTarget.base_image.name }}
+                    <el-tag size="small" class="architecture-tag">{{ selectedTarget.base_image.architecture }}</el-tag>
+                  </span>
+                </div>
+              </div>
+              <div v-else class="no-target-selected">未选择靶标</div>
+              <el-button type="primary" @click="showTargetSelector">选择靶标</el-button>
+            </div>
           </el-form-item>
           <el-form-item label="IP地址">
             <el-input 
@@ -131,12 +132,21 @@
       <span class="text-muted">请选择节点或连线</span>
     </div>
   </div>
+
+  <!-- 靶标选择模态框 -->
+  <TargetSelector
+    v-model:visible="targetSelectorVisible"
+    :selected-target-id="selectedTarget?.id"
+    @select="handleTargetSelect"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import type { Node } from '../types'
-import { getImages } from '@/api/image'
+import type { Target } from '@/types/target'
+import { getTargets } from '@/api/target'
+import TargetSelector from './TargetSelector.vue'
 
 const props = defineProps<{
   selectedNode?: Node
@@ -146,19 +156,56 @@ const props = defineProps<{
 // 镜像列表
 const imageList = ref<any[]>([])
 
-// 获取镜像列表
-const fetchImageList = async () => {
+// 选择靶标相关
+const targetSelectorVisible = ref(false)
+const selectedTarget = ref<Target | null>(null)
+
+// 显示靶标选择器
+const showTargetSelector = () => {
+  targetSelectorVisible.value = true
+}
+
+// 处理靶标选择
+const handleTargetSelect = (target: Target) => {
+  selectedTarget.value = target
+  // 更新formData中的镜像ID
+  formData.value.properties.image = target.id
+  formData.value.properties.imageName = target.name
+  
+  // 保存靶标相关信息到节点属性中
+  formData.value.properties.targetInfo = {
+    id: target.id,
+    name: target.name,
+    baseImage: target.base_image ? {
+      id: target.base_image.id,
+      name: target.base_image.name,
+      architecture: target.base_image.architecture
+    } : null,
+    software: target.software_list.map(s => ({
+      id: s.id,
+      name: s.name,
+      version: s.version
+    })),
+    ports: target.ports
+  }
+  
+  // 触发属性变更
+  handlePropertyChange()
+}
+
+// 获取靶标列表
+const fetchTargets = async () => {
   try {
-    const response = await getImages()
-    imageList.value = response
+    const targets = await getTargets()
+    imageList.value = targets
   } catch (error) {
-    console.error('Failed to fetch images:', error)
+    console.error('Failed to fetch targets:', error)
   }
 }
 
 // 在组件挂载时获取镜像列表
 onMounted(() => {
-  fetchImageList()
+  fetchTargets()
 })
 
 // 节点表单数据
@@ -167,10 +214,12 @@ const formData = ref({
   type: '',
   description: '',
   properties: {
-    image: '',  // 添加镜像字段
+    image: '',  // 靶标ID
+    imageName: '', // 靶标名称
     ip: '',
     netmask: '',
-    gateway: ''
+    gateway: '',
+    targetInfo: null
   } as Record<string, any>
 })
 
@@ -207,6 +256,20 @@ watch(() => props.selectedNode, (node) => {
         } : {}),
         ...(node.data?.properties || {})
       }
+    }
+    
+    // 如果有靶标信息，恢复选中的靶标
+    if (node.data?.properties?.targetInfo) {
+      const targetId = node.data.properties.targetInfo.id
+      if (targetId) {
+        // 从镜像列表中找到对应的靶标
+        const target = imageList.value.find((item: any) => item.id === targetId)
+        if (target) {
+          selectedTarget.value = target
+        }
+      }
+    } else {
+      selectedTarget.value = null
     }
   }
 }, { immediate: true, deep: true })
@@ -316,5 +379,39 @@ const handleDescriptionChange = () => {
     justify-content: center;
     color: var(--el-text-color-secondary);
   }
+}
+
+// 镜像选择器样式
+.image-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  .selected-target {
+    flex: 1;
+    
+    .target-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .target-info {
+      color: var(--el-text-color-regular);
+      font-size: 12px;
+      
+      .architecture-tag {
+        margin-left: 4px;
+      }
+    }
+  }
+  
+  .no-target-selected {
+    flex: 1;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.architecture-tag {
+  margin-left: 8px;
 }
 </style> 
