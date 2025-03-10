@@ -12,27 +12,27 @@
       >
         <el-menu-item index="/">
           <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
+          <span>{{ $t('menu.home') }}</span>
         </el-menu-item>
         <el-menu-item index="/images">
           <el-icon><Picture /></el-icon>
-          <span>镜像管理</span>
+          <span>{{ $t('menu.images') }}</span>
         </el-menu-item>
         <el-menu-item index="/software">
           <el-icon><Box /></el-icon>
-          <span>软件管理</span>
+          <span>{{ $t('menu.software') }}</span>
         </el-menu-item>
         <el-menu-item index="/targets">
           <el-icon><Aim /></el-icon>
-          <span>靶标管理</span>
+          <span>{{ $t('menu.targets') }}</span>
         </el-menu-item>
         <el-menu-item index="/scenes">
           <el-icon><Operation /></el-icon>
-          <span>场景管理</span>
+          <span>{{ $t('menu.scenes') }}</span>
         </el-menu-item>
         <el-menu-item index="/instances">
           <el-icon><Monitor /></el-icon>
-          <span>实例管理</span>
+          <span>{{ $t('menu.instances') }}</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -41,13 +41,34 @@
       <el-header>
         <div class="header">
           <div class="header-title">
-            <h2>AI驱动的网络靶场自动化构建引擎</h2>
-            <div class="subtitle">Automated Cyber Range Construction Engine</div>
+            <h2>{{ $t('header.title') }}</h2>
+            <div class="subtitle">{{ $t('header.subtitle') }}</div>
           </div>
           <div class="user-info">
+            <!-- 语言切换器 -->
+            <div class="language-switcher">
+              <el-icon><ChatRound /></el-icon>
+              <div class="language-buttons">
+                <button 
+                  class="lang-btn" 
+                  :class="{ active: currentLocale === 'zh' }" 
+                  @click="changeLanguage('zh')"
+                >
+                  中文
+                </button>
+                <button 
+                  class="lang-btn" 
+                  :class="{ active: currentLocale === 'en' }" 
+                  @click="changeLanguage('en')"
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+            <div class="divider"></div>
             <el-icon><User /></el-icon>
             <span>{{ userStore.userInfo?.username }}</span>
-            <el-button link @click="handleLogout">退出</el-button>
+            <el-button link @click="handleLogout">{{ $t('common.logout') }}</el-button>
           </div>
         </div>
       </el-header>
@@ -69,19 +90,36 @@ import {
   Aim,
   Monitor,
   User,
-  Operation
+  Operation,
+  ChatRound
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+// 语言切换功能
+const { locale } = useI18n();
+const currentLocale = ref(locale.value);
+
+const changeLanguage = (value: string) => {
+  locale.value = value;
+  currentLocale.value = value;
+  localStorage.setItem('language', value); // 保存语言设置
+};
+
 // 初始化时获取用户信息
 onMounted(async () => {
   if (localStorage.getItem('token') && !userStore.userInfo) {
     await userStore.getUserInfo()
+  }
+  // 初始化语言设置
+  const savedLanguage = localStorage.getItem('language');
+  if (savedLanguage) {
+    changeLanguage(savedLanguage);
   }
 })
 
@@ -166,6 +204,47 @@ const handleLogout = () => {
   span {
     font-size: 14px;
   }
+  
+  .divider {
+    height: 20px;
+    width: 1px;
+    background-color: var(--el-border-color);
+    margin: 0 8px;
+  }
+}
+
+/* 语言切换器样式 */
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  margin: 0 1px;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 12px;
+  transition: all 0.3s;
+  color: var(--el-text-color-regular);
+}
+
+.lang-btn:hover {
+  color: var(--el-color-primary);
+  background-color: rgba(var(--el-color-primary-rgb), 0.1);
+}
+
+.lang-btn.active {
+  color: #fff;
+  background-color: var(--el-color-primary);
 }
 
 :deep(.el-aside) {
