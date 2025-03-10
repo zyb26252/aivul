@@ -6,6 +6,11 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
+import 'github-markdown-css'
+import showdown from 'showdown'
+
+// 将 showdown 添加到全局
+window.showdown = showdown
 
 const app = createApp(App)
 
