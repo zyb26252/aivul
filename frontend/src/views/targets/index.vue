@@ -89,7 +89,7 @@
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column prop="description" :label="t('table.description')" min-width="300" show-overflow-tooltip="{
+        <el-table-column prop="description" :label="t('table.description')" min-width="300" :show-overflow-tooltip="{
           effect: 'dark',
           placement: 'top',
           enterable: true,
