@@ -134,35 +134,105 @@ const handleSubmit = async () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .register-container {
+  width: 100%;
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
+  background: #F0F2F5;
+  position: relative;
+  overflow: hidden;
 }
 
 .register-card {
   width: 400px;
+  background: #FFFFFF;
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--shadow-base);
+  padding: var(--spacing-large);
+  
+  h2 {
+    font-size: 24px;
+    color: var(--text-primary);
+    text-align: center;
+    margin: 0 0 var(--spacing-large);
+    font-weight: 600;
+  }
+  
+  .el-form {
+    .el-form-item {
+      margin-bottom: var(--spacing-large);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .el-form-item__label {
+        padding-bottom: 8px;
+        line-height: 1.5;
+        color: var(--text-regular);
+      }
+    }
+    
+    .el-input {
+      height: 40px;
+      
+      :deep(.el-input__wrapper) {
+        padding: 4px 11px;
+        
+        .el-input__inner {
+          height: 32px;
+          font-size: 14px;
+          
+          &::placeholder {
+            color: var(--text-placeholder);
+          }
+        }
+        
+        .el-input__prefix {
+          font-size: 16px;
+          color: var(--text-secondary);
+        }
+      }
+    }
+  }
+  
+  .submit-btn {
+    width: 100%;
+    height: 40px;
+    font-size: 16px;
+    font-weight: 400;
+    margin-top: var(--spacing-large);
+  }
+  
+  .links {
+    text-align: center;
+    margin-top: var(--spacing-base);
+    
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-size: 14px;
+      transition: var(--transition-base);
+      
+      &:hover {
+        color: var(--primary-hover);
+      }
+    }
+  }
 }
 
-.register-card h2 {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.submit-btn {
-  width: 100%;
-}
-
-.links {
-  text-align: right;
-  margin-top: 10px;
-}
-
-.links a {
-  color: #409EFF;
-  text-decoration: none;
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .register-container {
+    padding: var(--spacing-base);
+  }
+  
+  .register-card {
+    width: 100%;
+    max-width: 400px;
+  }
 }
 </style> 
