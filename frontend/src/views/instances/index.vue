@@ -20,87 +20,108 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          创建实例
+          <el-icon><Plus /></el-icon>创建实例
         </el-button>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="instances"
-        style="width: 100%"
-      >
-        <el-table-column prop="name" label="名称" />
-        <el-table-column label="靶标">
-          <template #default="{ row }">
-            {{ row.target?.name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="状态">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" class="status-tag">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="端口映射" show-overflow-tooltip>
-          <template #default="{ row }">
-            <template v-if="row.port_mappings">
-              <div v-for="mapping in parsePortMappings(row.port_mappings)" :key="mapping.container_port">
-                {{ mapping.host_port }}:{{ mapping.container_port }}/{{ mapping.protocol }}
-              </div>
-            </template>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间">
-          <template #default="{ row }">
-            {{ new Date(row.created_at).toLocaleString() }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="300">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.status === 'stopped'"
-              type="success"
-              link
-              @click="handleStart(row)"
-            >
-              启动
-            </el-button>
-            <el-button
-              v-if="row.status === 'running'"
-              type="warning"
-              link
-              @click="handleStop(row)"
-            >
-              停止
-            </el-button>
-            <el-button type="primary" link @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="main-content">
+        <el-card class="table-card">
+          <el-table
+            v-loading="loading"
+            :data="instances"
+            style="width: 100%"
+          >
+            <el-table-column prop="name" label="名称" min-width="150">
+              <template #default="{ row }">
+                <div class="name-column">
+                  <span class="name">{{ row.name }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="靶标" min-width="150">
+              <template #default="{ row }">
+                <el-tag size="small" type="info">
+                  {{ row.target?.name }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row.status)" size="small" class="status-tag">
+                  {{ getStatusText(row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="端口映射" min-width="200" show-overflow-tooltip>
+              <template #default="{ row }">
+                <template v-if="row.port_mappings">
+                  <div class="port-mappings">
+                    <el-tag
+                      v-for="mapping in parsePortMappings(row.port_mappings)"
+                      :key="mapping.container_port"
+                      size="small"
+                      class="port-tag"
+                    >
+                      {{ mapping.host_port }}:{{ mapping.container_port }}/{{ mapping.protocol }}
+                    </el-tag>
+                  </div>
+                </template>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="创建时间" width="180">
+              <template #default="{ row }">
+                {{ new Date(row.created_at).toLocaleString() }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.status === 'stopped'"
+                  type="success"
+                  link
+                  @click="handleStart(row)"
+                >
+                  启动
+                </el-button>
+                <el-button
+                  v-if="row.status === 'running'"
+                  type="warning"
+                  link
+                  @click="handleStop(row)"
+                >
+                  停止
+                </el-button>
+                <el-button type="primary" link @click="handleEdit(row)">
+                  编辑
+                </el-button>
+                <el-button type="danger" link @click="handleDelete(row)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
         :title="dialogType === 'add' ? '创建实例' : '编辑实例'"
-        width="500px"
+        width="600px"
+        destroy-on-close
       >
         <el-form
           ref="formRef"
           :model="form"
           :rules="rules"
           label-width="100px"
+          class="dialog-form"
         >
           <el-form-item label="名称" prop="name">
             <el-input v-model="form.name" placeholder="请输入实例名称" />
           </el-form-item>
           <el-form-item v-if="dialogType === 'add'" label="靶标" prop="target_id">
-            <el-select v-model="form.target_id" placeholder="请选择靶标" style="width: 100%">
+            <el-select v-model="form.target_id" placeholder="请选择靶标" class="full-width">
               <el-option
                 v-for="item in targets"
                 :key="item.id"
@@ -110,38 +131,44 @@
             </el-select>
           </el-form-item>
           <el-form-item v-if="dialogType === 'add'" label="端口映射">
-            <div v-for="(mapping, index) in portMappings" :key="index" class="port-mapping">
-              <el-input-number
-                v-model="mapping.host_port"
-                :min="1"
-                :max="65535"
-                placeholder="主机端口"
-              />
-              <span class="port-separator">:</span>
-              <el-input-number
-                v-model="mapping.container_port"
-                :min="1"
-                :max="65535"
-                placeholder="容器端口"
-              />
-              <el-select v-model="mapping.protocol" style="width: 90px">
-                <el-option label="TCP" value="tcp" />
-                <el-option label="UDP" value="udp" />
-              </el-select>
-              <el-button type="danger" link @click="removePortMapping(index)">
-                删除
+            <div class="port-mappings-form">
+              <div v-for="(mapping, index) in portMappings" :key="index" class="port-mapping">
+                <el-input-number
+                  v-model="mapping.host_port"
+                  :min="1"
+                  :max="65535"
+                  placeholder="主机端口"
+                  class="port-input"
+                />
+                <span class="port-separator">:</span>
+                <el-input-number
+                  v-model="mapping.container_port"
+                  :min="1"
+                  :max="65535"
+                  placeholder="容器端口"
+                  class="port-input"
+                />
+                <el-select v-model="mapping.protocol" class="protocol-select">
+                  <el-option label="TCP" value="tcp" />
+                  <el-option label="UDP" value="udp" />
+                </el-select>
+                <el-button type="danger" link @click="removePortMapping(index)">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
+              <el-button type="primary" link @click="addPortMapping" class="add-mapping-btn">
+                <el-icon><Plus /></el-icon>添加端口映射
               </el-button>
             </div>
-            <el-button type="primary" link @click="addPortMapping">
-              添加端口映射
-            </el-button>
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-            确定
-          </el-button>
+          <div class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </el-button>
+          </div>
         </template>
       </el-dialog>
     </template>
@@ -151,6 +178,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import {
   getInstances,
@@ -354,36 +382,208 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
+.page-container {
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
+}
 
-.status-tag {
-  &.el-tag--success {
-    background-color: var(--el-color-success-light-9);
-    border-color: var(--el-color-success-light-8);
-    color: var(--el-color-success);
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-large);
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-large);
+    
+    .page-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: var(--spacing-base);
+      
+      .search-input {
+        width: 320px;
+      }
+    }
   }
   
-  &.el-tag--warning {
-    background-color: var(--el-color-warning-light-9);
-    border-color: var(--el-color-warning-light-8);
-    color: var(--el-color-warning);
-  }
-  
-  &.el-tag--danger {
-    background-color: var(--el-color-danger-light-9);
-    border-color: var(--el-color-danger-light-8);
-    color: var(--el-color-danger);
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
   }
 }
 
-.port-mapping {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+.main-content {
+  background: var(--bg-lighter);
+  border-radius: var(--border-radius-base);
   
-  .port-separator {
-    color: var(--el-text-color-secondary);
+  .table-card {
+    background: transparent;
+    border: none;
+    
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
+}
+
+.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: var(--bg-light);
+  --el-table-row-hover-bg-color: var(--primary-light);
+  
+  .name-column {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .name {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+  }
+  
+  .port-mappings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    
+    .port-tag {
+      margin: 2px;
+    }
+  }
+}
+
+.status-tag {
+  &.el-tag--success {
+    background-color: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+  }
+  
+  &.el-tag--warning {
+    background-color: #fff7e6;
+    border-color: #ffd591;
+    color: #fa8c16;
+  }
+  
+  &.el-tag--danger {
+    background-color: #fff1f0;
+    border-color: #ffa39e;
+    color: #f5222d;
+  }
+  
+  &.el-tag--info {
+    background-color: #f5f5f5;
+    border-color: #d9d9d9;
+    color: #8c8c8c;
+  }
+}
+
+.port-mappings-form {
+  .port-mapping {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    .port-input {
+      width: 120px;
+    }
+    
+    .protocol-select {
+      width: 90px;
+    }
+    
+    .port-separator {
+      color: var(--text-secondary);
+      font-weight: bold;
+    }
+  }
+  
+  .add-mapping-btn {
+    margin-top: 8px;
+    
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.dialog-form {
+  padding: var(--spacing-large) var(--spacing-huge);
+  
+  .el-form-item {
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .full-width {
+    width: 100%;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-base);
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-base);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: var(--spacing-base);
+    
+    .header-left {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      
+      .search-container {
+        flex-direction: column;
+        
+        .search-input {
+          width: 100%;
+        }
+      }
+    }
+  }
+  
+  .port-mappings-form {
+    .port-mapping {
+      flex-wrap: wrap;
+      
+      .port-input,
+      .protocol-select {
+        width: 100%;
+      }
+      
+      .port-separator {
+        display: none;
+      }
+    }
+  }
+  
+  .dialog-form {
+    padding: var(--spacing-base);
   }
 }
 </style> 
