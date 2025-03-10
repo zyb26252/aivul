@@ -68,6 +68,7 @@ export default {
     // 实例表头
     ip: 'IP地址',
     scene: '场景',
+    target: '靶标',
     empty: '暂无数据',
     total: '共 {total} 条数据'
   },

@@ -68,6 +68,7 @@ export default {
     // Instance Headers
     ip: 'IP Address',
     scene: 'Scene',
+    target: 'Target',
     empty: 'No Data',
     loading: 'Loading',
     total: 'Total {total} items'

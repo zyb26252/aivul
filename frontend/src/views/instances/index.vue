@@ -202,6 +202,7 @@ const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
+const searchQuery = ref('')
 
 const form = ref({
   id: 0,
@@ -221,6 +222,12 @@ const rules = {
   target_id: [
     { required: true, message: t('instances.form.targetRequired'), trigger: 'change' }
   ]
+}
+
+// 搜索处理
+const handleSearch = () => {
+  // TODO: 实现搜索功能
+  console.log('Search query:', searchQuery.value)
 }
 
 // 获取实例列表

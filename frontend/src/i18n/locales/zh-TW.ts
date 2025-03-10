@@ -62,6 +62,7 @@ export default {
     nodeCount: '節點數量',
     ip: 'IP地址',
     scene: '場景',
+    target: '靶標',
     empty: '暫無數據',
     total: '共 {total} 條數據'
   },
