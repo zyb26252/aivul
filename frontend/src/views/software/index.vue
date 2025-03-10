@@ -31,62 +31,82 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          添加软件
+          <el-icon><Plus /></el-icon>添加软件
         </el-button>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="filteredSoftwareList"
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" label="名称" />
-        <el-table-column prop="version" label="版本" />
-        <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        <el-table-column prop="architecture" label="架构" />
-        <el-table-column label="端口">
-          <template #default="{ row }">
-            <el-tag
-              v-for="port in (row.ports || [])"
-              :key="port"
-              class="port-tag"
-            >
-              {{ port }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间">
-          <template #default="{ row }">
-            {{ new Date(row.created_at).toLocaleString() }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleDetail(row)">
-              详情
-            </el-button>
-            <el-button type="primary" link @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="main-content">
+        <el-card class="table-card">
+          <el-table
+            v-loading="loading"
+            :data="filteredSoftwareList"
+            style="width: 100%"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="name" label="名称" min-width="150">
+              <template #default="{ row }">
+                <div class="name-column">
+                  <span class="name">{{ row.name }}</span>
+                  <el-tag size="small" type="info" v-if="row.version">v{{ row.version }}</el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="architecture" label="架构" width="100">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.architecture === 'x86' ? 'success' : 'warning'">
+                  {{ row.architecture }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="端口" width="200">
+              <template #default="{ row }">
+                <el-tag
+                  v-for="port in (row.ports || [])"
+                  :key="port"
+                  size="small"
+                  class="port-tag"
+                >
+                  {{ port }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="创建时间" width="180">
+              <template #default="{ row }">
+                {{ new Date(row.created_at).toLocaleString() }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" link @click="handleDetail(row)">
+                  详情
+                </el-button>
+                <el-button type="primary" link @click="handleEdit(row)">
+                  编辑
+                </el-button>
+                <el-button type="danger" link @click="handleDelete(row)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
 
-      <div v-if="selectedRows.length > 0" class="batch-operation">
-        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
-        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+          <div v-if="selectedRows.length > 0" class="batch-operation">
+            <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+            <el-button type="danger" @click="handleBatchDelete">
+              <el-icon><Delete /></el-icon>批量删除
+            </el-button>
+          </div>
+        </el-card>
       </div>
 
       <!-- 详情对话框 -->
       <el-dialog
         v-model="detailDialogVisible"
         title="软件详情"
-        width="600px"
+        width="700px"
+        destroy-on-close
       >
         <div class="detail-container">
           <div class="detail-item">
@@ -99,7 +119,9 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">架构：</span>
-            <span>{{ detailData.architecture }}</span>
+            <el-tag size="small" :type="detailData.architecture === 'x86' ? 'success' : 'warning'">
+              {{ detailData.architecture }}
+            </el-tag>
           </div>
           <div class="detail-item">
             <span class="detail-label">操作系统：</span>
@@ -111,6 +133,7 @@
               <el-tag
                 v-for="port in (detailData.ports || [])"
                 :key="port"
+                size="small"
                 class="port-tag"
               >
                 {{ port }}
@@ -152,13 +175,15 @@
       <el-dialog
         v-model="dialogVisible"
         :title="dialogType === 'add' ? '添加软件' : '编辑软件'"
-        width="500px"
+        width="600px"
+        destroy-on-close
       >
         <el-form
           ref="formRef"
           :model="form"
           :rules="rules"
           label-width="100px"
+          class="dialog-form"
         >
           <el-form-item label="名称" prop="name">
             <el-input v-model="form.name" placeholder="请输入软件名称" />
@@ -167,7 +192,7 @@
             <el-input v-model="form.version" placeholder="请输入软件版本" />
           </el-form-item>
           <el-form-item label="架构" prop="architecture">
-            <el-select v-model="form.architecture" placeholder="请选择架构">
+            <el-select v-model="form.architecture" placeholder="请选择架构" class="full-width">
               <el-option label="x86" value="x86" />
               <el-option label="arm" value="arm" />
             </el-select>
@@ -176,36 +201,40 @@
             <el-input
               v-model="form.install_command"
               type="textarea"
+              :rows="4"
               placeholder="请输入软件安装命令"
             />
           </el-form-item>
           <el-form-item label="端口" prop="ports">
-            <el-tag
-              v-for="port in form.ports"
-              :key="port"
-              closable
-              class="port-tag"
-              @close="handleRemovePort(port)"
-            >
-              {{ port }}
-            </el-tag>
-            <el-input
-              v-if="portInputVisible"
-              ref="portInputRef"
-              v-model="portInputValue"
-              class="port-input"
-              size="small"
-              @keyup.enter="handleAddPort"
-              @blur="handleAddPort"
-            />
-            <el-button
-              v-else
-              class="button-new-port"
-              size="small"
-              @click="showPortInput"
-            >
-              + 添加端口
-            </el-button>
+            <div class="port-container">
+              <el-tag
+                v-for="port in form.ports"
+                :key="port"
+                closable
+                size="small"
+                class="port-tag"
+                @close="handleRemovePort(port)"
+              >
+                {{ port }}
+              </el-tag>
+              <el-input
+                v-if="portInputVisible"
+                ref="portInputRef"
+                v-model="portInputValue"
+                class="port-input"
+                size="small"
+                @keyup.enter="handleAddPort"
+                @blur="handleAddPort"
+              />
+              <el-button
+                v-else
+                class="button-new-port"
+                size="small"
+                @click="showPortInput"
+              >
+                <el-icon><Plus /></el-icon>添加端口
+              </el-button>
+            </div>
           </el-form-item>
           <el-form-item label="启动命令" prop="start_command">
             <div class="command-container">
@@ -234,7 +263,8 @@
                 size="small"
                 @click="showCommandInput"
               >
-                {{ form.start_command.length === 0 ? '+ 添加主命令' : '+ 添加参数' }}
+                <el-icon><Plus /></el-icon>
+                {{ form.start_command.length === 0 ? '添加主命令' : '添加参数' }}
               </el-button>
             </div>
             <div class="command-tips" v-if="form.start_command.length === 0">
@@ -245,15 +275,18 @@
             <el-input
               v-model="form.description"
               type="textarea"
+              :rows="4"
               placeholder="请输入软件描述"
             />
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-            确定
-          </el-button>
+          <div class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </el-button>
+          </div>
         </template>
       </el-dialog>
     </template>
@@ -263,7 +296,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getSoftware, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
 import type { Software } from '@/types/software'
@@ -553,43 +586,110 @@ onMounted(() => {
 <style lang="scss" scoped>
 @import '@/styles/common.scss';
 
-.architecture-select {
-  margin-left: 12px;
-  width: 120px;
+.page-container {
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
 }
 
-.port-tag {
-  margin-right: 6px;
-  margin-bottom: 4px;
-}
-
-.command-container {
+.page-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-large);
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-large);
+    
+    .page-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: var(--spacing-base);
+      
+      .search-input {
+        width: 320px;
+      }
+      
+      .architecture-select {
+        width: 120px;
+      }
+    }
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
 }
 
-.command-main {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: white;
+.main-content {
+  background: var(--bg-lighter);
+  border-radius: var(--border-radius-base);
+  
+  .table-card {
+    background: transparent;
+    border: none;
+    
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
 }
 
-.command-input {
-  width: 200px;
-  margin-left: 8px;
+.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: var(--bg-light);
+  --el-table-row-hover-bg-color: var(--primary-light);
+  
+  .port-tag {
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+}
+
+.batch-operation {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-base);
+  margin-top: var(--spacing-base);
+  padding: var(--spacing-base);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-base);
+  
+  .selected-count {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
 }
 
 .detail-container {
-  padding: 20px;
+  padding: var(--spacing-large);
   
   .detail-item {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
     
     .detail-label {
       font-weight: 500;
-      color: var(--el-text-color-regular);
+      color: var(--text-regular);
       width: 100px;
       display: inline-block;
       vertical-align: top;
@@ -598,6 +698,11 @@ onMounted(() => {
     .detail-content {
       display: inline-block;
       width: calc(100% - 110px);
+      
+      .port-tag {
+        margin-right: 8px;
+        margin-bottom: 8px;
+      }
     }
     
     .detail-text {
@@ -605,26 +710,104 @@ onMounted(() => {
       white-space: pre-wrap;
       word-break: break-all;
       font-family: monospace;
-      color: var(--el-text-color-regular);
-      background-color: var(--el-fill-color-light);
-      padding: 12px;
-      border-radius: 4px;
+      color: var(--text-regular);
+      background: var(--bg-light);
+      padding: var(--spacing-base);
+      border-radius: var(--border-radius-base);
+      border: 1px solid var(--border-light);
     }
   }
 }
 
-.batch-operation {
+.command-container {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
   
-  .selected-count {
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
+  .command-main {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+  }
+}
+
+.command-input {
+  width: 200px;
+  margin-left: 8px;
+}
+
+.command-tips {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.dialog-form {
+  padding: var(--spacing-large) var(--spacing-huge);
+  
+  .el-form-item {
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .full-width {
+    width: 100%;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-base);
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-base);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: var(--spacing-base);
+    
+    .header-left {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      
+      .search-container {
+        flex-direction: column;
+        
+        .search-input,
+        .architecture-select {
+          width: 100%;
+        }
+      }
+    }
+  }
+  
+  .detail-container {
+    padding: var(--spacing-base);
+    
+    .detail-item {
+      .detail-label {
+        width: 100%;
+        margin-bottom: var(--spacing-mini);
+      }
+      
+      .detail-content {
+        width: 100%;
+      }
+    }
+  }
+  
+  .dialog-form {
+    padding: var(--spacing-base);
   }
 }
 </style> 
