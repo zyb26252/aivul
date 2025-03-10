@@ -231,59 +231,202 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .dashboard {
-  padding: 20px;
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
+  
+  .el-row {
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.stat-card {
+  background: #FFFFFF;
+  border-radius: var(--border-radius-base);
+  transition: var(--transition-base);
+  height: 108px;
+  border: 1px solid var(--border-light);
+  
+  &:hover {
+    box-shadow: var(--shadow-base);
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-light);
+    
+    span {
+      font-size: 14px;
+      color: var(--text-regular);
+    }
+    
+    .el-icon {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+  }
+  
+  .card-value {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    padding: 16px;
+  }
+}
+
+.resource-usage {
+  padding: 24px;
+  
+  .usage-item {
+    margin-bottom: 24px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-regular);
+      font-size: 14px;
+    }
+    
+    .el-progress {
+      margin-top: 4px;
+      
+      :deep(.el-progress-bar__outer) {
+        background-color: var(--bg-light);
+        border-radius: 4px;
+      }
+      
+      :deep(.el-progress-bar__inner) {
+        border-radius: 4px;
+        transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+      }
+    }
+  }
+}
+
+.el-card {
+  border: 1px solid var(--border-light);
+  transition: var(--transition-base);
+  margin-bottom: var(--spacing-large);
+  background: #FFFFFF;
+  
+  &:hover {
+    box-shadow: var(--shadow-base);
+  }
+  
+  :deep(.el-card__header) {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-light);
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      span {
+        font-size: 16px;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.el-timeline {
+  padding: 24px;
+  
+  .el-timeline-item {
+    padding-bottom: 20px;
+    
+    &:last-child {
+      padding-bottom: 0;
+    }
+    
+    :deep(.el-timeline-item__wrapper) {
+      padding-left: 16px;
+      
+      .el-timeline-item__timestamp {
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 20px;
+        margin-bottom: 4px;
+      }
+      
+      .el-timeline-item__content {
+        color: var(--text-regular);
+        font-size: 14px;
+        line-height: 22px;
+      }
+    }
+    
+    :deep(.el-timeline-item__tail) {
+      border-left: 2px solid var(--border-light);
+    }
+  }
+}
+
+:deep(.el-timeline-item__node) {
+  background-color: var(--primary-color);
+  width: 8px;
+  height: 8px;
+}
+
+:deep(.el-timeline-item__node--normal) {
+  width: 8px;
+  height: 8px;
+}
+
+// 骨架屏样式
+.el-skeleton {
+  padding: 24px;
 }
 
 .mt-20 {
   margin-top: 20px;
 }
 
-.stat-card {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .dashboard {
+    padding: var(--spacing-base);
   }
-
-  .card-value {
-    font-size: 28px;
-    font-weight: bold;
-    color: #409EFF;
-    text-align: center;
-    margin-top: 10px;
-  }
-}
-
-.resource-usage {
-  .usage-item {
-    margin-bottom: 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    span {
-      display: block;
-      margin-bottom: 5px;
-      color: #606266;
-    }
-  }
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   
-  span {
-    font-size: 16px;
-    font-weight: bold;
+  .stat-card {
+    height: auto;
+    margin-bottom: var(--spacing-base);
+    
+    .card-value {
+      font-size: 24px;
+      padding: 12px;
+    }
   }
-}
-
-:deep(.el-skeleton-item) {
-  background-color: var(--el-fill-color-light);
+  
+  .el-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  .el-col {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  .resource-usage,
+  .el-timeline {
+    padding: 16px;
+  }
 }
 </style> 
