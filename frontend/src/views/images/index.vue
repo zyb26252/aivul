@@ -31,55 +31,75 @@
           </div>
         </div>
         <el-button type="primary" @click="handleAdd">
-          添加镜像
+          <el-icon><Plus /></el-icon>添加镜像
         </el-button>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="images"
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" label="镜像名称" />
-        <el-table-column prop="registry_path" label="镜像路径" />
-        <el-table-column prop="architecture" label="架构" />
-        <el-table-column prop="version" label="版本" />
-        <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        <el-table-column prop="created_at" label="创建时间">
-          <template #default="{ row }">
-            {{ new Date(row.created_at).toLocaleString() }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="main-content">
+        <el-card class="table-card">
+          <el-table
+            v-loading="loading"
+            :data="images"
+            style="width: 100%"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="name" label="镜像名称" min-width="150">
+              <template #default="{ row }">
+                <div class="name-column">
+                  <span class="name">{{ row.name }}</span>
+                  <el-tag size="small" type="info" v-if="row.version">v{{ row.version }}</el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="registry_path" label="镜像路径" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="architecture" label="架构" width="100">
+              <template #default="{ row }">
+                <el-tag size="small" :type="row.architecture === 'x86' ? 'success' : 'warning'">
+                  {{ row.architecture }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="created_at" label="创建时间" width="180">
+              <template #default="{ row }">
+                {{ new Date(row.created_at).toLocaleString() }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="150" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" link @click="handleEdit(row)">
+                  编辑
+                </el-button>
+                <el-button type="danger" link @click="handleDelete(row)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
 
-      <div v-if="selectedRows.length > 0" class="batch-operation">
-        <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
-        <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+          <div v-if="selectedRows.length > 0" class="batch-operation">
+            <span class="selected-count">已选择 {{ selectedRows.length }} 项</span>
+            <el-button type="danger" @click="handleBatchDelete">
+              <el-icon><Delete /></el-icon>批量删除
+            </el-button>
+          </div>
+        </el-card>
       </div>
 
       <!-- 添加/编辑对话框 -->
       <el-dialog
         v-model="dialogVisible"
         :title="dialogType === 'add' ? '添加镜像' : '编辑镜像'"
-        width="500px"
+        width="600px"
+        destroy-on-close
       >
         <el-form
           ref="formRef"
           :model="form"
           :rules="rules"
           label-width="100px"
+          class="dialog-form"
         >
           <el-form-item label="名称" prop="name">
             <el-input v-model="form.name" placeholder="请输入镜像名称" />
@@ -88,7 +108,7 @@
             <el-input v-model="form.registry_path" placeholder="请输入镜像路径" />
           </el-form-item>
           <el-form-item label="架构" prop="architecture">
-            <el-select v-model="form.architecture" placeholder="请选择架构">
+            <el-select v-model="form.architecture" placeholder="请选择架构" class="full-width">
               <el-option label="x86" value="x86" />
               <el-option label="arm" value="arm" />
             </el-select>
@@ -100,15 +120,18 @@
             <el-input
               v-model="form.description"
               type="textarea"
+              :rows="4"
               placeholder="请输入镜像描述"
             />
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-            确定
-          </el-button>
+          <div class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </el-button>
+          </div>
         </template>
       </el-dialog>
     </template>
@@ -118,7 +141,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { getImages, createImage, updateImage, deleteImage } from '@/api/image'
 import type { Image } from '@/types/image'
@@ -283,27 +306,78 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.architecture-select {
-  margin-left: 12px;
-  width: 120px;
+.page-container {
+  padding: var(--spacing-large);
+  background: var(--bg-color);
+  min-height: calc(100vh - 60px);
 }
 
-.image-info {
+.page-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-large);
   
-  .info-item {
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-large);
+    
+    .page-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .search-container {
+      display: flex;
+      gap: var(--spacing-base);
+      
+      .search-input {
+        width: 320px;
+      }
+      
+      .architecture-select {
+        width: 120px;
+      }
+    }
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.main-content {
+  background: var(--bg-lighter);
+  border-radius: var(--border-radius-base);
+  
+  .table-card {
+    background: transparent;
+    border: none;
+    
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
+}
+
+.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: var(--bg-light);
+  --el-table-row-hover-bg-color: var(--primary-light);
+  
+  .name-column {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--el-text-color-regular);
-    font-size: 13px;
     
-    .label {
-      color: var(--el-text-color-secondary);
+    .name {
+      color: var(--text-primary);
+      font-weight: 500;
     }
   }
 }
@@ -311,21 +385,74 @@ onMounted(() => {
 .batch-operation {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
+  gap: var(--spacing-base);
+  margin-top: var(--spacing-base);
+  padding: var(--spacing-base);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-base);
   
   .selected-count {
-    color: var(--el-text-color-secondary);
+    color: var(--text-secondary);
     font-size: 14px;
+  }
+  
+  .el-button {
+    .el-icon {
+      margin-right: 4px;
+    }
   }
 }
 
-.operation-group {
+.dialog-form {
+  padding: var(--spacing-large) var(--spacing-huge);
+  
+  .el-form-item {
+    margin-bottom: var(--spacing-large);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .full-width {
+    width: 100%;
+  }
+}
+
+.dialog-footer {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  justify-content: flex-end;
+  gap: var(--spacing-base);
+}
+
+// 响应式布局
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-base);
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: var(--spacing-base);
+    
+    .header-left {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      
+      .search-container {
+        flex-direction: column;
+        
+        .search-input,
+        .architecture-select {
+          width: 100%;
+        }
+      }
+    }
+  }
+  
+  .dialog-form {
+    padding: var(--spacing-base);
+  }
 }
 </style> 
