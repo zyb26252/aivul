@@ -369,7 +369,7 @@
         width="800px"
         class="dockerfile-dialog"
       >
-        <div class="dockerfile-container">
+        <div class="dockerfile-container dockerfile-view-container">
           <div class="dockerfile-column full-width">
             <div class="editor-wrapper">
               <MonacoEditor
@@ -1166,6 +1166,62 @@ onMounted(() => {
     padding-left: 2em;
     margin-top: 0;
     margin-bottom: 16px;
+  }
+}
+
+.dockerfile-dialog {
+  :deep(.el-dialog) {
+    --el-dialog-margin-top: 5vh;
+    height: 80vh;
+    margin: var(--el-dialog-margin-top) auto 0;
+    display: flex;
+    flex-direction: column;
+    
+    .el-dialog__body {
+      flex: 1;
+      overflow-y: hidden;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .el-dialog__header {
+      margin: 0;
+      padding: 20px 20px 0;
+    }
+
+    .el-dialog__footer {
+      margin: 0;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--el-border-color-light);
+    }
+  }
+  
+  .dockerfile-view-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    
+    .dockerfile-column {
+      height: 100%;
+      
+      .editor-wrapper {
+        height: 100%;
+        
+        :deep(.monaco-editor) {
+          height: 100% !important;
+          
+          .monaco-scrollable-element {
+            height: 100% !important;
+          }
+          
+          .editor-scrollable {
+            height: 100% !important;
+          }
+        }
+      }
+    }
   }
 }
 </style> 
