@@ -3,6 +3,9 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { getConfig } from './config'
 
+export const BASE_API_PATH = '/api/v1'
+export const getApiUrl = (path: string) => `${BASE_API_PATH}${path}`
+
 const service = axios.create({
   baseURL: getConfig().apiUrl,
   timeout: 5000,

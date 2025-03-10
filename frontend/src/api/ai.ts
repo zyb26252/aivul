@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 import type { Image } from '@/types/image'
 import type { Software } from '@/types/software'
 
@@ -51,8 +52,8 @@ export const generateDescription = async (image: Image, softwareList: Software[]
       }))
     }
     
-    const response = await request.post<AIResponse>('/api/v1/ai/generate_description', request_data)
-    return response.result
+    const response = await request.post<AIResponse>(getApiUrl('/ai/generate_description'), request_data)
+    return response.data.result
   } catch (error) {
     console.error('Generate description error:', error)
     throw error
@@ -65,8 +66,8 @@ export const optimizeDockerfile = async (dockerfile: string): Promise<string> =>
       dockerfile
     }
     
-    const response = await request.post<AIResponse>('/api/v1/ai/optimize_dockerfile', request_data)
-    return response.result
+    const response = await request.post<AIResponse>(getApiUrl('/ai/optimize_dockerfile'), request_data)
+    return response.data.result
   } catch (error) {
     console.error('Optimize Dockerfile error:', error)
     throw error
@@ -88,8 +89,8 @@ export const checkCompatibility = async (image: Image, softwareList: Software[])
       }))
     }
     
-    const response = await request.post<AIResponse>('/api/v1/ai/check_compatibility', request_data)
-    return response.result
+    const response = await request.post<AIResponse>(getApiUrl('/ai/check_compatibility'), request_data)
+    return response.data.result
   } catch (error) {
     console.error('Check compatibility error:', error)
     throw error

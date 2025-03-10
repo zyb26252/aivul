@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 
 export interface Activity {
   id: number
@@ -24,7 +25,7 @@ export interface DashboardStats {
 
 export const getDashboardStats = () => {
   return request<DashboardStats>({
-    url: '/api/v1/dashboard/stats',
+    url: getApiUrl('/dashboard/stats'),
     method: 'get'
   })
 } 

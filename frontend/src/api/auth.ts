@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getApiUrl } from '@/utils/request'
 
 export interface LoginData {
   username: string
@@ -22,7 +23,7 @@ export const login = (data: LoginData) => {
   formData.append('password', data.password)
   
   return request<LoginResponse>({
-    url: '/api/v1/auth/login',
+    url: getApiUrl('/auth/login'),
     method: 'post',
     data: formData,
     headers: {
@@ -33,7 +34,7 @@ export const login = (data: LoginData) => {
 
 export const register = (data: RegisterData) => {
   return request({
-    url: '/api/v1/auth/register',
+    url: getApiUrl('/auth/register'),
     method: 'post',
     data
   })
@@ -41,7 +42,7 @@ export const register = (data: RegisterData) => {
 
 export const getUserInfo = () => {
   return request({
-    url: '/api/v1/auth/me',
+    url: getApiUrl('/auth/me'),
     method: 'get'
   })
 } 
