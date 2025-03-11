@@ -1467,14 +1467,25 @@ const initGraph = async () => {
 
         // 清除所有边的高亮效果
         graph?.getEdges().forEach(edge => {
-          // 只有未被选中的边才重置样式
-          if (!edge.getData()?.selected) {
+          const edgeData = edge.getData()
+          // 清除选中状态
+          edge.setData({
+            ...edgeData,
+            selected: false
+          })
+          
+          // 恢复边的样式，保留自定义样式
+          if (edgeData?.customStyle) {
+            // 如果有自定义样式，使用自定义样式
+            edge.setAttrs(edgeData.customAttrs)
+          } else {
+            // 否则使用默认样式
             edge.setAttrs({
               line: {
-                ...edge.getAttrs().line,
                 stroke: '#333',
                 strokeWidth: 1,
-                strokeDasharray: ''
+                strokeDasharray: '',  // 使用空字符串表示实线
+                targetMarker: null    // 移除箭头
               }
             })
           }
@@ -1633,32 +1644,26 @@ const initGraph = async () => {
           }
         })
 
-        // 保持选中边的高亮，只清除未选中的边
+        // 保持边的自定义样式，只清除选中状态
         graph?.getEdges().forEach(edge => {
           const edgeData = edge.getData()
-          if (!edgeData?.selected) {
+          
+          // 清除选中状态
+          edge.setData({
+            ...edgeData,
+            selected: false
+          })
+          
+          // 保留自定义样式
+          if (edgeData?.customStyle) {
+            edge.setAttrs(edgeData.customAttrs)
+          } else {
             edge.setAttrs({
               line: {
-                ...edge.getAttrs().line,
                 stroke: '#333',
                 strokeWidth: 1,
-                strokeDasharray: ''
-              }
-            })
-          } else {
-            // 确保选中的边保持其样式
-            const style = edgeData.style || {
-              stroke: '#1890ff',
-              strokeWidth: 2,
-              strokeDasharray: '5 5'
-            }
-            
-            edge.setAttrs({
-              line: {
-                ...edge.getAttrs().line,
-                stroke: style.stroke,
-                strokeWidth: style.strokeWidth,
-                strokeDasharray: style.strokeDasharray
+                strokeDasharray: '',
+                targetMarker: null
               }
             })
           }
