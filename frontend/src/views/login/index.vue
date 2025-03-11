@@ -1,49 +1,62 @@
 <template>
   <div class="login-container">
+    <ParticleBackground />
+    <div class="page-title">
+      <h1>AI驱动的网络靶场自动化构建引擎</h1>
+      <p>Automated Cyber Range Construction Engine</p>
+    </div>
     <div class="login-content">
       <div class="login-left">
         <img src="/images/login-bg.svg" alt="Login Background" class="login-image" />
-        <div class="login-title">
-          <h1>AI驱动的网络靶场自动化构建引擎</h1>
-          <p>Automated Cyber Range Construction Engine</p>
-        </div>
       </div>
       <div class="login-right">
-        <el-card class="login-card">
-          <template #header>
-            <h2>登录</h2>
-          </template>
-          <el-form
-            ref="formRef"
-            :model="form"
-            :rules="rules"
-            label-width="80px"
-          >
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="form.username" placeholder="请输入用户名" />
-            </el-form-item>
-            <el-form-item label="密码" prop="password">
-              <el-input
-                v-model="form.password"
-                type="password"
-                placeholder="请输入密码"
-                @keyup.enter="handleSubmit"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :loading="loading" @click="handleSubmit">
-                登录
-              </el-button>
-              <el-button @click="$router.push('/register')">
-                注册
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
+        <div class="login-form-wrapper">
+          <el-card class="login-card">
+            <template #header>
+              <div class="card-header">
+                <h2>登录</h2>
+                <p class="subtitle">欢迎回来！请登录您的账号</p>
+              </div>
+            </template>
+            <el-form
+              ref="formRef"
+              :model="form"
+              :rules="rules"
+              class="login-form"
+            >
+              <el-form-item prop="username">
+                <el-input 
+                  v-model="form.username" 
+                  placeholder="请输入用户名"
+                  prefix-icon="User"
+                />
+              </el-form-item>
+              <el-form-item prop="password">
+                <el-input
+                  v-model="form.password"
+                  type="password"
+                  placeholder="请输入密码"
+                  prefix-icon="Lock"
+                  @keyup.enter="handleSubmit"
+                />
+              </el-form-item>
+              <div class="form-actions">
+                <el-button 
+                  type="primary" 
+                  class="submit-btn" 
+                  :loading="loading" 
+                  @click="handleSubmit"
+                >
+                  {{ loading ? '登录中...' : '登录' }}
+                </el-button>
+              </div>
+            </el-form>
+          </el-card>
+        </div>
       </div>
     </div>
     <div class="copyright">
-      Copyright © 2024 AI VUL. All rights reserved.
+      Copyright © {{ new Date().getFullYear() }} AI VUL. All rights reserved.
     </div>
   </div>
 </template>
@@ -53,7 +66,9 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { login } from '@/api/auth'
+import ParticleBackground from '@/components/ParticleBackground.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -83,15 +98,13 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        // 确保表单数据格式正确
         const loginData = {
           username: form.value.username.trim(),
           password: form.value.password
         }
         const res = await login(loginData)
-        localStorage.setItem('token', res.access_token)
+        localStorage.setItem('token', res.data.access_token)
         ElMessage.success('登录成功')
-        // 获取重定向地址
         const redirect = route.query.redirect as string
         router.push(redirect || '/')
       } catch (error) {
@@ -110,9 +123,51 @@ const handleSubmit = async () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #F0F2F5;
+  background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
   position: relative;
   overflow: hidden;
+}
+
+.page-title {
+  position: absolute;
+  top: var(--spacing-huge);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1;
+  width: 100%;
+  padding: 0 var(--spacing-huge);
+  animation: fadeInDown 0.8s ease-out;
+  
+  h1 {
+    color: white;
+    font-size: 36px;
+    margin: 0 0 var(--spacing-base);
+    font-weight: 600;
+    line-height: 1.35;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    margin: 0;
+    line-height: 1.5;
+  }
+  
+  @media screen and (max-width: 1200px) {
+    position: relative;
+    top: 0;
+    padding: var(--spacing-huge) var(--spacing-large);
+    
+    h1 {
+      font-size: 28px;
+    }
+    
+    p {
+      font-size: 16px;
+    }
+  }
 }
 
 .login-content {
@@ -120,9 +175,14 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: var(--spacing-huge);
+  padding: calc(var(--spacing-huge) * 2) var(--spacing-huge) var(--spacing-huge);
   position: relative;
   z-index: 1;
+  
+  @media screen and (max-width: 1200px) {
+    padding: var(--spacing-large);
+    flex-direction: column;
+  }
 }
 
 .login-left {
@@ -133,54 +193,51 @@ const handleSubmit = async () => {
   align-items: center;
   padding: var(--spacing-huge);
   
-  .login-title {
-    text-align: center;
-    margin-bottom: var(--spacing-huge);
-    
-    h1 {
-      color: var(--text-primary);
-      font-size: 33px;
-      margin: 0 0 var(--spacing-base);
-      font-weight: 600;
-      line-height: 1.35;
-    }
-    
-    p {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin: 0;
-      line-height: 1.5;
-    }
-  }
-  
   .login-image {
     width: 80%;
     max-width: 400px;
     height: auto;
-    margin-bottom: var(--spacing-huge);
+    margin-bottom: 0;
+    animation: float 6s ease-in-out infinite;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
   }
 }
 
 .login-right {
   width: 400px;
   padding: var(--spacing-huge);
+  
+  .login-form-wrapper {
+    animation: fadeInRight 0.8s ease-out;
+  }
 }
 
 .login-card {
-  background: #FFFFFF;
-  border-radius: var(--border-radius-base);
-  box-shadow: var(--shadow-base);
-  padding: var(--spacing-large);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-large);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   
-  h2 {
-    font-size: 24px;
-    color: var(--text-primary);
+  .card-header {
     text-align: center;
-    margin: 0 0 var(--spacing-large);
-    font-weight: 600;
+    margin-bottom: var(--spacing-base);
+    
+    h2 {
+      font-size: 24px;
+      color: var(--text-primary);
+      margin: 0 0 var(--spacing-mini);
+      font-weight: 600;
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 0;
+    }
   }
   
-  .el-form {
+  .login-form {
     .el-form-item {
       margin-bottom: var(--spacing-large);
       
@@ -190,80 +247,52 @@ const handleSubmit = async () => {
     }
     
     .el-input {
-      height: 40px;
+      --el-input-hover-border-color: var(--primary-color);
+      --el-input-focus-border-color: var(--primary-color);
       
       :deep(.el-input__wrapper) {
-        padding: 4px 11px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: var(--transition-base);
         
-        .el-input__inner {
-          height: 32px;
-          font-size: 14px;
-          
-          &::placeholder {
-            color: var(--text-placeholder);
-          }
+        &:hover {
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        &.is-focus {
+          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
         }
       }
     }
+  }
+  
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-large);
+  }
+  
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-base);
     
     .submit-btn {
       width: 100%;
       height: 40px;
       font-size: 16px;
-      font-weight: 400;
-      margin-top: var(--spacing-base);
-    }
-  }
-  
-  .login-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--spacing-base);
-    
-    .remember-me {
-      color: var(--text-regular);
-    }
-    
-    .forgot-password {
-      color: var(--primary-color);
-      text-decoration: none;
+      font-weight: 500;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+      border: none;
+      transition: var(--transition-bounce);
       
       &:hover {
-        color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
       }
-    }
-  }
-  
-  .other-login {
-    margin-top: var(--spacing-large);
-    text-align: center;
-    
-    .divider {
-      color: var(--text-secondary);
-      margin: var(--spacing-base) 0;
-    }
-    
-    .login-methods {
-      display: flex;
-      justify-content: center;
-      gap: var(--spacing-base);
       
-      .method-item {
-        width: 40px;
-        height: 40px;
-        border-radius: var(--border-radius-circle);
-        border: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: var(--transition-base);
-        
-        &:hover {
-          border-color: var(--primary-color);
-          color: var(--primary-color);
-        }
+      &:active {
+        transform: translateY(0);
       }
     }
   }
@@ -272,17 +301,56 @@ const handleSubmit = async () => {
 .copyright {
   text-align: center;
   padding: var(--spacing-base);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 // 响应式布局
 @media screen and (max-width: 1200px) {
-  .login-content {
-    padding: var(--spacing-large);
-    flex-direction: column;
-  }
-  
   .login-left {
     padding: var(--spacing-large);
     margin-bottom: var(--spacing-huge);
