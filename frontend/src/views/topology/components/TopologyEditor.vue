@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watchEffect, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -165,6 +165,8 @@ import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import containerIcon from '@/assets/icons/container.svg'
 import switchIcon from '@/assets/icons/switch.svg'
+import { getScene, updateScene } from '@/api/scene'
+import type { Scene } from '@/types/scene'
 
 const { t } = useI18n()
 
@@ -2194,6 +2196,58 @@ const setupGraphListeners = () => {
   graph.on('cell:added', updateCounts)
   graph.on('cell:removed', updateCounts)
   graph.on('node:change:data', updateCounts)
+}
+
+// 在 createNode 函数中修改图标引用
+const createNode = (type: string, x: number, y: number) => {
+  return graph.value?.addNode({
+    x,
+    y,
+    width: 40,
+    height: 60,
+    shape: 'rect',
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'image',
+        selector: 'image',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: '#fff',
+        stroke: 'none',
+        refWidth: '100%',
+        refHeight: '100%',
+      },
+      image: {
+        'xlink:href': type === 'container' ? containerIcon : switchIcon,
+        width: 32,
+        height: 32,
+        x: 4,
+        y: 4,
+      },
+      label: {
+        text: type === 'container' ? '容器' : '交换机',
+        fontSize: 12,
+        fill: '#333',
+        refX: 0.5,
+        refY: 0.8,
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+      },
+    },
+    data: {
+      type
+    }
+  })
 }
 </script>
 
