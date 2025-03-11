@@ -1,0 +1,1 @@
+nohup uvicorn main:app --reload --host 0.0.0.0 --port 8000 --ssl-keyfile /www/server/panel/vhost/cert/aivul.love/privkey.pem --ssl-certfile /www/server/panel/vhost/cert/aivul.love/fullchain.pem  > uvicorn.log 2>&1 &

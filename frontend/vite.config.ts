@@ -45,7 +45,13 @@ export default defineConfig({
   // 构建配置
   build: {
     target: 'es2015',
-    minify: 'esbuild',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
     cssCodeSplit: true,
     sourcemap: false,
     reportCompressedSize: false,
@@ -54,8 +60,7 @@ export default defineConfig({
         manualChunks: {
           'vendor': ['vue', 'vue-router', 'pinia'],
           'element-plus': ['element-plus'],
-          'antv': ['@antv/x6', '@antv/x6-vue-shape'],
-          'i18n': ['vue-i18n']
+          'echarts': ['echarts']
         }
       }
     },
