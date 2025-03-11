@@ -38,7 +38,7 @@
         <el-tooltip :content="t('scene.topology.editor.group.create')" placement="bottom">
           <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
             <el-icon><FolderAdd /></el-icon>
-            {{ t('scene.topology.editor.group.create') }}
+            {{ isGrouping ? `完成创建(${groupingNodes.length})` : t('scene.topology.editor.group.create') }}
           </el-button>
         </el-tooltip>
         <el-tooltip :content="t('scene.topology.editor.group.delete')" placement="bottom">
