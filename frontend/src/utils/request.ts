@@ -4,11 +4,24 @@ import router from '@/router'
 import { getConfig } from './config'
 import { API_CONFIG } from '@/config'
 
+declare global {
+  interface Window {
+    APP_CONFIG: {
+      API_URL: string
+      API_TIMEOUT: number
+      appTitle: string
+      appDescription: string
+    }
+  }
+}
+
 export const getApiUrl = (path: string) => `${API_CONFIG.PATH}${path}`
 
+// 创建 axios 实例
 const service = axios.create({
-  baseURL: getConfig().apiUrl,
-  timeout: API_CONFIG.TIMEOUT,
+  // 从运行时配置获取 baseURL
+  baseURL: window.APP_CONFIG?.API_URL || 'http://localhost:8000',
+  timeout: window.APP_CONFIG?.API_TIMEOUT || 30000,
   headers: {
     'Content-Type': 'application/json'
   }

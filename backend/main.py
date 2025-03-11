@@ -76,7 +76,7 @@ except Exception as e:
 # 设置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://8.210.223.197:3000", "http://localhost:3000"],
+    allow_origins=["http://8.210.223.197:3000", "http://localhost:3000", "http://aivul.love"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
