@@ -1,10 +1,12 @@
-<!-- Monaco Editor 组件 -->
+<!-- Monaco Editor 组件 - 支持双列显示和Dockerfile优化 -->
 <template>
-  <div ref="editorContainer" class="monaco-editor-container"></div>
+  <div class="monaco-editor-wrapper">
+    <div ref="editorContainer" class="monaco-editor-container"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 const props = defineProps<{
   modelValue: string
@@ -44,6 +46,21 @@ const loadMonaco = () => {
     }
     document.body.appendChild(script)
   })
+}
+
+// 获取编辑器配置
+const getEditorOptions = () => {
+  return {
+    language: props.language || 'dockerfile',
+    theme: props.theme || 'dockerfile-dark',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    lineNumbers: 'on',
+    renderLineHighlight: 'all',
+    automaticLayout: true,
+    readOnly: props.readOnly || false,
+    ...props.options
+  }
 }
 
 // 初始化编辑器
@@ -99,28 +116,23 @@ const initMonaco = async () => {
     colors: {}
   })
 
+  // 获取编辑器选项
+  const editorOptions = getEditorOptions()
+
   // 创建编辑器实例
   editor = monaco.editor.create(editorContainer.value, {
     value: props.modelValue,
-    language: props.language || 'dockerfile',
-    theme: props.theme || 'dockerfile-dark',
-    readOnly: props.readOnly || false,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    lineNumbers: 'on',
-    renderLineHighlight: 'all',
-    automaticLayout: true,
-    ...props.options
+    ...editorOptions
   })
 
-  // 监听内容变化
+  // 监听编辑器内容变化
   editor.onDidChangeModelContent(() => {
     const value = editor?.getValue() || ''
     emit('update:modelValue', value)
   })
 }
 
-// 监听 value 变化
+// 监听 modelValue 变化
 watch(() => props.modelValue, (newValue) => {
   if (editor && newValue !== editor.getValue()) {
     editor.setValue(newValue)
@@ -141,11 +153,17 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.monaco-editor-container {
+.monaco-editor-wrapper {
   width: 100%;
-  height: 400px;
-  border: 1px solid var(--el-border-color);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.monaco-editor-container {
+  height: 100%;
   border-radius: 4px;
+  flex: 1;
 }
 </style>
 

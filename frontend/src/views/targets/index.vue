@@ -256,33 +256,36 @@
           <div class="dockerfile-container">
             <div class="dockerfile-column" :class="{ 'full-width': !optimizedDockerfile }">
               <div class="dockerfile-title">
-                <span>原始版本</span>
+                <span>{{ optimizedDockerfile ? '原始版本' : 'Dockerfile' }}</span>
+                <!-- 优化按钮仅在原始视图中显示 -->
                 <el-button
                   v-if="!optimizedDockerfile"
                   type="primary"
                   link
                   :loading="optimizingLoading"
-                  @click="handleOptimizeDockerfile"
+                  @click="handleMonacoOptimize(form.dockerfile)"
                 >
-                  优化 Dockerfile
+                  优化Dockerfile
                 </el-button>
               </div>
               <div class="editor-wrapper">
                 <MonacoEditor
                   v-model="form.dockerfile"
                   language="dockerfile"
+                  :readOnly="!!optimizedDockerfile"
                   :options="{
                     lineNumbers: 'on',
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
-                    readOnly: optimizedDockerfile !== '',
                     wordWrap: 'on',
                     theme: 'vs'
                   }"
                 />
               </div>
             </div>
+            
+            <!-- 优化后的Dockerfile列 -->
             <div v-if="optimizedDockerfile" class="dockerfile-column">
               <div class="dockerfile-title">
                 <span>优化版本</span>
@@ -290,7 +293,7 @@
                   type="primary"
                   link
                   :loading="optimizingLoading"
-                  @click="handleOptimizeDockerfile"
+                  @click="handleMonacoOptimize(form.dockerfile)"
                 >
                   重新优化
                 </el-button>
@@ -310,17 +313,6 @@
                 />
               </div>
             </div>
-          </div>
-
-          <div class="dockerfile-footer">
-            <el-button
-              type="primary"
-              link
-              :loading="optimizingLoading"
-              @click="handleOptimizeDockerfile"
-            >
-              优化 Dockerfile
-            </el-button>
           </div>
         </el-form>
 
@@ -399,7 +391,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { getTargets, createTarget, updateTarget, deleteTarget, generateDockerfile } from '@/api/target'
@@ -891,42 +883,52 @@ const handleBatchDelete = async () => {
 const optimizedDockerfile = ref('')
 const optimizingLoading = ref(false)
 
-// 处理 Dockerfile 优化
-const handleOptimizeDockerfile = async () => {
-  if (!form.value.dockerfile) {
-    ElMessage.warning('请先生成 Dockerfile')
+// 处理双列模式变化
+const handleDualModeChange = (isDual: boolean) => {
+  // 如果模式变为单列，清空优化后的Dockerfile
+  if (!isDual) {
+    optimizedDockerfile.value = ''
+  }
+}
+
+// 处理Monaco编辑器的优化请求
+const handleMonacoOptimize = async (dockerfile: string) => {
+  if (!dockerfile) {
+    ElMessage.warning('请先生成Dockerfile')
     return
   }
-
+  
   optimizingLoading.value = true
   try {
-    const response = await optimizeDockerfile(form.value.dockerfile)
+    const response = await optimizeDockerfile(dockerfile)
     
     // 解析返回数据
     let optimizedText = ''
     
     // 判断响应是否包含result
     if (response && response.result !== undefined) {
-      // 直接使用响应中的result
       optimizedText = response.result
     } else if (response && response.data && response.data.result) {
-      // 使用响应的data.result属性
       optimizedText = response.data.result
     } else if (typeof response === 'string') {
-      // 直接使用字符串响应
       optimizedText = response
     }
     
     if (optimizedText) {
+      // 设置优化后的内容
       optimizedDockerfile.value = optimizedText
-      form.value.optimized_dockerfile = optimizedText // 将优化后的版本保存到表单中
-      ElMessage.success('Dockerfile 优化成功')
+      form.value.optimized_dockerfile = optimizedText
+      
+      // 确保更新UI
+      await nextTick()
+      
+      ElMessage.success('Dockerfile优化成功')
     } else {
       ElMessage.warning('优化失败，请稍后重试')
     }
   } catch (error) {
-    console.error('优化 Dockerfile 时发生错误:', error)
-    ElMessage.error('优化 Dockerfile 时发生错误')
+    console.error('优化Dockerfile时发生错误:', error)
+    ElMessage.error('优化Dockerfile时发生错误')
   } finally {
     optimizingLoading.value = false
   }
@@ -1135,48 +1137,45 @@ onMounted(() => {
 
 .dockerfile-container {
   display: flex;
-  gap: var(--spacing-large);
-  margin: var(--spacing-base) 0;
-  
-  .dockerfile-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-base);
-    
-    &.full-width {
-      width: 100%;
-    }
-    
-    .dockerfile-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 var(--spacing-base);
-      
-      span {
-        font-weight: 500;
-        color: var(--text-primary);
-      }
-    }
-    
-    .editor-wrapper {
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-base);
-      overflow: hidden;
-      height: 500px;
-    }
-  }
+  gap: 16px;
+  height: 600px;
 }
 
-.dockerfile-header,
-.dockerfile-footer {
-  padding: var(--spacing-base) var(--spacing-huge);
-  border-bottom: 1px solid var(--border-light);
-  
-  &:last-child {
-    border-bottom: none;
-  }
+.dockerfile-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--border-radius-base);
+}
+
+.dockerfile-column.full-width {
+  width: 100%;
+}
+
+/* 调整双列模式下的宽度比例 */
+.dockerfile-container:not(.dockerfile-view-container) .dockerfile-column:first-child:not(.full-width) {
+  flex: 0 0 50%;
+  width: 50%;
+}
+
+.dockerfile-container:not(.dockerfile-view-container) .dockerfile-column:last-child {
+  flex: 0 0 50%;
+  width: 50%;
+}
+
+.dockerfile-title {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  background-color: var(--el-fill-color-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.editor-wrapper {
+  flex: 1;
+  height: calc(100% - 48px);
 }
 
 .image-option,
@@ -1228,9 +1227,14 @@ onMounted(() => {
   
   .dockerfile-container {
     flex-direction: column;
+    height: auto;
     
-    .dockerfile-column {
+    .dockerfile-column,
+    .dockerfile-column:first-child:not(.full-width),
+    .dockerfile-column:last-child {
       width: 100%;
+      flex: none;
+      margin-bottom: 16px;
       
       .editor-wrapper {
         height: 300px;
