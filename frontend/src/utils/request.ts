@@ -55,4 +55,8 @@ service.interceptors.response.use(
   }
 )
 
-export default service 
+const request = <T = any>(config: any) => {
+  return service(config) as Promise<T>
+}
+
+export default request 

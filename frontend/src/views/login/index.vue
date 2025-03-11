@@ -63,6 +63,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { login } from '@/api/auth'
+import type { LoginData, LoginResponse } from '@/api/auth'
 import ParticleBackground from '@/components/ParticleBackground.vue'
 
 const router = useRouter()
@@ -93,12 +94,12 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        const loginData = {
+        const loginData: LoginData = {
           username: form.value.username.trim(),
           password: form.value.password
         }
         const res = await login(loginData)
-        localStorage.setItem('token', res.data.access_token)
+        localStorage.setItem('token', res.access_token)
         ElMessage.success('登录成功')
         const redirect = route.query.redirect as string
         router.push(redirect || '/')
