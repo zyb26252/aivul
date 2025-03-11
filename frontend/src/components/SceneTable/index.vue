@@ -41,6 +41,14 @@
           {{ new Date(row.createdAt).toLocaleString() }}
         </template>
       </el-table-column>
+      <el-table-column prop="type" :label="t('scene.type')" width="180">
+        <template #default="{ row }">
+          <div class="type-cell">
+            <img :src="getTypeIcon(row.type)" class="type-icon" />
+            <span>{{ t(`scene.types.${row.type}`) }}</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column :label="$t('table.operation')" width="240" fixed="right">
         <template #default="{ row }">
           <div class="operation-column">
@@ -87,6 +95,12 @@ import { ref, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import { Graph } from '@antv/x6'
 import { Delete } from '@element-plus/icons-vue'
 import type { Scene } from '@/types/scene'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import { getScenes, deleteScene } from '@/api/scene'
+import TableSkeleton from '@/components/TableSkeleton/index.vue'
+import containerIcon from '@/assets/icons/container.svg'
+import switchIcon from '@/assets/icons/switch.svg'
 
 const props = defineProps<{
   loading: boolean
@@ -97,6 +111,8 @@ const selectedRows = ref<Scene[]>([])
 const previewVisible = ref(false)
 const previewContainer = ref<HTMLElement>()
 const graphInstances = new Map<number, any>()
+
+const { t } = useI18n()
 
 const updateThumbnail = async (scene: Scene) => {
   await new Promise(resolve => setTimeout(resolve, 100))
@@ -437,6 +453,12 @@ const emit = defineEmits<{
   (e: 'delete', row: Scene): void
   (e: 'batch-delete', rows: Scene[]): void
 }>()
+
+const getTypeIcon = (type: string) => {
+  return type === 'container'
+    ? containerIcon
+    : switchIcon
+}
 </script>
 
 <style lang="scss" scoped>
@@ -550,5 +572,16 @@ const emit = defineEmits<{
     width: 100%;
     height: 300px;
   }
+}
+
+.type-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-icon {
+  width: 20px;
+  height: 20px;
 }
 </style> 
