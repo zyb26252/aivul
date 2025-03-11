@@ -1176,7 +1176,11 @@ const initGraph = async () => {
         // 节点是否可移动（分组节点不可移动）
         nodeMovable: (view) => {
           const cell = view.cell
-          return cell.getData()?.type !== 'group'
+          // 只禁止分组节点本身移动，其它节点都可以移动
+          if (cell.getData()?.type === 'group') {
+            return false
+          }
+          return true
         },
         edgeMovable: false,      // 边不可移动
         edgeLabelMovable: false, // 边的标签不可移动
@@ -1188,6 +1192,14 @@ const initGraph = async () => {
         rubberNode: true,
         multipleSelection: true,  // 允许多选
         shouldStartSelecting: () => true,
+        // 新增：明确指定哪些元素可以被拖动
+        validateMagnet: () => true,
+        createEdge: () => true,
+        // 新增：禁止选框包含分组节点
+        validateNodeMovable: (view) => {
+          const cell = view.cell
+          return cell.getData()?.type !== 'group'
+        },
       },
       // 选择功能配置
       selecting: {
@@ -1200,7 +1212,10 @@ const initGraph = async () => {
         strict: false,  // 允许选择分组内的节点
         modifiers: 'shift',
         showEdgeSelectionBox: false,
-        filter: ['node'],
+        filter: (cell) => {
+          // 仍然允许选择分组节点以便查看其属性，但过滤掉不需要的元素
+          return cell.isNode() || cell.isEdge();
+        },
       },
       keyboard: true,   // 启用键盘事件
       clipboard: {
@@ -1220,21 +1235,48 @@ const initGraph = async () => {
       embedding: {
         enabled: true,
         findParent({ node }) {
+          // 如果节点已有父节点，保持现有关系
           if (node.getData()?.parent) {
-            return []
+            return [];
           }
           
-          const bbox = node.getBBox()
+          // 如果当前节点是分组节点，直接阻止嵌入
+          if (node.getData()?.type === 'group') {
+            return [];
+          }
+          
+          const bbox = node.getBBox();
           return this.getNodes().filter((n) => {
-            const data = n.getData()
+            const data = n.getData();
             if (data && data.type === 'group') {
-              const targetBBox = n.getBBox()
-              return targetBBox.containsRect(bbox)
+              const targetBBox = n.getBBox();
+              return targetBBox.containsRect(bbox);
             }
-            return false
-          })
+            return false;
+          });
         },
-        validate: () => true,
+        validate: ({ child, parent }) => {
+          // 确保分组节点不会被嵌入到其他节点中
+          if (child.getData()?.type === 'group') {
+            return false;
+          }
+          
+          // 允许普通节点嵌入到分组中
+          return true;
+        },
+        // 嵌入后自动更新分组大小
+        embed: ({ child, parent }) => {
+          // 设置父子关系
+          child.setData({
+            ...child.getData(),
+            parent: parent.id
+          });
+          
+          // 更新分组边界
+          updateGroupBoundary(child);
+          
+          return true;
+        }
       },
       // 移动限制配置
       translating: {
@@ -1242,9 +1284,11 @@ const initGraph = async () => {
           if (!view || !view.cell) return null
           const cell = view.cell
           if (cell.getData?.()?.type === 'group') {
+            // 返回精确的当前位置，禁止任何移动
+            const pos = cell.getPosition()
             return {
-              x: cell.getPosition().x,
-              y: cell.getPosition().y,
+              x: pos.x,
+              y: pos.y,
               width: 0,
               height: 0
             }
@@ -1360,11 +1404,19 @@ const initGraph = async () => {
               ...cell.getAttrs().body,
               stroke: '#1890ff',
               strokeWidth: 2,
-              strokeDasharray: '5 5'
+              strokeDasharray: '5 5',
+              cursor: 'default' // 确保即使在选中状态下也显示为不可拖动的光标
             }
           })
           
-          selectedEdge.value = null
+          // 再次确保分组节点不可拖动
+          cell.setProp('draggable', false);
+          
+          // 立即重置位置以防止任何可能的位置变化
+          const pos = cell.getPosition();
+          cell.setPosition(pos.x, pos.y);
+          
+          selectedEdge.value = null;
           const nodeData = {
             id: cell.id,
             type: cell.getData()?.type,
@@ -1708,34 +1760,53 @@ const initGraph = async () => {
       }
     })
 
-    // 监听节点移动事件，重新调整分组大小和位置
-    graph.value.on('node:moved', ({ node }) => {
-      // 如果是分组中的节点，更新分组大小和位置
-      const parentId = node.getData()?.parent
+    // 添加新的位置变化监听，确保捕获所有可能的移动事件
+    graph.value.on('node:change:position', ({ node }) => {
+      updateGroupBoundary(node);
+    });
+
+    // 添加持续拖动监听，实时更新分组边界
+    graph.value.on('node:moving', ({ node }) => {
+      updateGroupBoundary(node);
+    });
+
+    // 添加统一的分组边界更新函数
+    const updateGroupBoundary = (node) => {
+      // 如果是分组节点本身，不处理
+      if (node.getData()?.type === 'group') {
+        return;
+      }
+      
+      // 检查节点是否属于某个分组
+      const parentId = node.getData()?.parent;
       if (parentId) {
-        const parent = graph.value.getCellById(parentId)
+        const parent = graph.value.getCellById(parentId);
         if (parent && parent.getData()?.type === 'group') {
+          console.log('更新分组边界:', parentId);
+          
           // 获取同一分组内的所有子节点
-          const children = graph.value.getNodes().filter(n => n.getData()?.parent === parentId)
+          const children = graph.value.getNodes().filter(n => n.getData()?.parent === parentId);
           if (children && children.length > 0) {
-            const bbox = graph.value.getCellsBBox(children)
+            // 计算所有子节点的边界
+            const bbox = graph.value.getCellsBBox(children);
             if (bbox) {
               // 添加边距
-              const padding = 16
+              const padding = 16;
+              
               // 更新分组大小和位置
-              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2)
-              parent.position(bbox.x - padding, bbox.y - padding)
+              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2);
+              parent.position(bbox.x - padding, bbox.y - padding);
               
               // 确保层级关系正确
-              parent.setZIndex(0)
+              parent.setZIndex(0);
               children.forEach(child => {
-                child.setZIndex(1)
-              })
+                child.setZIndex(1);
+              });
             }
           }
         }
       }
-    })
+    };
 
     // 监听节点添加事件，当节点添加到画布时检查是否需要调整分组
     graph.value.on('node:added', ({ node }) => {
@@ -1773,6 +1844,208 @@ const initGraph = async () => {
     
     // 初始化时调用一次更新
     updateGroups()
+
+    // 为分组节点添加不可移动的样式，但不影响其子节点
+    graph.value.on('node:added', (args) => {
+      const { node } = args;
+      if (node.getData()?.type === 'group') {
+        // 为分组节点添加视觉提示和行为限制
+        node.setAttrs({
+          body: {
+            ...node.getAttrs().body,
+            cursor: 'default', // 使用默认光标而不是移动光标
+            opacity: 0.8 // 稍微降低不透明度以视觉区分
+          }
+        });
+        
+        // 只禁用分组节点的拖动功能
+        node.setProp('draggable', false);
+        node.setProp('movable', false);
+        
+        // 添加数据标记用于识别
+        node.setData({
+          ...node.getData(),
+          movable: false,
+          preventDrag: true
+        });
+        
+        // 确保分组节点位于底层，而子节点在上层
+        node.setZIndex(0);
+      }
+    });
+
+    // 添加更精确的事件拦截，只阻止分组节点的拖动，不影响子节点
+    // 修改通用拦截函数，确保只针对分组节点本身
+    const preventGroupDrag = ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        // 阻止事件传播以防止分组被拖动
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      }
+      return true;
+    };
+
+    graph.value.on('node:mousedown', ({ node, e }) => {
+      // 只处理分组节点本身
+      if (node.getData()?.type === 'group') {
+        // 允许选择但阻止拖动开始
+        const pos = node.getPosition();
+        node.setPosition(pos.x, pos.y);
+        node.setProp('originPosition', pos); // 记录原始位置
+      }
+    });
+
+    // 只为分组节点添加这些拦截器
+    graph.value.on('node:mousemove', ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    });
+
+    graph.value.on('node:dragstart', ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        // 分组节点不触发拖动
+        return false;
+      }
+    });
+
+    graph.value.on('node:drag', ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    graph.value.on('node:dragend', ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // 修改位置变化检测，只对分组节点进行锁定
+    graph.value.on('cell:change:position', ({ cell, current, previous }) => {
+      // 只对分组节点进行位置重置
+      if (cell.isNode() && cell.getData()?.type === 'group') {
+        cell.setPosition(previous.x, previous.y, { silent: true });
+        return false;
+      }
+    });
+
+    // 在移动过程中持续检查并阻止分组节点移动
+    graph.value.on('node:moving', ({ node, e }) => {
+      if (node.getData()?.type === 'group') {
+        // 取消移动操作
+        e.stopPropagation();
+        e.preventDefault();
+        // 恢复到原始位置
+        const pos = node.getProp('originPosition') || node.getPosition();
+        node.setPosition(pos.x, pos.y);
+        return false;
+      }
+    });
+
+    // 在节点大小变化时也要更新分组边界
+    graph.value.on('node:resize', ({ node }) => {
+      updateGroupBoundary(node);
+    });
+
+    // 在节点添加到分组时确保更新边界
+    graph.value.on('node:change:parent', ({ node }) => {
+      updateGroupBoundary(node);
+    });
+
+    // 添加高频监听以确保拖动过程中实时更新
+    let updateTimer = null;
+    graph.value.on('cell:mousemove', ({ cell }) => {
+      if (cell.isNode() && cell.getData()?.parent) {
+        // 使用防抖来避免过于频繁的更新
+        if (updateTimer) clearTimeout(updateTimer);
+        updateTimer = setTimeout(() => {
+          updateGroupBoundary(cell);
+        }, 10); // 10毫秒的防抖时间，保证实时性
+      }
+    });
+
+    // 定义一个函数来更新所有分组
+    function updateAllGroups() {
+      const groupNodes = graph.value.getNodes().filter(node => node.getData()?.type === 'group');
+      
+      groupNodes.forEach(group => {
+        const children = graph.value.getNodes().filter(node => node.getData()?.parent === group.id);
+        if (children && children.length > 0) {
+          const bbox = graph.value.getCellsBBox(children);
+          if (bbox) {
+            const padding = 16;
+            group.resize(bbox.width + padding * 2, bbox.height + padding * 2);
+            group.position(bbox.x - padding, bbox.y - padding);
+          }
+        }
+      });
+    }
+
+    // 在关键场景下更新所有分组
+    graph.value.on('render:done', updateAllGroups);
+    graph.value.on('scale', updateAllGroups);
+    graph.value.on('translate', updateAllGroups);
+
+    // 修改分组节点的移动限制样式
+    graph.value.on('node:added', (args) => {
+      const { node } = args;
+      if (node.getData()?.type === 'group') {
+        // 为分组节点添加视觉提示和行为限制
+        node.setAttrs({
+          body: {
+            ...node.getAttrs().body,
+            cursor: 'default', // 使用默认光标而不是移动光标
+            opacity: 0.6, // 降低不透明度以便更好地看到内部节点
+            stroke: '#5F95FF',
+            strokeWidth: 2,
+            strokeDasharray: '5 5'
+          }
+        });
+        
+        // 设置层级确保分组位于底层
+        node.setZIndex(0);
+        
+        // 立即更新分组边界
+        setTimeout(() => {
+          const children = graph.value.getNodes().filter(n => n.getData()?.parent === node.id);
+          if (children && children.length > 0) {
+            const bbox = graph.value.getCellsBBox(children);
+            if (bbox) {
+              const padding = 16;
+              node.resize(bbox.width + padding * 2, bbox.height + padding * 2);
+              node.position(bbox.x - padding, bbox.y - padding);
+            }
+          }
+        }, 0);
+      }
+    });
+
+    // 完全删除2258行附近的updateAllGroups函数
+    /* 删除下面的代码:
+    // 添加对所有分组的批量更新功能
+    const updateAllGroups = () => {
+      const groupNodes = graph.value.getNodes().filter(node => node.getData()?.type === 'group');
+      
+      groupNodes.forEach(group => {
+        const children = graph.value.getNodes().filter(node => node.getData()?.parent === group.id);
+        if (children && children.length > 0) {
+          const bbox = graph.value.getCellsBBox(children);
+          if (bbox) {
+            const padding = 16;
+            group.resize(bbox.width + padding * 2, bbox.height + padding * 2);
+            group.position(bbox.x - padding, bbox.y - padding);
+          }
+        }
+      });
+    };
+    */
 
     return graph.value
   } catch (error) {
