@@ -38,7 +38,7 @@
         <el-tooltip :content="t('scene.topology.editor.group.create')" placement="bottom">
           <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
             <el-icon><FolderAdd /></el-icon>
-            {{ t('scene.topology.editor.group.create') }}
+            {{ groupButtonText }}
           </el-button>
         </el-tooltip>
         <el-tooltip :content="t('scene.topology.editor.group.delete')" placement="bottom">
@@ -145,7 +145,7 @@ const { t } = useI18n()
 // 定义可触发的事件
 const emit = defineEmits(['save'])
 
-import { ref, computed, onMounted, onUnmounted, watchEffect, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watchEffect, reactive, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   FolderAdd, 
@@ -234,7 +234,17 @@ const sourceNode = ref<Node | null>(null)
 const selectedNode = ref<any>(undefined)
 const selectedEdge = ref<any>(null)
 const selectedCells = ref<Cell[]>([])
-const canCreateGroup = computed(() => selectedCells.value.length > 1)
+const canCreateGroup = computed(() => {
+  if (isGrouping.value) {
+    // 在分组模式下，只要选中了至少一个非分组节点就可以完成分组
+    const selectedNodes = selectedCells.value.filter(cell => 
+      cell.isNode() && cell.getData()?.type !== 'group'
+    )
+    return selectedNodes.length > 0
+  }
+  // 不在分组模式时，按钮始终可用
+  return true
+})
 const canUngroup = computed(() => selectedCells.value.length === 1 && selectedCells.value[0]?.getData?.()?.type === 'group')
 const canDelete = computed(() => selectedCells.value.length > 0)
 
@@ -430,11 +440,13 @@ const nodeConfig: Record<string, NodeConfig> = {
       label: {
         text: '分组',
         fill: '#5F95FF',
-        fontSize: 12,
-        textAnchor: 'middle',
+        fontSize: 14,
+        fontWeight: 500,
+        textAnchor: 'start',
         textVerticalAnchor: 'middle',
-        x: 100,
-        y: 50,
+        x: 0,
+        y: -20,
+        pointerEvents: 'none',
       },
     },
     markup: [
@@ -485,10 +497,10 @@ const defaultEdgeConfig = {
 
 // 创建分组
 const handleCreateGroup = () => {
-  if (!graph) return
+  if (!graph.value) return
 
   if (isGrouping.value) {
-    // 如果已经在创建分组状态，且有选中的节点，则完成分组创建
+    // 如果已经在创建分组状态，完成分组创建
     if (groupingNodes.value.length > 0) {
       // 计算分组的边界
       const bbox = graph.value.getCellsBBox(groupingNodes.value)
@@ -503,7 +515,7 @@ const handleCreateGroup = () => {
           data: {
             type: 'group',
             name: groupName.value,
-            description: '',  // 添加默认的空描述
+            description: '',
             properties: {},
           },
           attrs: {
@@ -513,16 +525,16 @@ const handleCreateGroup = () => {
               text: groupName.value
             }
           },
-          zIndex: 0  // 设置分组节点为最底层
+          zIndex: 0
         })
 
         // 将选中的节点添加到分组中
         groupingNodes.value.forEach(node => {
           node.setData({
-            ...node.data,
+            ...node.getData(),
             parent: group.id,
           })
-          node.setZIndex(1)  // 确保节点在分组之上
+          node.setZIndex(1)
           // 清除节点的高亮效果
           node.setAttrs({
             body: {
@@ -536,25 +548,16 @@ const handleCreateGroup = () => {
         // 重置分组状态
         isGrouping.value = false
         groupName.value = ''
-        groupingNodes.value = []
+        groupingNodes.value = [] // 清空分组节点列表
+        selectedCells.value = []
         
-        // 取消所有选中状态
-        groupingNodes.value.forEach(cell => {
-          cell.setData({
-            ...cell.data,
-            selected: false
-          })
-        })
         // 选中分组节点
-        group.setData({
-          ...group.data,
-          selected: true
-        })
+        graph.value.select(group)
 
         ElMessage.success('分组创建成功')
       }
     } else {
-      ElMessage.warning('请至少选择一个节点')
+      ElMessage.warning('请选择要加入分组的节点')
     }
   } else {
     // 开始创建分组
@@ -564,20 +567,36 @@ const handleCreateGroup = () => {
       inputPattern: /\S+/,
       inputErrorMessage: '分组名称不能为空'
     }).then(({ value: name }) => {
+      // 初始化分组状态
       groupName.value = name
       isGrouping.value = true
-      groupingNodes.value = []
-      ElMessage.info('请点击要添加到分组的节点，完成后再次点击创建分组按钮')
+      groupingNodes.value = [] // 确保分组节点列表初始为空
+      
+      // 清除当前选择状态，确保分组模式下的选择是独立的
+      graph.value?.cleanSelection()
+      selectedCells.value = []
+      
+      // 通知用户
+      ElMessage({
+        message: '请选择要添加到分组的节点（按住 Ctrl 键可以选择多个节点），完成后再次点击创建分组按钮',
+        type: 'info',
+        duration: 5000
+      })
     }).catch(() => {
       // 用户取消输入，不做任何操作
     })
   }
 }
 
-// 创建分组按钮文本计算属性
+// 修改按钮文本计算属性
 const groupButtonText = computed(() => {
   if (isGrouping.value) {
-    return `完成创建(${groupingNodes.value.length})`
+    // 直接使用分组节点列表的长度
+    const selectedNodesCount = groupingNodes.value.length
+    
+    console.log('分组模式 - 选中节点数量:', selectedNodesCount)
+    
+    return `完成分组(${selectedNodesCount})`
   }
   return '创建分组'
 })
@@ -1157,7 +1176,7 @@ const initGraph = async () => {
         // 节点是否可移动（分组节点不可移动）
         nodeMovable: (view) => {
           const cell = view.cell
-          return cell.data?.type !== 'group'
+          return cell.getData()?.type !== 'group'
         },
         edgeMovable: false,      // 边不可移动
         edgeLabelMovable: false, // 边的标签不可移动
@@ -1365,8 +1384,9 @@ const initGraph = async () => {
     })
 
     // 监听节点点击事件
-    graph.value.on('node:click', ({ node }) => {
+    graph.value.on('node:click', ({ node, e }) => {
       if (isConnecting.value) {
+        // 连线模式逻辑保持不变
         if (!sourceNode.value) {
           sourceNode.value = node
           ElMessage.info('请选择目标节点')
@@ -1408,13 +1428,55 @@ const initGraph = async () => {
           sourceNode.value = null
         }
       } else if (isGrouping.value) {
-        // 如果正在创建分组
-        if (node.getData()?.type !== 'group') {
-          const index = groupingNodes.value.findIndex(n => n.id === node.id)
-          if (index === -1) {
-            // 添加到分组节点列表
-            groupingNodes.value.push(node)
-            // 设置节点高亮效果
+        // 分组模式下的点击处理
+        if (node.getData()?.type !== 'group') { // 不处理分组节点
+          const nodeId = node.id;
+          const isCtrlPressed = e.ctrlKey;
+          
+          // 检查节点是否已在分组列表中
+          const nodeIndex = groupingNodes.value.findIndex(n => n.id === nodeId);
+          const isSelected = nodeIndex !== -1;
+          
+          if (isSelected) {
+            // 如果节点已在分组中，则移除
+            groupingNodes.value.splice(nodeIndex, 1);
+            
+            // 移除高亮效果
+            node.setAttrs({
+              body: {
+                ...node.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            });
+            console.log('从分组中移除节点:', nodeId, '当前分组节点数:', groupingNodes.value.length);
+          } else {
+            // 如果节点不在分组中，则添加
+            // 按住Ctrl键添加到已有选择，否则清除之前的选择
+            if (!isCtrlPressed) {
+              // 如果没有按Ctrl键，清除之前的所有选择
+              groupingNodes.value.forEach(n => {
+                // 找到对应的节点对象并清除高亮
+                const cell = graph.value?.getCellById(n.id);
+                if (cell && cell.isNode()) {
+                  cell.setAttrs({
+                    body: {
+                      ...cell.getAttrs().body,
+                      stroke: 'none',
+                      strokeWidth: 0
+                    }
+                  });
+                }
+              });
+              
+              // 清空分组节点列表，只添加当前节点
+              groupingNodes.value = [node];
+            } else {
+              // 如果按住Ctrl键，添加到已有选择
+              groupingNodes.value.push(node);
+            }
+            
+            // 设置高亮效果
             node.setAttrs({
               body: {
                 ...node.getAttrs().body,
@@ -1422,81 +1484,65 @@ const initGraph = async () => {
                 strokeWidth: 2,
                 strokeDasharray: '5 5'
               }
-            })
-          } else {
-            // 从分组节点列表中移除
-            groupingNodes.value.splice(index, 1)
-            // 移除节点高亮效果
-            node.setAttrs({
-              body: {
-                ...node.getAttrs().body,
-                stroke: 'none',
-                strokeWidth: 0
-              }
-            })
+            });
+            console.log('添加节点到分组:', nodeId, '当前分组节点数:', groupingNodes.value.length);
           }
+          
+          // 强制更新UI
+          nextTick(() => {
+            console.log('分组模式 - 更新后的节点数量:', groupingNodes.value.length);
+          });
         }
       } else {
-        // 清除所有节点的高亮效果
-        graph.value?.getNodes().forEach(node => {
-          if (node.getData()?.type !== 'group') {
-            node.setAttrs({
-              body: {
-                ...node.getAttrs().body,
-                stroke: 'none',
-                strokeWidth: 0,
-                strokeDasharray: '',
-              }
-            })
-          }
-        })
+        // 普通模式下的点击处理
+        const isCtrlPressed = e.ctrlKey;
+        
+        if (!isCtrlPressed) {
+          // 如果没有按住Ctrl键，清除之前的选择
+          graph.value?.getNodes().forEach(n => {
+            if (n.getData()?.type !== 'group') {
+              n.setAttrs({
+                body: {
+                  ...n.getAttrs().body,
+                  stroke: 'none',
+                  strokeWidth: 0,
+                  strokeDasharray: '',
+                }
+              })
+            }
+          })
+          selectedCells.value = []
+        }
 
-        // 保持选中边的高亮，只清除未选中的边
-        graph.value?.getEdges().forEach(edge => {
-          const edgeData = edge.getData()
-          if (!edgeData?.selected) {
-            edge.setAttrs({
-              line: {
-                ...edge.getAttrs().line,
-                stroke: '#333',
-                strokeWidth: 1,
-                strokeDasharray: ''
-              }
-            })
-          } else {
-            // 确保选中的边保持其样式
-            const style = edgeData.style || {
+        // 检查节点是否已经在选中列表中
+        const isSelected = selectedCells.value.some(cell => cell.id === node.id)
+        
+        if (!isSelected) {
+          // 如果节点未被选中，添加到选中列表
+          selectedCells.value = [...selectedCells.value, node]
+          // 设置当前节点的高亮效果
+          node.setAttrs({
+            body: {
+              ...node.getAttrs().body,
               stroke: '#1890ff',
               strokeWidth: 2,
-              strokeDasharray: '5 5'
+              strokeDasharray: '5 5',
             }
-            
-            edge.setAttrs({
-              line: {
-                ...edge.getAttrs().line,
-                stroke: style.stroke,
-                strokeWidth: style.strokeWidth,
-                strokeDasharray: style.strokeDasharray
-              }
-            })
-          }
-        })
-        
-        // 设置当前节点的高亮效果 - 移除边框样式
-        if (node.getData()?.type !== 'group') {
+          })
+        } else if (isCtrlPressed) {
+          // 如果按住Ctrl键且节点已被选中，则从选中列表中移除
+          selectedCells.value = selectedCells.value.filter(cell => cell.id !== node.id)
+          // 移除高亮效果
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
               stroke: 'none',
               strokeWidth: 0,
-              strokeDasharray: '',
             }
           })
         }
         
         selectedEdge.value = null
-        // 更新选中状态
-        selectedCells.value = [node]
         // 构造完整的节点数据
         const nodeData = {
           id: node.id,
@@ -1504,7 +1550,7 @@ const initGraph = async () => {
           data: {
             type: node.getData()?.type,
             name: node.getData()?.name || '未命名分组',
-            description: node.getData()?.description || '',  // 添加描述字段
+            description: node.getData()?.description || '',
             properties: node.getData()?.properties || {},
           },
           position: node.getPosition(),
@@ -1662,9 +1708,9 @@ const initGraph = async () => {
       }
     })
 
-    // 监听节点移动事件，重新调整分组大小
+    // 监听节点移动事件，重新调整分组大小和位置
     graph.value.on('node:moved', ({ node }) => {
-      // 如果是分组中的节点，更新分组大小
+      // 如果是分组中的节点，更新分组大小和位置
       const parentId = node.getData()?.parent
       if (parentId) {
         const parent = graph.value.getCellById(parentId)
