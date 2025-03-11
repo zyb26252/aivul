@@ -2,7 +2,6 @@
 import { useI18n } from 'vue-i18n'
 import { watch } from 'vue'
 import { useRoute } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
