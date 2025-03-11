@@ -746,13 +746,31 @@ const handleSoftwareChange = async () => {
       // 生成环境描述
       descriptionLoading.value = true
       try {
-        const response = await generateDescription(selectedImage, selectedSoftware)
+        // 构建符合API要求的请求数据格式
+        const requestData = {
+          image: {
+            name: selectedImage.name,
+            version: selectedImage.version,
+            architecture: selectedImage.architecture
+          },
+          software_list: selectedSoftware.map(sw => ({
+            name: sw.name,
+            version: sw.version,
+            architecture: sw.architecture
+          }))
+        }
+        
+        // 发送请求
+        const response = await generateDescription(requestData)
 
         // 解析返回的数据
         let descriptionText = ''
         
         // 判断响应是否包含result
-        if (response && response.result !== undefined) {
+        if (response && typeof response === 'string') {
+          // 如果直接返回字符串
+          descriptionText = response
+        } else if (response && response.result !== undefined) {
           // 直接使用响应中的result
           descriptionText = response.result
         } else if (response && response.data && response.data.result) {
@@ -767,7 +785,7 @@ const handleSoftwareChange = async () => {
           ElMessage.warning('生成的描述为空，请手动填写')
         }
       } catch (error) {
-        console.error('Generate description error:', error)
+        console.error('生成描述错误:', error)
         form.value.description = ''  // 清空描述，让用户手动填写
         ElMessage.error('生成描述失败，请手动填写')
       } finally {

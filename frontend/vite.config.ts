@@ -24,7 +24,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://8.210.223.197:8000',
+        target: 'https://aivul.love:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

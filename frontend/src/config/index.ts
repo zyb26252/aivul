@@ -17,7 +17,7 @@ const envConfig: Record<string, EnvConfig> = {
     DEV_HOST: '0.0.0.0'
   },
   production: {
-    API_BASE_URL: 'http://aivul.love:8000',
+    API_BASE_URL: 'https://aivul.love:8000',
     API_TIMEOUT: 30000
   }
 }
