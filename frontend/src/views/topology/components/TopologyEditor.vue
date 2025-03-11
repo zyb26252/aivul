@@ -946,21 +946,34 @@ const getData = () => {
 const setData = (data: any) => {
   if (!graph || !data) return
 
+  console.log('Default node configs:', nodeConfig)
+  console.log('Saved node data:', data.nodes)
+
   // 清空画布
   graph.value.clearCells()
 
   // 添加节点
   const nodeMap = new Map()
   data.nodes?.forEach((node: any) => {
-    const newNode = graph.value.addNode({
+    console.log('Creating node with type:', node.type)
+    console.log('Node config from nodeConfig:', nodeConfig[node.type])
+    const mergedConfig = {
+      ...nodeConfig[node.type],
       id: node.id,
       x: node.x,
       y: node.y,
       width: node.width,
       height: node.height,
-      attrs: node.attrs,
+      attrs: {
+        ...nodeConfig[node.type]?.attrs,
+        ...node.attrs
+      },
       data: node.data
-    })
+    }
+    console.log('Merged node config:', mergedConfig)
+    
+    const newNode = graph.value.addNode(mergedConfig)
+    console.log('Created node:', newNode.toJSON())
     nodeMap.set(node.id, newNode)
   })
 
