@@ -248,21 +248,14 @@ export default {
         source: 'Source Node',
         target: 'Target Node',
         bandwidth: 'Bandwidth',
-        delay: 'Delay',
-        loss: 'Loss Rate',
-        unit: {
-          mbps: 'Mbps',
-          ms: 'ms',
-          percentage: '%'
-        },
-        style: 'Edge Style',
+        style: 'Line Style',
         color: 'Line Color',
         width: 'Line Width',
         pattern: 'Line Pattern',
         styles: {
-          straight: 'Straight',
-          polyline: 'Polyline',
-          curve: 'Curve'
+          normal: 'Straight',
+          rounded: 'Rounded',
+          smooth: 'Smooth'
         },
         patterns: {
           solid: 'Solid',

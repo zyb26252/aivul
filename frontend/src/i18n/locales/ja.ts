@@ -241,21 +241,14 @@ export default {
         source: 'ソースノード',
         target: 'ターゲットノード',
         bandwidth: '帯域幅',
-        delay: '遅延',
-        loss: 'パケットロス',
-        unit: {
-          mbps: 'Mbps',
-          ms: 'ms',
-          percentage: '%'
-        },
-        style: 'エッジスタイル',
+        style: '線のスタイル',
         color: '線の色',
         width: '線の幅',
         pattern: '線のパターン',
         styles: {
-          straight: '直線',
-          polyline: '折れ線',
-          curve: '曲線'
+          normal: '直線',
+          rounded: '角丸',
+          smooth: '曲線'
         },
         patterns: {
           solid: '実線',

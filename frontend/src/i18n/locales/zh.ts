@@ -249,21 +249,14 @@ export default {
         source: '源节点',
         target: '目标节点',
         bandwidth: '带宽',
-        delay: '延迟',
-        loss: '丢包率',
-        unit: {
-          mbps: 'Mbps',
-          ms: 'ms',
-          percentage: '%'
-        },
-        style: '连线形状',
-        color: '线条颜色',
-        width: '线条宽度',
-        pattern: '线条样式',
+        style: '连线样式',
+        color: '连线颜色',
+        width: '连线宽度',
+        pattern: '连线类型',
         styles: {
           normal: '直线',
-          rounded: '折线',
-          smooth: '曲线'
+          rounded: '圆角',
+          smooth: '平滑'
         },
         patterns: {
           solid: '实线',
