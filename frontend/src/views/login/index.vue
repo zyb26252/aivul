@@ -6,53 +6,48 @@
       <p>Automated Cyber Range Construction Engine</p>
     </div>
     <div class="login-content">
-      <div class="login-left">
-        <img src="/images/login-bg.svg" alt="Login Background" class="login-image" />
-      </div>
-      <div class="login-right">
-        <div class="login-form-wrapper">
-          <el-card class="login-card">
-            <template #header>
-              <div class="card-header">
-                <h2>登录</h2>
-                <p class="subtitle">欢迎回来！请登录您的账号</p>
-              </div>
-            </template>
-            <el-form
-              ref="formRef"
-              :model="form"
-              :rules="rules"
-              class="login-form"
-            >
-              <el-form-item prop="username">
-                <el-input 
-                  v-model="form.username" 
-                  placeholder="请输入用户名"
-                  prefix-icon="User"
-                />
-              </el-form-item>
-              <el-form-item prop="password">
-                <el-input
-                  v-model="form.password"
-                  type="password"
-                  placeholder="请输入密码"
-                  prefix-icon="Lock"
-                  @keyup.enter="handleSubmit"
-                />
-              </el-form-item>
-              <div class="form-actions">
-                <el-button 
-                  type="primary" 
-                  class="submit-btn" 
-                  :loading="loading" 
-                  @click="handleSubmit"
-                >
-                  {{ loading ? '登录中...' : '登录' }}
-                </el-button>
-              </div>
-            </el-form>
-          </el-card>
-        </div>
+      <div class="login-form-wrapper">
+        <el-card class="login-card">
+          <template #header>
+            <div class="card-header">
+              <h2>登录</h2>
+              <p class="subtitle">欢迎回来！请登录您的账号</p>
+            </div>
+          </template>
+          <el-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            class="login-form"
+          >
+            <el-form-item prop="username">
+              <el-input 
+                v-model="form.username" 
+                placeholder="请输入用户名"
+                prefix-icon="User"
+              />
+            </el-form-item>
+            <el-form-item prop="password">
+              <el-input
+                v-model="form.password"
+                type="password"
+                placeholder="请输入密码"
+                prefix-icon="Lock"
+                @keyup.enter="handleSubmit"
+              />
+            </el-form-item>
+            <div class="form-actions">
+              <el-button 
+                type="primary" 
+                class="submit-btn" 
+                :loading="loading" 
+                @click="handleSubmit"
+              >
+                {{ loading ? '登录中...' : '登录' }}
+              </el-button>
+            </div>
+          </el-form>
+        </el-card>
       </div>
     </div>
     <div class="copyright">
@@ -181,34 +176,17 @@ const handleSubmit = async () => {
   
   @media screen and (max-width: 1200px) {
     padding: var(--spacing-large);
-    flex-direction: column;
   }
 }
 
-.login-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: var(--spacing-huge);
-  
-  .login-image {
-    width: 80%;
-    max-width: 400px;
-    height: auto;
-    margin-bottom: 0;
-    animation: float 6s ease-in-out infinite;
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
-  }
-}
-
-.login-right {
+.login-form-wrapper {
   width: 400px;
-  padding: var(--spacing-huge);
+  animation: fadeInUp 0.8s ease-out;
   
-  .login-form-wrapper {
-    animation: fadeInRight 0.8s ease-out;
+  @media screen and (max-width: 1200px) {
+    width: 100%;
+    max-width: 400px;
+    padding: 0 var(--spacing-large);
   }
 }
 
