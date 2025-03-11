@@ -931,14 +931,38 @@ const getData = () => {
       data: node.getData(),
       parent: node.getData()?.parent
     })),
-    edges: graph.value.getEdges().map(edge => ({
-      id: edge.id,
-      source: edge.getSource(),
-      target: edge.getTarget(),
-      attrs: edge.getAttrs(),
-      data: edge.getData(),
-      connector: edge.getConnector()?.name || 'normal'
-    }))
+    edges: graph.value.getEdges().map(edge => {
+      const router = edge.getRouter()
+      const connector = edge.getConnector()
+      const edgeData = edge.getData()
+      
+      return {
+        id: edge.id,
+        source: edge.getSource(),
+        target: edge.getTarget(),
+        attrs: edge.getAttrs(),
+        data: {
+          ...edgeData,
+          customStyle: true,
+          customAttrs: {
+            line: {
+              stroke: edge.getAttrs().line?.stroke || '#5F95FF',
+              strokeWidth: edge.getAttrs().line?.strokeWidth || 2,
+              strokeDasharray: edge.getAttrs().line?.strokeDasharray || '',
+              targetMarker: null
+            }
+          }
+        },
+        router: {
+          name: router?.name || 'normal',
+          args: router?.args || {}
+        },
+        connector: {
+          name: connector?.name || 'normal',
+          args: connector?.args || {}
+        }
+      }
+    })
   }
 }
 
@@ -979,16 +1003,63 @@ const setData = (data: any) => {
 
   // 添加边
   data.edges?.forEach((edge: any) => {
-    graph.value.addEdge({
+    // 创建基础边
+    const newEdge = graph.value.addEdge({
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      attrs: edge.attrs,
-      data: edge.data,
+      data: {
+        ...edge.data,
+        customStyle: true,
+        customAttrs: edge.data?.customAttrs || {
+          line: {
+            stroke: '#5F95FF',
+            strokeWidth: 2,
+            strokeDasharray: '',
+            targetMarker: null
+          }
+        }
+      },
+      attrs: {
+        line: {
+          stroke: edge.data?.customAttrs?.line?.stroke || '#5F95FF',
+          strokeWidth: edge.data?.customAttrs?.line?.strokeWidth || 2,
+          strokeDasharray: edge.data?.customAttrs?.line?.strokeDasharray || '',
+          targetMarker: null
+        }
+      },
+      router: {
+        name: edge.router?.name || 'normal',
+        args: edge.router?.args || {}
+      },
       connector: {
-        name: edge.connector || 'normal'
+        name: edge.connector?.name || 'normal',
+        args: edge.connector?.args || {}
       }
     })
+
+    // 如果有自定义样式，应用它
+    if (edge.data?.customStyle) {
+      newEdge.setAttrs({
+        line: {
+          ...edge.data.customAttrs.line
+        }
+      })
+    }
+
+    // 设置路由器和连接器
+    if (edge.router?.name === 'orth') {
+      newEdge.setRouter('orth', {
+        padding: 20,
+        direction: 'H'
+      })
+    }
+    
+    if (edge.connector?.name === 'rounded') {
+      newEdge.setConnector('rounded', {
+        radius: 8
+      })
+    }
   })
 
   // 更新父子关系
