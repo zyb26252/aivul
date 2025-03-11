@@ -1,12 +1,13 @@
-# 开发环境
-FROM node:18-alpine
+# 构建阶段
+FROM node:18-alpine as builder
 
+# 设置工作目录
 WORKDIR /app
 
 # 设置环境变量
-ENV NODE_ENV=development \
+ENV NODE_ENV=production \
     VITE_LOGGER_LEVEL=warn \
-    NODE_OPTIONS="--no-warnings" \
+    NODE_OPTIONS="--max-old-space-size=2048" \
     NPM_CONFIG_LOGLEVEL=warn \
     NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false
@@ -15,13 +16,25 @@ ENV NODE_ENV=development \
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install
+RUN npm install --production=false
 
 # 复制源代码
 COPY . .
 
-# 暴露开发服务器端口
-EXPOSE 3000
+# 构建应用
+RUN npm run build
 
-# 启动开发服务器
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# 生产环境
+FROM nginx:stable-alpine
+
+# 复制 nginx 配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 复制构建产物
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 暴露端口
+EXPOSE 80
+
+# 启动 nginx
+CMD ["nginx", "-g", "daemon off;"]
