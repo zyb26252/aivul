@@ -196,8 +196,8 @@ const updateThumbnail = async (scene: Scene) => {
           },
           image: {
             'xlink:href': node.type === 'container' 
-              ? '/src/assets/icons/container.svg'
-              : '/src/assets/icons/switch.svg',
+              ? containerIcon
+              : switchIcon,
             width: 32,
             height: 32,
             x: 4,
@@ -369,8 +369,8 @@ const handlePreview = (scene: Scene) => {
           },
           image: {
             'xlink:href': node.type === 'container' 
-              ? '/src/assets/icons/container.svg'
-              : '/src/assets/icons/switch.svg',
+              ? containerIcon
+              : switchIcon,
             width: 32,
             height: 32,
             x: 4,
