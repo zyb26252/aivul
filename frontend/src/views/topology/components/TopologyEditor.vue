@@ -1324,7 +1324,12 @@ const initGraph = async () => {
         // 节点是否可移动（分组节点不可移动）
         nodeMovable: (view) => {
           const cell = view.cell
-          return cell.data?.type !== 'group'
+          const data = cell.getData?.()
+          // 明确检查是否为分组节点，如果是则禁止移动
+          if (data && data.type === 'group') {
+            return false
+          }
+          return true
         },
         edgeMovable: false,      // 边不可移动
         edgeLabelMovable: false, // 边的标签不可移动
@@ -1390,9 +1395,11 @@ const initGraph = async () => {
           if (!view || !view.cell) return null
           const cell = view.cell
           if (cell.getData?.()?.type === 'group') {
+            // 为分组节点返回当前位置作为限制，这会阻止它被移动
+            const pos = cell.getPosition()
             return {
-              x: cell.getPosition().x,
-              y: cell.getPosition().y,
+              x: pos.x,
+              y: pos.y,
               width: 0,
               height: 0
             }
@@ -1849,32 +1856,62 @@ const initGraph = async () => {
       }
     })
 
-    // 监听节点移动事件，重新调整分组大小
+    // 添加一个调整分组的辅助函数
+    const adjustGroupBounds = (groupId: string) => {
+      if (!graph || !groupId) return
+      
+      const group = graph.getCellById(groupId)
+      if (!group || group.getData()?.type !== 'group') return
+      
+      // 获取分组内的所有子节点
+      const children = graph.getNodes().filter(node => node.getData()?.parent === groupId)
+      if (children.length === 0) return
+      
+      const bbox = graph.getCellsBBox(children)
+      if (!bbox) return
+      
+      // 添加边距
+      const padding = 16
+      // 更新分组大小和位置
+      group.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+      group.position(bbox.x - padding, bbox.y - padding)
+      
+      // 确保层级关系正确
+      group.setZIndex(0)
+      children.forEach(child => {
+        child.setZIndex(1)
+      })
+    }
+
+    // 修改节点移动事件处理
     graph.on('node:moved', ({ node }) => {
       // 如果是分组中的节点，更新分组大小
       const parentId = node.getData()?.parent
       if (parentId) {
-        const parent = graph.getCellById(parentId)
-        if (parent && parent.getData()?.type === 'group') {
-          // 获取同一分组内的所有子节点
-          const children = graph.getNodes().filter(n => n.getData()?.parent === parentId)
-          if (children && children.length > 0) {
-            const bbox = graph.getCellsBBox(children)
-            if (bbox) {
-              // 添加边距
-              const padding = 16
-              // 更新分组大小和位置
-              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2)
-              parent.position(bbox.x - padding, bbox.y - padding)
-              
-              // 确保层级关系正确
-              parent.setZIndex(0)
-              children.forEach(child => {
-                child.setZIndex(1)
-              })
-            }
-          }
-        }
+        adjustGroupBounds(parentId)
+      }
+    })
+
+    // 监听节点大小变化
+    graph.on('node:resized', ({ node }) => {
+      // 如果是分组中的节点，更新分组大小
+      const parentId = node.getData()?.parent
+      if (parentId) {
+        adjustGroupBounds(parentId)
+      }
+    })
+
+    // 监听节点添加到分组
+    graph.on('node:change:parent', ({ node, previous }) => {
+      // 如果有新的父分组，调整该分组
+      const newParentId = node.getData()?.parent
+      if (newParentId) {
+        adjustGroupBounds(newParentId)
+      }
+      
+      // 如果从某个分组移除，也调整那个分组
+      if (previous.parent) {
+        adjustGroupBounds(previous.parent)
       }
     })
 
