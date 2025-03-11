@@ -38,7 +38,7 @@
         <el-tooltip :content="t('scene.topology.editor.group.create')" placement="bottom">
           <el-button @click="handleCreateGroup" :disabled="!canCreateGroup">
             <el-icon><FolderAdd /></el-icon>
-            {{ groupButtonText }}
+            {{ t('scene.topology.editor.group.create') }}
           </el-button>
         </el-tooltip>
         <el-tooltip :content="t('scene.topology.editor.group.delete')" placement="bottom">
@@ -139,13 +139,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
-
-// 定义可触发的事件
-const emit = defineEmits(['save'])
-
-import { ref, computed, onMounted, onUnmounted, watchEffect, reactive, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   FolderAdd, 
@@ -160,188 +155,536 @@ import {
   Folder
 } from '@element-plus/icons-vue'
 import { Graph } from '@antv/x6'
-import { Node, Edge, Cell } from '@antv/x6/es/model'
-import type { Properties } from '@antv/x6/es/types'
+import { Cell, Node as X6Node, Edge as X6Edge } from '@antv/x6/lib/model'
+import { CellView } from '@antv/x6/lib/view/cell'
+import { Model } from '@antv/x6/lib/model/model'
+import { Collection } from '@antv/x6/lib/model/collection'
+import { Properties } from '@antv/x6/lib/types'
 import '@antv/x6-vue-shape'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 
-interface NodeConfig {
-  width?: number
-  height?: number
-  markup?: Array<{
-    tagName: string
-    selector: string
-  }>
-  attrs?: {
-    body?: {
-      fill?: string
-      stroke?: string
-      strokeWidth?: number
-      rx?: number
-      ry?: number
-    }
-    icon?: {
-      width?: number
-      height?: number
-      x?: number
-      y?: number
-      'xlink:href'?: string
-    }
-    label?: {
-      text?: string
-      fill?: string
-      fontSize?: number
-      textAnchor?: string
-      textVerticalAnchor?: string
-      x?: number
-      y?: number
+// 替换导入的容器图标为base64编码
+const containerIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
+
+// 替换导入的交换机图标为新的base64编码
+const switchIcon = 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg=='
+
+const { t } = useI18n()
+
+// 定义emit事件
+const emit = defineEmits<{
+  (e: 'save'): void
+}>()
+
+// 定义节点数据接口data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg==
+interface NodeData {
+  type: 'container' | 'switch' | 'group'
+  properties: Record<string, any>
+  parent?: string
+  name?: string
+  description?: string  // 添加描述字段
+}
+
+// 定义边数据接口
+interface EdgeData {
+  properties: Record<string, any>
+  router?: {
+    name: string
+    args?: {
+      padding?: number
+      direction?: string
     }
   }
-  ports?: {
-    groups?: {
-      [key: string]: {
-        position?: string
-        attrs?: {
-          circle?: {
-            r?: number
-            magnet?: boolean
-            stroke?: string
-            strokeWidth?: number
-            fill?: string
-            style?: {
-              visibility?: string
-            }
+  connector?: {
+    name: string
+    args?: {
+      radius?: number
+    }
+  }
+  customStyle?: boolean
+  customAttrs?: {
+    line?: {
+      stroke?: string
+      strokeWidth?: number
+      strokeDasharray?: string
+    }
+  }
+}
+
+// 定义分组数据接口
+interface GroupData {
+  id: string
+  name: string
+  children: string[]
+}
+
+// 定义拓扑数据接口
+interface TopologyData {
+  nodes: Array<{
+    id: string
+    type: string
+    x: number
+    y: number
+    data: NodeData
+    attrs: CellAttrs
+  }>
+  edges: Array<{
+    id: string
+    source: string
+    target: string
+    data: EdgeData
+    attrs: CellAttrs
+  }>
+  groups: GroupData[]
+}
+
+// 状态
+const container = ref<HTMLElement>()
+const selectedNode = ref<Cell>()
+const selectedEdge = ref<any>(null)
+const selectedCells = ref<any[]>([])
+const isConnecting = ref(false)
+const sourceNode = ref<any>(null)
+const isGrouping = ref(false)
+const groupName = ref('')
+const groupingNodes = ref<Cell[]>([])
+
+// 计算属性
+const canCreateGroup = computed(() => {
+  if (isGrouping.value) {
+    // 如果正在创建分组，则需要至少选择了一个节点才能完成创建
+    return groupingNodes.value.length > 0
+  }
+  // 如果不在创建分组状态，则始终可以点击开始创建
+  return true
+})
+
+const canUngroup = computed(() => {
+  return selectedCells.value.length === 1 && selectedCells.value[0].isNode() && selectedCells.value[0].data?.type === 'group'
+})
+
+const canDelete = computed(() => {
+  return selectedCells.value.length > 0
+})
+
+// 画布实例
+let graph: Graph | null = null
+
+// 统计数量
+const containerCount = ref(0)
+const switchCount = ref(0)
+const groupCount = ref(0)
+
+// 更新统计数据的函数
+const updateCounts = () => {
+  if (!graph) {
+    containerCount.value = 0
+    switchCount.value = 0
+    groupCount.value = 0
+    return
+  }
+
+  const nodes = graph.getNodes()
+  containerCount.value = nodes.filter(node => node.getData()?.type === 'container').length
+  switchCount.value = nodes.filter(node => node.getData()?.type === 'switch').length
+  groupCount.value = nodes.filter(node => node.getData()?.type === 'group').length
+}
+
+// 使用 watchEffect 监听图形实例的变化
+watchEffect(() => {
+  if (graph) {
+    updateCounts()
+  }
+})
+
+// 添加历史记录状态
+const history = ref<{
+  past: TopologyData[]
+  future: TopologyData[]
+}>({
+  past: [],
+  future: []
+})
+
+// 最大历史记录数
+const MAX_HISTORY = 50
+
+// 修改保存历史记录函数
+const saveToHistory = () => {
+  if (!graph) return
+  
+  try {
+    const currentState = getData()
+    
+    // 检查是否与最后一个状态相同
+    const lastState = history.value.past[history.value.past.length - 1]
+    if (lastState && JSON.stringify(lastState) === JSON.stringify(currentState)) {
+      return
+    }
+    
+    // 保存当前状态到历史记录
+    history.value.past.push(currentState)
+    
+    // 清空未来状态
+    history.value.future = []
+    
+    // 限制历史记录数量
+    if (history.value.past.length > MAX_HISTORY) {
+      history.value.past.shift()
+    }
+  } catch (error) {
+    console.error('保存历史记录失败:', error)
+  }
+}
+
+// 获取拓扑数据
+const getData = (): TopologyData => {
+  if (!graph) {
+    throw new Error('图形实例未初始化')
+  }
+
+  const nodes = graph.getNodes().map(node => {
+    const pos = node.getBBox()
+    const data = node.getData() as NodeData
+    const attrs = node.getAttrs()
+    
+    // 如果是分组节点，确保保存名称
+    if (data?.type === 'group') {
+      return {
+        id: node.id,
+        type: data.type,
+        x: pos.x,
+        y: pos.y,
+        data: {
+          ...data,
+          name: attrs.label?.text || data.name || '未命名分组'  // 从标签文本或原有名称中获取
+        },
+        attrs: node.getAttrs()
+      }
+    }
+    
+    return {
+      id: node.id,
+      type: data?.type || '',
+      x: pos.x,
+      y: pos.y,
+      data: data,
+      attrs: attrs
+    }
+  })
+
+  const edges = graph.getEdges().map(edge => {
+    const sourceId = (edge as any).getSourceCell()?.id || ''
+    const targetId = (edge as any).getTargetCell()?.id || ''
+    const edgeData = edge.getData() as EdgeData
+    const attrs = edge.getAttrs()
+    
+    // 保存边的路由器和连接器配置
+    const router = edge.getRouter()
+    const connector = edge.getConnector()
+    
+    return {
+      id: edge.id,
+      source: sourceId,
+      target: targetId,
+      data: {
+        ...edgeData,
+        router: router ? {
+          name: router.name,
+          args: router.args
+        } : undefined,
+        connector: connector ? {
+          name: connector.name,
+          args: connector.args
+        } : undefined
+      },
+      attrs: attrs
+    }
+  })
+
+  const allNodes = graph.getNodes()
+  const groups = allNodes
+    .filter(node => node.getData()?.type === 'group')
+    .map(group => ({
+      id: group.id,
+      name: group.getData()?.name || '未命名分组',
+      children: allNodes
+        .filter(node => node.getData()?.parent === group.id)
+        .map(node => node.id)
+    }))
+
+  return { nodes, edges, groups }
+}
+
+// 设置拓扑数据
+const setData = (data: TopologyData) => {
+  if (!graph) {
+    throw new Error('图形实例未初始化')
+  }
+
+  // 清空画布
+  graph.removeCell(graph.getCells())
+
+  // 先创建所有节点（分组和普通节点），但先不建立父子关系
+  const nodeMap = new Map()
+  
+  // 先添加分组节点
+  const groupNodes = data.nodes.filter(node => node.data.type === 'group')
+  groupNodes.forEach(nodeData => {
+    if (graph) {
+      const group = graph.addNode({
+        id: nodeData.id,
+        x: nodeData.x,
+        y: nodeData.y,
+        width: 200, // 初始大小，稍后会根据子节点调整
+        height: 100, // 初始大小，稍后会根据子节点调整
+        ...nodeConfig.group,
+        attrs: {
+          ...nodeConfig.group.attrs,
+          label: {
+            ...nodeConfig.group.attrs.label,
+            text: nodeData.data.name || '未命名分组'
+          }
+        },
+        data: nodeData.data,
+        zIndex: 0 // 分组在底层
+      })
+      
+      nodeMap.set(nodeData.id, group)
+    }
+  })
+
+  // 再添加普通节点
+  const normalNodes = data.nodes.filter(node => node.data.type !== 'group')
+  normalNodes.forEach(nodeData => {
+    if (graph) {
+      const config = nodeConfig[nodeData.type as keyof typeof nodeConfig]
+      if (config) {
+        const node = graph.addNode({
+          id: nodeData.id,
+          x: nodeData.x,
+          y: nodeData.y,
+          ...config,
+          attrs: nodeData.attrs,
+          data: nodeData.data,
+          zIndex: 1 // 普通节点在上层
+        })
+        
+        nodeMap.set(nodeData.id, node)
+      }
+    }
+  })
+  
+  // 建立节点的父子关系
+  normalNodes.forEach(nodeData => {
+    if (nodeData.data.parent) {
+      const node = nodeMap.get(nodeData.id)
+      const parent = nodeMap.get(nodeData.data.parent)
+      
+      if (node && parent) {
+        // 设置父子关系
+        node.setData({
+          ...node.getData(),
+          parent: parent.id
+        })
+      }
+    }
+  })
+
+  // 最后添加边
+  data.edges.forEach(edgeData => {
+    if (edgeData.source && edgeData.target && graph) {
+      const edge = graph.addEdge({
+        id: edgeData.id,
+        source: edgeData.source,
+        target: edgeData.target,
+        data: edgeData.data,
+        attrs: edgeData.attrs,
+        // 使用保存的路由器和连接器配置
+        router: edgeData.data?.router || {
+          name: 'normal'
+        },
+        connector: edgeData.data?.connector || {
+          name: 'normal'
+        }
+      })
+      
+      // 如果有自定义样式，应用它
+      if (edgeData.data?.customStyle && edgeData.data?.customAttrs) {
+        edge.setAttrs(edgeData.data.customAttrs)
+      }
+    }
+  })
+
+  // 调整分组大小以适应其子节点
+  groupNodes.forEach(groupData => {
+    if (graph) {
+      const group = nodeMap.get(groupData.id)
+      if (group) {
+        const children = graph.getNodes().filter(node => node.getData()?.parent === groupData.id)
+        if (children.length > 0) {
+          const bbox = graph.getCellsBBox(children)
+          if (bbox) {
+            // 添加边距
+            const padding = 16
+            // 更新分组大小和位置
+            group.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+            group.position(bbox.x - padding, bbox.y - padding)
           }
         }
       }
     }
-    items?: Array<{
-      group: string
-    }>
-  }
+  })
 }
 
-// 定义container ref
-const container = ref<HTMLElement>()
-
-// 定义graph ref
-const graph = ref<Graph>()
-
-// 定义其他响应式变量
-const isConnecting = ref(false)
-const sourceNode = ref<Node | null>(null)
-const selectedNode = ref<any>(undefined)
-const selectedEdge = ref<any>(null)
-const selectedCells = ref<Cell[]>([])
-const canCreateGroup = computed(() => {
-  if (isGrouping.value) {
-    // 在分组模式下，只要选中了至少一个非分组节点就可以完成分组
-    const selectedNodes = selectedCells.value.filter(cell => 
-      cell.isNode() && cell.getData()?.type !== 'group'
-    )
-    return selectedNodes.length > 0
+// 节点配置类型定义
+interface NodeConfig {
+  width?: number      // 节点宽度
+  height?: number     // 节点高度
+  shape: string       // 节点形状
+  attrs: {
+    body: {          // 节点主体样式
+      fill: string   // 填充颜色
+      stroke: string // 边框颜色
+      strokeWidth: number // 边框宽度
+      rx?: number    // 圆角半径 X
+      ry?: number    // 圆角半径 Y
+      strokeDasharray?: string // 虚线样式
+    }
+    image?: {        // 节点图标配置
+      'xlink:href': string // 图标路径
+      width: number  // 图标宽度
+      height: number // 图标高度
+      x: number      // 图标 X 坐标
+      y: number      // 图标 Y 坐标
+    }
+    label: {         // 节点文本配置
+      text: string   // 显示文本
+      fontSize: number // 字体大小
+      fill: string   // 文本颜色
+      y?: number     // 文本 Y 偏移
+      refX?: number  // 文本相对 X 位置
+      refY?: number  // 文本相对 Y 位置
+    }
   }
-  // 不在分组模式时，按钮始终可用
-  return true
-})
-const canUngroup = computed(() => selectedCells.value.length === 1 && selectedCells.value[0]?.getData?.()?.type === 'group')
-const canDelete = computed(() => selectedCells.value.length > 0)
+  markup?: Array<{   // 节点 DOM 结构
+    tagName: string  // 标签名
+    selector: string // 选择器
+  }>
+  ports?: {          // 连接桩配置
+    groups: {
+      [key: string]: {
+        position: string // 位置
+        attrs: {
+          circle: {    // 连接桩样式
+            r: number  // 半径
+            magnet: boolean // 是否可连接
+            stroke: string  // 边框颜色
+            strokeWidth: number // 边框宽度
+            fill: string   // 填充颜色
+            cursor: string // 鼠标样式
+            event: string  // 事件名
+            visibility: string // 可见性
+          }
+        }
+      }
+    }
+  }
+  movable?: boolean  // 是否可移动
+}
 
-const isGrouping = ref(false)
-const groupingNodes = ref<Node[]>([])
-const groupName = ref('')
-
+// 节点配置对象
 const nodeConfig: Record<string, NodeConfig> = {
+  // 容器节点配置
   container: {
-    width: 50,
-    height: 65,
+    width: 40,
+    height: 45,
+    shape: 'rect',
     markup: [
       {
-        tagName: 'rect',
+        tagName: 'rect',    // 矩形作为背景
         selector: 'body',
       },
       {
-        tagName: 'image',
-        selector: 'icon',
+        tagName: 'image',   // 图片作为图标
+        selector: 'image',
       },
       {
-        tagName: 'text',
+        tagName: 'text',    // 文本作为标签
         selector: 'label',
-      },
+      }
     ],
     attrs: {
       body: {
-        width: 50,
-        height: 65,
-        stroke: 'none',
-        fill: 'transparent',
-        rx: 4,
+        fill: 'none',       // 透明背景
+        stroke: 'none',     // 无边框
+        strokeWidth: 0,
+        rx: 4,             // 圆角矩形
         ry: 4,
       },
-      icon: {
-        width: 32,
-        height: 32,
-        x: 9,
-        y: 5,
-        'xlink:href': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
+      image: {
+        'xlink:href': containerIcon,  // 容器图标
+        width: 40,
+        height: 40,
+        x: 0,
+        y: 0,
       },
       label: {
-        text: '容器',
-        fill: '#333',
+        text: '容器',       // 默认文本
         fontSize: 12,
+        fill: '#333',
+        refX: 0.5,       // 水平居中
+        refY: 0.85,       // 文本位置
         textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        x: 0,
-        y: 20,
-      },
+        textVerticalAnchor: 'top',
+        y: 0,
+      }
     },
+    // 定义连接桩
     ports: {
       groups: {
+        // 顶部连接桩
         top: {
           position: 'top',
           attrs: {
             circle: {
               r: 4,
               magnet: true,
-              stroke: '#5F95FF',
-              strokeWidth: 0,
+              stroke: '#333',
+              strokeWidth: 1,
               fill: '#fff',
-              style: {
-                visibility: 'hidden',
-              },
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
             },
           },
         },
+        // 底部连接桩
         bottom: {
           position: 'bottom',
           attrs: {
             circle: {
               r: 4,
               magnet: true,
-              stroke: '#5F95FF',
+              stroke: '#333',
               strokeWidth: 1,
               fill: '#fff',
-              style: {
-                visibility: 'hidden',
-              },
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
             },
           },
         },
       },
-      items: [
-        {
-          group: 'top',
-        },
-        {
-          group: 'bottom',
-        },
-      ],
     },
   },
+
+  // 交换机节点配置（结构同容器节点）
   switch: {
-    width: 50,
-    height: 65,
+    width: 40,
+    height: 45,
+    shape: 'rect',
     markup: [
       {
         tagName: 'rect',
@@ -349,38 +692,38 @@ const nodeConfig: Record<string, NodeConfig> = {
       },
       {
         tagName: 'image',
-        selector: 'icon',
+        selector: 'image',
       },
       {
         tagName: 'text',
         selector: 'label',
-      },
+      }
     ],
     attrs: {
       body: {
-        width: 50,
-        height: 65,
+        fill: 'none',
         stroke: 'none',
-        fill: 'transparent',
+        strokeWidth: 0,
         rx: 4,
         ry: 4,
       },
-      icon: {
-        width: 32,
-        height: 32,
-        x: 9,
-        y: 5,
-        'xlink:href': 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg=='
+      image: {
+        'xlink:href': switchIcon,  // 使用base64编码的交换机图标
+        width: 40,
+        height: 40,
+        x: 0,
+        y: 0,
       },
       label: {
         text: '交换机',
-        fill: '#333',
         fontSize: 12,
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        x: 0,
-        y: 20,
-      },
+        fill: '#333',
+        refX: 0.5,
+        refY: 0.85,
+        textAnchor: 'middle' as any,
+        textVerticalAnchor: 'top' as any,
+        y: 0,
+      }
     },
     ports: {
       groups: {
@@ -390,12 +733,12 @@ const nodeConfig: Record<string, NodeConfig> = {
             circle: {
               r: 4,
               magnet: true,
-              stroke: '#5F95FF',
+              stroke: '#333',
               strokeWidth: 1,
               fill: '#fff',
-              style: {
-                visibility: 'hidden',
-              },
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
             },
           },
         },
@@ -405,60 +748,52 @@ const nodeConfig: Record<string, NodeConfig> = {
             circle: {
               r: 4,
               magnet: true,
-              stroke: '#5F95FF',
-              strokeWidth: 0,
+              stroke: '#333',
+              strokeWidth: 1,
               fill: '#fff',
-              style: {
-                visibility: 'hidden',
-              },
+              cursor: 'crosshair',
+              event: 'node:port:click',
+              visibility: 'visible',
             },
           },
         },
       },
-      items: [
-        {
-          group: 'top',
-        },
-        {
-          group: 'bottom',
-        },
-      ],
     },
   },
+
+  // 分组节点配置
   group: {
-    width: 200,
-    height: 100,
+    shape: 'rect',
     attrs: {
       body: {
-        fill: 'rgba(95, 149, 255, 0.1)',
-        stroke: '#5F95FF',
+        fill: 'rgba(24, 144, 255, 0.1)',  // 半透明背景
+        stroke: '#1890ff',
         strokeWidth: 1,
-        strokeDasharray: '5 5',
-        rx: 4,
-        ry: 4,
+        strokeDasharray: '5 5',  // 虚线边框
+        rx: 8,
+        ry: 8
       },
       label: {
         text: '分组',
-        fill: '#5F95FF',
-        fontSize: 14,
-        fontWeight: 500,
-        textAnchor: 'start',
-        textVerticalAnchor: 'middle',
-        x: 0,
-        y: -20,
-        pointerEvents: 'none',
-      },
+        fontSize: 12,
+        fill: '#1890ff',
+        refX: 8,
+        refY: 8
+      }
     },
     markup: [
       {
         tagName: 'rect',
-        selector: 'body',
+        selector: 'body'
       },
       {
         tagName: 'text',
-        selector: 'label',
-      },
+        selector: 'label'
+      }
     ],
+    width: 200,
+    height: 100,
+    movable: false  // 分组节点不可移动
   },
 }
 
@@ -478,35 +813,18 @@ const shortcuts = {
   save: { key: 's', ctrl: true, label: 'Ctrl + S' },  // 添加保存快捷键配置
 }
 
-// 修改边的默认配置
-const defaultEdgeConfig = {
-  attrs: {
-    line: {
-      stroke: '#5F95FF',
-      strokeWidth: 2,
-      targetMarker: null, // 移除箭头
-    }
-  },
-  router: {
-    name: 'normal'
-  },
-  connector: {
-    name: 'normal'
-  }
-}
-
 // 创建分组
 const handleCreateGroup = () => {
-  if (!graph.value) return
+  if (!graph) return
 
   if (isGrouping.value) {
-    // 如果已经在创建分组状态，完成分组创建
+    // 如果已经在创建分组状态，且有选中的节点，则完成分组创建
     if (groupingNodes.value.length > 0) {
       // 计算分组的边界
-      const bbox = graph.value.getCellsBBox(groupingNodes.value)
+      const bbox = graph.getCellsBBox(groupingNodes.value)
       if (bbox) {
         // 创建分组节点
-        const group = graph.value.addNode({
+        const group = graph.addNode({
           ...nodeConfig.group,
           x: bbox.x - 16,
           y: bbox.y - 16,
@@ -515,7 +833,7 @@ const handleCreateGroup = () => {
           data: {
             type: 'group',
             name: groupName.value,
-            description: '',
+            description: '',  // 添加默认的空描述
             properties: {},
           },
           attrs: {
@@ -525,16 +843,16 @@ const handleCreateGroup = () => {
               text: groupName.value
             }
           },
-          zIndex: 0
+          zIndex: 0  // 设置分组节点为最底层
         })
 
         // 将选中的节点添加到分组中
         groupingNodes.value.forEach(node => {
           node.setData({
-            ...node.getData(),
+            ...node.data,
             parent: group.id,
           })
-          node.setZIndex(1)
+          node.setZIndex(1)  // 确保节点在分组之上
           // 清除节点的高亮效果
           node.setAttrs({
             body: {
@@ -548,16 +866,25 @@ const handleCreateGroup = () => {
         // 重置分组状态
         isGrouping.value = false
         groupName.value = ''
-        groupingNodes.value = [] // 清空分组节点列表
-        selectedCells.value = []
+        groupingNodes.value = []
         
+        // 取消所有选中状态
+        groupingNodes.value.forEach(cell => {
+          cell.setData({
+            ...cell.data,
+            selected: false
+          })
+        })
         // 选中分组节点
-        graph.value.select(group)
+        group.setData({
+          ...group.data,
+          selected: true
+        })
 
         ElMessage.success('分组创建成功')
       }
     } else {
-      ElMessage.warning('请选择要加入分组的节点')
+      ElMessage.warning('请至少选择一个节点')
     }
   } else {
     // 开始创建分组
@@ -567,36 +894,20 @@ const handleCreateGroup = () => {
       inputPattern: /\S+/,
       inputErrorMessage: '分组名称不能为空'
     }).then(({ value: name }) => {
-      // 初始化分组状态
       groupName.value = name
       isGrouping.value = true
-      groupingNodes.value = [] // 确保分组节点列表初始为空
-      
-      // 清除当前选择状态，确保分组模式下的选择是独立的
-      graph.value?.cleanSelection()
-      selectedCells.value = []
-      
-      // 通知用户
-      ElMessage({
-        message: '请选择要添加到分组的节点（按住 Ctrl 键可以选择多个节点），完成后再次点击创建分组按钮',
-        type: 'info',
-        duration: 5000
-      })
+      groupingNodes.value = []
+      ElMessage.info('请点击要添加到分组的节点，完成后再次点击创建分组按钮')
     }).catch(() => {
       // 用户取消输入，不做任何操作
     })
   }
 }
 
-// 修改按钮文本计算属性
+// 创建分组按钮文本计算属性
 const groupButtonText = computed(() => {
   if (isGrouping.value) {
-    // 直接使用分组节点列表的长度
-    const selectedNodesCount = groupingNodes.value.length
-    
-    console.log('分组模式 - 选中节点数量:', selectedNodesCount)
-    
-    return `完成分组(${selectedNodesCount})`
+    return `完成创建(${groupingNodes.value.length})`
   }
   return '创建分组'
 })
@@ -612,7 +923,7 @@ const handleUngroup = () => {
   if (!group.isNode() || group.data?.type !== 'group') return
 
   // 获取分组中的所有节点
-  const children = graph.value.getNodes().filter(node => node.data?.parent === group.id)
+  const children = graph.getNodes().filter(node => node.data?.parent === group.id)
 
   // 移除父节点引用
   children.forEach(node => {
@@ -624,31 +935,31 @@ const handleUngroup = () => {
   })
 
   // 删除分组节点
-  graph.value.removeCell(group)
+  graph.removeCell(group)
 }
 
 // 缩放控制
 const handleZoomIn = () => {
   if (graph) {
-    const zoom = graph.value.zoom()
+    const zoom = graph.zoom()
     if (zoom < 2) {
-      graph.value.zoom(0.1)
+      graph.zoom(0.1)
     }
   }
 }
 
 const handleZoomOut = () => {
   if (graph) {
-    const zoom = graph.value.zoom()
+    const zoom = graph.zoom()
     if (zoom > 0.2) {
-      graph.value.zoom(-0.1)
+      graph.zoom(-0.1)
     }
   }
 }
 
 const handleFitContent = () => {
   if (graph) {
-    graph.value.zoomToFit({ padding: 20 })
+    graph.zoomToFit({ padding: 20 })
   }
 }
 
@@ -669,12 +980,12 @@ const handleDrop = (e: DragEvent) => {
     const config = nodeConfig[element.type]
     if (!config) return
 
-    const point = graph.value.clientToLocal({
+    const point = graph.clientToLocal({
       x: e.clientX,
       y: e.clientY,
     })
 
-    const node = graph.value.addNode({
+    const node = graph.addNode({
       ...config,
       x: point.x - (config.width ?? 0) / 2,
       y: point.y - (config.height ?? 0) / 2,
@@ -686,7 +997,7 @@ const handleDrop = (e: DragEvent) => {
     })
 
     // 检查是否落在分组内
-    const groups = graph.value.getNodes().filter(n => n.getData()?.type === 'group')
+    const groups = graph.getNodes().filter(n => n.getData()?.type === 'group')
     for (const group of groups) {
       const groupBBox = group.getBBox()
       const nodeBBox = node.getBBox()
@@ -703,9 +1014,9 @@ const handleDrop = (e: DragEvent) => {
         node.setZIndex(1)
         
         // 调整分组大小
-        const children = graph.value.getNodes().filter(n => n.getData()?.parent === group.id)
+        const children = graph.getNodes().filter(n => n.getData()?.parent === group.id)
         if (children.length > 0) {
-          const bbox = graph.value.getCellsBBox(children)
+          const bbox = graph.getCellsBBox(children)
           if (bbox) {
             const padding = 16
             group.resize(bbox.width + padding * 2, bbox.height + padding * 2)
@@ -725,7 +1036,7 @@ const handleDrop = (e: DragEvent) => {
 const handleNodeUpdate = (node: Cell) => {
   if (!graph) return
 
-  const target = graph.value.getCellById(node.id!)
+  const target = graph.getCellById(node.id!)
   if (target) {
     target.setAttrs(node.attrs ?? {})
     target.setData(node.data ?? {})
@@ -744,14 +1055,14 @@ const toggleConnecting = () => {
 const handleEdgeUpdate = (edge: any) => {
   if (!graph) return
 
-  const target = graph.value.getCellById(edge.id) as Edge
+  const target = graph.getCellById(edge.id) as X6Edge
   if (target) {
     // 保存边的样式信息
     const customAttrs = {
       line: {
-        stroke: edge.attrs?.line?.stroke || '#5F95FF',
+        stroke: edge.attrs?.line?.stroke || '#1890ff',
         strokeWidth: edge.attrs?.line?.strokeWidth || 2,
-        targetMarker: null // 移除箭头
+        strokeDasharray: edge.attrs?.line?.strokeDasharray || ''
       }
     }
     
@@ -814,12 +1125,12 @@ const handleDelete = async () => {
       // 如果是节点,需要同时删除相连的边
       if (cell.isNode()) {
         // 获取相连的边
-        const connectedEdges = graph.value?.getConnectedEdges(cell) || []
+        const connectedEdges = graph?.getConnectedEdges(cell) || []
         // 删除相连的边
-        connectedEdges.forEach(edge => graph.value?.removeCell(edge))
+        connectedEdges.forEach(edge => graph?.removeCell(edge))
       }
       // 删除元素
-      graph.value?.removeCell(cell)
+      graph?.removeCell(cell)
     })
 
     // 清除选中状态
@@ -855,14 +1166,14 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (graph) {
-    graph.value.off('cell:added', updateCounts)
-    graph.value.off('cell:removed', updateCounts)
-    graph.value.off('node:change:data', updateCounts)
-    graph.value.off('node:added', updateGroups)
-    graph.value.off('node:removed', updateGroups)
-    graph.value.off('node:change:data', updateGroups)
-    graph.value.off('node:change:parent', updateGroups)
-    graph.value.dispose()
+    graph.off('cell:added', updateCounts)
+    graph.off('cell:removed', updateCounts)
+    graph.off('node:change:data', updateCounts)
+    graph.off('node:added', updateGroups)
+    graph.off('node:removed', updateGroups)
+    graph.off('node:change:data', updateGroups)
+    graph.off('node:change:parent', updateGroups)
+    graph.dispose()
   }
   // 移除键盘事件监听
   window.removeEventListener('keydown', handleKeyDown)
@@ -934,169 +1245,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 }
 
-// 获取图形数据
-const getData = () => {
-  if (!graph) return null
-
-  return {
-    nodes: graph.value.getNodes().map(node => ({
-      id: node.id,
-      type: node.getData()?.type,
-      x: node.getPosition().x,
-      y: node.getPosition().y,
-      width: node.getSize().width,
-      height: node.getSize().height,
-      attrs: node.getAttrs(),
-      data: node.getData(),
-      parent: node.getData()?.parent
-    })),
-    edges: graph.value.getEdges().map(edge => {
-      const router = edge.getRouter()
-      const connector = edge.getConnector()
-      const edgeData = edge.getData()
-      
-      return {
-        id: edge.id,
-        source: edge.getSource(),
-        target: edge.getTarget(),
-        attrs: edge.getAttrs(),
-        data: {
-          ...edgeData,
-          customStyle: true,
-          customAttrs: {
-            line: {
-              stroke: edge.getAttrs().line?.stroke || '#5F95FF',
-              strokeWidth: edge.getAttrs().line?.strokeWidth || 2,
-              strokeDasharray: edge.getAttrs().line?.strokeDasharray || '',
-              targetMarker: null
-            }
-          }
-        },
-        router: {
-          name: router?.name || 'normal',
-          args: router?.args || {}
-        },
-        connector: {
-          name: connector?.name || 'normal',
-          args: connector?.args || {}
-        }
-      }
-    })
-  }
-}
-
-// 设置图形数据
-const setData = (data: any) => {
-  if (!graph || !data) return
-
-  console.log('Default node configs:', nodeConfig)
-  console.log('Saved node data:', data.nodes)
-
-  // 清空画布
-  graph.value.clearCells()
-
-  // 添加节点
-  const nodeMap = new Map()
-  data.nodes?.forEach((node: any) => {
-    console.log('Creating node with type:', node.type)
-    console.log('Node config from nodeConfig:', nodeConfig[node.type])
-    const mergedConfig = {
-      ...nodeConfig[node.type],
-      id: node.id,
-      x: node.x,
-      y: node.y,
-      width: node.width,
-      height: node.height,
-      attrs: {
-        ...nodeConfig[node.type]?.attrs,
-        ...node.attrs
-      },
-      data: node.data
-    }
-    console.log('Merged node config:', mergedConfig)
-    
-    const newNode = graph.value.addNode(mergedConfig)
-    console.log('Created node:', newNode.toJSON())
-    nodeMap.set(node.id, newNode)
-  })
-
-  // 添加边
-  data.edges?.forEach((edge: any) => {
-    // 创建基础边
-    const newEdge = graph.value.addEdge({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      data: {
-        ...edge.data,
-        customStyle: true,
-        customAttrs: edge.data?.customAttrs || {
-          line: {
-            stroke: '#5F95FF',
-            strokeWidth: 2,
-            strokeDasharray: '',
-            targetMarker: null
-          }
-        }
-      },
-      attrs: {
-        line: {
-          stroke: edge.data?.customAttrs?.line?.stroke || '#5F95FF',
-          strokeWidth: edge.data?.customAttrs?.line?.strokeWidth || 2,
-          strokeDasharray: edge.data?.customAttrs?.line?.strokeDasharray || '',
-          targetMarker: null
-        }
-      },
-      router: {
-        name: edge.router?.name || 'normal',
-        args: edge.router?.args || {}
-      },
-      connector: {
-        name: edge.connector?.name || 'normal',
-        args: edge.connector?.args || {}
-      }
-    })
-
-    // 如果有自定义样式，应用它
-    if (edge.data?.customStyle) {
-      newEdge.setAttrs({
-        line: {
-          ...edge.data.customAttrs.line
-        }
-      })
-    }
-
-    // 设置路由器和连接器
-    if (edge.router?.name === 'orth') {
-      newEdge.setRouter('orth', {
-        padding: 20,
-        direction: 'H'
-      })
-    }
-    
-    if (edge.connector?.name === 'rounded') {
-      newEdge.setConnector('rounded', {
-        radius: 8
-      })
-    }
-  })
-
-  // 更新父子关系
-  data.nodes?.forEach((node: any) => {
-    if (node.parent) {
-      const child = nodeMap.get(node.id)
-      const parent = nodeMap.get(node.parent)
-      if (child && parent) {
-        child.setParent(parent)
-      }
-    }
-  })
-
-  // 更新统计数据
-  updateCounts()
-  updateGroups()
-}
-
 // 对外暴露方法
 defineExpose({
   getData,
@@ -1116,7 +1264,7 @@ const initGraph = async () => {
   try {
     // 创建画布实例
     console.log('Creating graph instance...')
-    graph.value = new Graph({
+    graph = new Graph({
       container: container.value,
       width: container.value.clientWidth,
       height: container.value.clientHeight,
@@ -1176,11 +1324,7 @@ const initGraph = async () => {
         // 节点是否可移动（分组节点不可移动）
         nodeMovable: (view) => {
           const cell = view.cell
-          // 只禁止分组节点本身移动，其它节点都可以移动
-          if (cell.getData()?.type === 'group') {
-            return false
-          }
-          return true
+          return cell.data?.type !== 'group'
         },
         edgeMovable: false,      // 边不可移动
         edgeLabelMovable: false, // 边的标签不可移动
@@ -1192,14 +1336,6 @@ const initGraph = async () => {
         rubberNode: true,
         multipleSelection: true,  // 允许多选
         shouldStartSelecting: () => true,
-        // 新增：明确指定哪些元素可以被拖动
-        validateMagnet: () => true,
-        createEdge: () => true,
-        // 新增：禁止选框包含分组节点
-        validateNodeMovable: (view) => {
-          const cell = view.cell
-          return cell.getData()?.type !== 'group'
-        },
       },
       // 选择功能配置
       selecting: {
@@ -1212,10 +1348,7 @@ const initGraph = async () => {
         strict: false,  // 允许选择分组内的节点
         modifiers: 'shift',
         showEdgeSelectionBox: false,
-        filter: (cell) => {
-          // 仍然允许选择分组节点以便查看其属性，但过滤掉不需要的元素
-          return cell.isNode() || cell.isEdge();
-        },
+        filter: ['node'],
       },
       keyboard: true,   // 启用键盘事件
       clipboard: {
@@ -1235,48 +1368,21 @@ const initGraph = async () => {
       embedding: {
         enabled: true,
         findParent({ node }) {
-          // 如果节点已有父节点，保持现有关系
           if (node.getData()?.parent) {
-            return [];
+            return []
           }
           
-          // 如果当前节点是分组节点，直接阻止嵌入
-          if (node.getData()?.type === 'group') {
-            return [];
-          }
-          
-          const bbox = node.getBBox();
+          const bbox = node.getBBox()
           return this.getNodes().filter((n) => {
-            const data = n.getData();
+            const data = n.getData()
             if (data && data.type === 'group') {
-              const targetBBox = n.getBBox();
-              return targetBBox.containsRect(bbox);
+              const targetBBox = n.getBBox()
+              return targetBBox.containsRect(bbox)
             }
-            return false;
-          });
+            return false
+          })
         },
-        validate: ({ child, parent }) => {
-          // 确保分组节点不会被嵌入到其他节点中
-          if (child.getData()?.type === 'group') {
-            return false;
-          }
-          
-          // 允许普通节点嵌入到分组中
-          return true;
-        },
-        // 嵌入后自动更新分组大小
-        embed: ({ child, parent }) => {
-          // 设置父子关系
-          child.setData({
-            ...child.getData(),
-            parent: parent.id
-          });
-          
-          // 更新分组边界
-          updateGroupBoundary(child);
-          
-          return true;
-        }
+        validate: () => true,
       },
       // 移动限制配置
       translating: {
@@ -1284,11 +1390,9 @@ const initGraph = async () => {
           if (!view || !view.cell) return null
           const cell = view.cell
           if (cell.getData?.()?.type === 'group') {
-            // 返回精确的当前位置，禁止任何移动
-            const pos = cell.getPosition()
             return {
-              x: pos.x,
-              y: pos.y,
+              x: cell.getPosition().x,
+              y: cell.getPosition().y,
               width: 0,
               height: 0
             }
@@ -1309,33 +1413,46 @@ const initGraph = async () => {
         },
         validateConnection({ sourceView, targetView }) {
           if (!sourceView || !targetView) return false
-          const sourceNode = sourceView.cell as Node
-          const targetNode = targetView.cell as Node
+          const sourceNode = sourceView.cell as X6Node
+          const targetNode = targetView.cell as X6Node
           return sourceNode.id !== targetNode.id
         },
         createEdge() {
-          return new Edge(defaultEdgeConfig)
+          return new X6Edge({
+            attrs: {
+              line: {
+                stroke: '#1890ff',
+                strokeWidth: 2
+              }
+            },
+            router: {
+              name: 'normal'
+            },
+            connector: {
+              name: 'normal'
+            }
+          })
         }
       },
     })
-    console.log('Graph instance created:', graph.value)
+    console.log('Graph instance created:', graph)
 
     // 监听窗口大小变化
     window.addEventListener('resize', () => {
-      if (graph.value && container.value) {
-        graph.value.resize(container.value.clientWidth, container.value.clientHeight)
+      if (graph && container.value) {
+        graph.resize(container.value.clientWidth, container.value.clientHeight)
       }
     }, { passive: true })
 
     // 监听选择状态变化
-    graph.value.on('selection:changed', ({ selected, removed }) => {
+    graph.on('selection:changed', ({ selected, removed }) => {
       // 更新选中状态
       selectedCells.value = selected || []
 
       // 如果没有选中任何元素，则恢复所有元素的默认样式
       if (!selected || selected.length === 0) {
         // 清除所有节点的高亮效果
-        graph.value?.getNodes().forEach(node => {
+        graph?.getNodes().forEach(node => {
           if (node.getData()?.type !== 'group') {
             node.setAttrs({
               body: {
@@ -1348,7 +1465,7 @@ const initGraph = async () => {
         })
 
         // 清除所有边的高亮效果
-        graph.value?.getEdges().forEach(edge => {
+        graph?.getEdges().forEach(edge => {
           // 只有未被选中的边才重置样式
           if (!edge.getData()?.selected) {
             edge.setAttrs({
@@ -1404,19 +1521,11 @@ const initGraph = async () => {
               ...cell.getAttrs().body,
               stroke: '#1890ff',
               strokeWidth: 2,
-              strokeDasharray: '5 5',
-              cursor: 'default' // 确保即使在选中状态下也显示为不可拖动的光标
+              strokeDasharray: '5 5'
             }
           })
           
-          // 再次确保分组节点不可拖动
-          cell.setProp('draggable', false);
-          
-          // 立即重置位置以防止任何可能的位置变化
-          const pos = cell.getPosition();
-          cell.setPosition(pos.x, pos.y);
-          
-          selectedEdge.value = null;
+          selectedEdge.value = null
           const nodeData = {
             id: cell.id,
             type: cell.getData()?.type,
@@ -1436,22 +1545,22 @@ const initGraph = async () => {
     })
 
     // 监听节点点击事件
-    graph.value.on('node:click', ({ node, e }) => {
+    graph.on('node:click', ({ node }) => {
       if (isConnecting.value) {
-        // 连线模式逻辑保持不变
         if (!sourceNode.value) {
           sourceNode.value = node
           ElMessage.info('请选择目标节点')
         } else {
           if (sourceNode.value !== node) {
             try {
-              const edge = graph.value?.addEdge({
-                ...defaultEdgeConfig,
-                source: sourceNode.value.id,
-                target: node.id,
-                data: {
-                  type: 'edge',
-                  properties: {}
+              const edge = graph?.addEdge({
+                source: sourceNode.value,
+                target: node,
+                attrs: {
+                  line: {
+                    stroke: '#1890ff',
+                    strokeWidth: 2
+                  }
                 }
               })
 
@@ -1480,55 +1589,13 @@ const initGraph = async () => {
           sourceNode.value = null
         }
       } else if (isGrouping.value) {
-        // 分组模式下的点击处理
-        if (node.getData()?.type !== 'group') { // 不处理分组节点
-          const nodeId = node.id;
-          const isCtrlPressed = e.ctrlKey;
-          
-          // 检查节点是否已在分组列表中
-          const nodeIndex = groupingNodes.value.findIndex(n => n.id === nodeId);
-          const isSelected = nodeIndex !== -1;
-          
-          if (isSelected) {
-            // 如果节点已在分组中，则移除
-            groupingNodes.value.splice(nodeIndex, 1);
-            
-            // 移除高亮效果
-            node.setAttrs({
-              body: {
-                ...node.getAttrs().body,
-                stroke: 'none',
-                strokeWidth: 0
-              }
-            });
-            console.log('从分组中移除节点:', nodeId, '当前分组节点数:', groupingNodes.value.length);
-          } else {
-            // 如果节点不在分组中，则添加
-            // 按住Ctrl键添加到已有选择，否则清除之前的选择
-            if (!isCtrlPressed) {
-              // 如果没有按Ctrl键，清除之前的所有选择
-              groupingNodes.value.forEach(n => {
-                // 找到对应的节点对象并清除高亮
-                const cell = graph.value?.getCellById(n.id);
-                if (cell && cell.isNode()) {
-                  cell.setAttrs({
-                    body: {
-                      ...cell.getAttrs().body,
-                      stroke: 'none',
-                      strokeWidth: 0
-                    }
-                  });
-                }
-              });
-              
-              // 清空分组节点列表，只添加当前节点
-              groupingNodes.value = [node];
-            } else {
-              // 如果按住Ctrl键，添加到已有选择
-              groupingNodes.value.push(node);
-            }
-            
-            // 设置高亮效果
+        // 如果正在创建分组
+        if (node.getData()?.type !== 'group') {
+          const index = groupingNodes.value.findIndex(n => n.id === node.id)
+          if (index === -1) {
+            // 添加到分组节点列表
+            groupingNodes.value.push(node)
+            // 设置节点高亮效果
             node.setAttrs({
               body: {
                 ...node.getAttrs().body,
@@ -1536,65 +1603,80 @@ const initGraph = async () => {
                 strokeWidth: 2,
                 strokeDasharray: '5 5'
               }
-            });
-            console.log('添加节点到分组:', nodeId, '当前分组节点数:', groupingNodes.value.length);
+            })
+          } else {
+            // 从分组节点列表中移除
+            groupingNodes.value.splice(index, 1)
+            // 移除节点高亮效果
+            node.setAttrs({
+              body: {
+                ...node.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            })
           }
-          
-          // 强制更新UI
-          nextTick(() => {
-            console.log('分组模式 - 更新后的节点数量:', groupingNodes.value.length);
-          });
         }
       } else {
-        // 普通模式下的点击处理
-        const isCtrlPressed = e.ctrlKey;
-        
-        if (!isCtrlPressed) {
-          // 如果没有按住Ctrl键，清除之前的选择
-          graph.value?.getNodes().forEach(n => {
-            if (n.getData()?.type !== 'group') {
-              n.setAttrs({
-                body: {
-                  ...n.getAttrs().body,
-                  stroke: 'none',
-                  strokeWidth: 0,
-                  strokeDasharray: '',
-                }
-              })
-            }
-          })
-          selectedCells.value = []
-        }
+        // 清除所有节点的高亮效果
+        graph?.getNodes().forEach(n => {
+          if (n.getData()?.type !== 'group') {
+            n.setAttrs({
+              body: {
+                ...n.getAttrs().body,
+                stroke: 'none',
+                strokeWidth: 0
+              }
+            })
+          }
+        })
 
-        // 检查节点是否已经在选中列表中
-        const isSelected = selectedCells.value.some(cell => cell.id === node.id)
+        // 保持选中边的高亮，只清除未选中的边
+        graph?.getEdges().forEach(edge => {
+          const edgeData = edge.getData()
+          if (!edgeData?.selected) {
+            edge.setAttrs({
+              line: {
+                ...edge.getAttrs().line,
+                stroke: '#333',
+                strokeWidth: 1,
+                strokeDasharray: ''
+              }
+            })
+          } else {
+            // 确保选中的边保持其样式
+            const style = edgeData.style || {
+              stroke: '#1890ff',
+              strokeWidth: 2,
+              strokeDasharray: '5 5'
+            }
+            
+            edge.setAttrs({
+              line: {
+                ...edge.getAttrs().line,
+                stroke: style.stroke,
+                strokeWidth: style.strokeWidth,
+                strokeDasharray: style.strokeDasharray
+              }
+            })
+          }
+        })
         
-        if (!isSelected) {
-          // 如果节点未被选中，添加到选中列表
-          selectedCells.value = [...selectedCells.value, node]
-          // 设置当前节点的高亮效果
+        // 设置当前节点的高亮效果
+        if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
               stroke: '#1890ff',
               strokeWidth: 2,
-              strokeDasharray: '5 5',
-            }
-          })
-        } else if (isCtrlPressed) {
-          // 如果按住Ctrl键且节点已被选中，则从选中列表中移除
-          selectedCells.value = selectedCells.value.filter(cell => cell.id !== node.id)
-          // 移除高亮效果
-          node.setAttrs({
-            body: {
-              ...node.getAttrs().body,
-              stroke: 'none',
-              strokeWidth: 0,
+              strokeDasharray: '5 5'
             }
           })
         }
         
         selectedEdge.value = null
+        // 更新选中状态
+        selectedCells.value = [node]
         // 构造完整的节点数据
         const nodeData = {
           id: node.id,
@@ -1602,7 +1684,7 @@ const initGraph = async () => {
           data: {
             type: node.getData()?.type,
             name: node.getData()?.name || '未命名分组',
-            description: node.getData()?.description || '',
+            description: node.getData()?.description || '',  // 添加描述字段
             properties: node.getData()?.properties || {},
           },
           position: node.getPosition(),
@@ -1614,9 +1696,9 @@ const initGraph = async () => {
     })
 
     // 监听边点击事件
-    graph.value.on('edge:click', ({ edge }) => {
+    graph.on('edge:click', ({ edge }) => {
       // 清除所有节点的高亮效果
-      graph.value?.getNodes().forEach(node => {
+      graph?.getNodes().forEach(node => {
         if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
@@ -1675,9 +1757,9 @@ const initGraph = async () => {
     })
 
     // 监听空白处点击事件
-    graph.value.on('blank:click', () => {
+    graph.on('blank:click', () => {
       // 清除所有节点的高亮效果
-      graph.value?.getNodes().forEach(node => {
+      graph?.getNodes().forEach(node => {
         if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
@@ -1690,7 +1772,7 @@ const initGraph = async () => {
       })
 
       // 处理所有边
-      graph.value?.getEdges().forEach(edge => {
+      graph?.getEdges().forEach(edge => {
         const edgeData = edge.getData()
         
         // 清除选中状态
@@ -1723,7 +1805,7 @@ const initGraph = async () => {
     })
 
     // 监听节点属性更新事件
-    graph.value.on('node:change:attrs', ({ node }) => {
+    graph.on('node:change:attrs', ({ node }) => {
       if (selectedNode.value && selectedNode.value.id === node.id) {
         selectedNode.value = {
           ...selectedNode.value,
@@ -1742,7 +1824,7 @@ const initGraph = async () => {
     })
 
     // 监听节点数据更新事件
-    graph.value.on('node:change:data', ({ node }) => {
+    graph.on('node:change:data', ({ node }) => {
       if (selectedNode.value && selectedNode.value.id === node.id) {
         selectedNode.value = {
           ...selectedNode.value,
@@ -1760,63 +1842,44 @@ const initGraph = async () => {
       }
     })
 
-    // 添加新的位置变化监听，确保捕获所有可能的移动事件
-    graph.value.on('node:change:position', ({ node }) => {
-      updateGroupBoundary(node);
-    });
-
-    // 添加持续拖动监听，实时更新分组边界
-    graph.value.on('node:moving', ({ node }) => {
-      updateGroupBoundary(node);
-    });
-
-    // 添加统一的分组边界更新函数
-    const updateGroupBoundary = (node) => {
-      // 如果是分组节点本身，不处理
-      if (node.getData()?.type === 'group') {
-        return;
-      }
-      
-      // 检查节点是否属于某个分组
-      const parentId = node.getData()?.parent;
+    // 监听节点移动事件，重新调整分组大小
+    graph.on('node:moved', ({ node }) => {
+      // 如果是分组中的节点，更新分组大小
+      const parentId = node.getData()?.parent
       if (parentId) {
-        const parent = graph.value.getCellById(parentId);
+        const parent = graph.getCellById(parentId)
         if (parent && parent.getData()?.type === 'group') {
-          console.log('更新分组边界:', parentId);
-          
           // 获取同一分组内的所有子节点
-          const children = graph.value.getNodes().filter(n => n.getData()?.parent === parentId);
+          const children = graph.getNodes().filter(n => n.getData()?.parent === parentId)
           if (children && children.length > 0) {
-            // 计算所有子节点的边界
-            const bbox = graph.value.getCellsBBox(children);
+            const bbox = graph.getCellsBBox(children)
             if (bbox) {
               // 添加边距
-              const padding = 16;
-              
+              const padding = 16
               // 更新分组大小和位置
-              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2);
-              parent.position(bbox.x - padding, bbox.y - padding);
+              parent.resize(bbox.width + padding * 2, bbox.height + padding * 2)
+              parent.position(bbox.x - padding, bbox.y - padding)
               
               // 确保层级关系正确
-              parent.setZIndex(0);
+              parent.setZIndex(0)
               children.forEach(child => {
-                child.setZIndex(1);
-              });
+                child.setZIndex(1)
+              })
             }
           }
         }
       }
-    };
+    })
 
     // 监听节点添加事件，当节点添加到画布时检查是否需要调整分组
-    graph.value.on('node:added', ({ node }) => {
+    graph.on('node:added', ({ node }) => {
       const parentId = node.data?.parent
       if (parentId) {
-        const parent = graph.value?.getCellById(parentId)
+        const parent = graph?.getCellById(parentId)
         if (parent && parent.data?.type === 'group') {
-          const children = graph.value?.getNodes().filter(n => n.data?.parent === parentId)
+          const children = graph?.getNodes().filter(n => n.data?.parent === parentId)
           if (children && children.length > 0) {
-            const bbox = graph.value?.getCellsBBox(children)
+            const bbox = graph?.getCellsBBox(children)
             if (bbox) {
               // 添加边距
               const padding = 16
@@ -1830,224 +1893,22 @@ const initGraph = async () => {
     })
 
     // 监听节点变化，更新分组数据
-    graph.value.on('node:added', updateGroups)
-    graph.value.on('node:removed', updateGroups)
-    graph.value.on('node:change:data', updateGroups)
-    graph.value.on('node:change:parent', updateGroups)
+    graph.on('node:added', updateGroups)
+    graph.on('node:removed', updateGroups)
+    graph.on('node:change:data', updateGroups)
+    graph.on('node:change:parent', updateGroups)
 
     // 在创建图形实例后添加事件监听
-    graph.value.on('node:added', updateGroups)
-    graph.value.on('node:removed', updateGroups)
-    graph.value.on('node:change:data', updateGroups)
-    graph.value.on('node:change:parent', updateGroups)
-    graph.value.on('node:change:attrs', updateGroups)
+    graph.on('node:added', updateGroups)
+    graph.on('node:removed', updateGroups)
+    graph.on('node:change:data', updateGroups)
+    graph.on('node:change:parent', updateGroups)
+    graph.on('node:change:attrs', updateGroups)
     
     // 初始化时调用一次更新
     updateGroups()
 
-    // 为分组节点添加不可移动的样式，但不影响其子节点
-    graph.value.on('node:added', (args) => {
-      const { node } = args;
-      if (node.getData()?.type === 'group') {
-        // 为分组节点添加视觉提示和行为限制
-        node.setAttrs({
-          body: {
-            ...node.getAttrs().body,
-            cursor: 'default', // 使用默认光标而不是移动光标
-            opacity: 0.8 // 稍微降低不透明度以视觉区分
-          }
-        });
-        
-        // 只禁用分组节点的拖动功能
-        node.setProp('draggable', false);
-        node.setProp('movable', false);
-        
-        // 添加数据标记用于识别
-        node.setData({
-          ...node.getData(),
-          movable: false,
-          preventDrag: true
-        });
-        
-        // 确保分组节点位于底层，而子节点在上层
-        node.setZIndex(0);
-      }
-    });
-
-    // 添加更精确的事件拦截，只阻止分组节点的拖动，不影响子节点
-    // 修改通用拦截函数，确保只针对分组节点本身
-    const preventGroupDrag = ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        // 阻止事件传播以防止分组被拖动
-        e.stopPropagation();
-        e.preventDefault();
-        return false;
-      }
-      return true;
-    };
-
-    graph.value.on('node:mousedown', ({ node, e }) => {
-      // 只处理分组节点本身
-      if (node.getData()?.type === 'group') {
-        // 允许选择但阻止拖动开始
-        const pos = node.getPosition();
-        node.setPosition(pos.x, pos.y);
-        node.setProp('originPosition', pos); // 记录原始位置
-      }
-    });
-
-    // 只为分组节点添加这些拦截器
-    graph.value.on('node:mousemove', ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    });
-
-    graph.value.on('node:dragstart', ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        // 分组节点不触发拖动
-        return false;
-      }
-    });
-
-    graph.value.on('node:drag', ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        e.stopPropagation();
-        e.preventDefault();
-        return false;
-      }
-    });
-
-    graph.value.on('node:dragend', ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        e.stopPropagation();
-        e.preventDefault();
-        return false;
-      }
-    });
-
-    // 修改位置变化检测，只对分组节点进行锁定
-    graph.value.on('cell:change:position', ({ cell, current, previous }) => {
-      // 只对分组节点进行位置重置
-      if (cell.isNode() && cell.getData()?.type === 'group') {
-        cell.setPosition(previous.x, previous.y, { silent: true });
-        return false;
-      }
-    });
-
-    // 在移动过程中持续检查并阻止分组节点移动
-    graph.value.on('node:moving', ({ node, e }) => {
-      if (node.getData()?.type === 'group') {
-        // 取消移动操作
-        e.stopPropagation();
-        e.preventDefault();
-        // 恢复到原始位置
-        const pos = node.getProp('originPosition') || node.getPosition();
-        node.setPosition(pos.x, pos.y);
-        return false;
-      }
-    });
-
-    // 在节点大小变化时也要更新分组边界
-    graph.value.on('node:resize', ({ node }) => {
-      updateGroupBoundary(node);
-    });
-
-    // 在节点添加到分组时确保更新边界
-    graph.value.on('node:change:parent', ({ node }) => {
-      updateGroupBoundary(node);
-    });
-
-    // 添加高频监听以确保拖动过程中实时更新
-    let updateTimer = null;
-    graph.value.on('cell:mousemove', ({ cell }) => {
-      if (cell.isNode() && cell.getData()?.parent) {
-        // 使用防抖来避免过于频繁的更新
-        if (updateTimer) clearTimeout(updateTimer);
-        updateTimer = setTimeout(() => {
-          updateGroupBoundary(cell);
-        }, 10); // 10毫秒的防抖时间，保证实时性
-      }
-    });
-
-    // 定义一个函数来更新所有分组
-    function updateAllGroups() {
-      const groupNodes = graph.value.getNodes().filter(node => node.getData()?.type === 'group');
-      
-      groupNodes.forEach(group => {
-        const children = graph.value.getNodes().filter(node => node.getData()?.parent === group.id);
-        if (children && children.length > 0) {
-          const bbox = graph.value.getCellsBBox(children);
-          if (bbox) {
-            const padding = 16;
-            group.resize(bbox.width + padding * 2, bbox.height + padding * 2);
-            group.position(bbox.x - padding, bbox.y - padding);
-          }
-        }
-      });
-    }
-
-    // 在关键场景下更新所有分组
-    graph.value.on('render:done', updateAllGroups);
-    graph.value.on('scale', updateAllGroups);
-    graph.value.on('translate', updateAllGroups);
-
-    // 修改分组节点的移动限制样式
-    graph.value.on('node:added', (args) => {
-      const { node } = args;
-      if (node.getData()?.type === 'group') {
-        // 为分组节点添加视觉提示和行为限制
-        node.setAttrs({
-          body: {
-            ...node.getAttrs().body,
-            cursor: 'default', // 使用默认光标而不是移动光标
-            opacity: 0.6, // 降低不透明度以便更好地看到内部节点
-            stroke: '#5F95FF',
-            strokeWidth: 2,
-            strokeDasharray: '5 5'
-          }
-        });
-        
-        // 设置层级确保分组位于底层
-        node.setZIndex(0);
-        
-        // 立即更新分组边界
-        setTimeout(() => {
-          const children = graph.value.getNodes().filter(n => n.getData()?.parent === node.id);
-          if (children && children.length > 0) {
-            const bbox = graph.value.getCellsBBox(children);
-            if (bbox) {
-              const padding = 16;
-              node.resize(bbox.width + padding * 2, bbox.height + padding * 2);
-              node.position(bbox.x - padding, bbox.y - padding);
-            }
-          }
-        }, 0);
-      }
-    });
-
-    // 完全删除2258行附近的updateAllGroups函数
-    /* 删除下面的代码:
-    // 添加对所有分组的批量更新功能
-    const updateAllGroups = () => {
-      const groupNodes = graph.value.getNodes().filter(node => node.getData()?.type === 'group');
-      
-      groupNodes.forEach(group => {
-        const children = graph.value.getNodes().filter(node => node.getData()?.parent === group.id);
-        if (children && children.length > 0) {
-          const bbox = graph.value.getCellsBBox(children);
-          if (bbox) {
-            const padding = 16;
-            group.resize(bbox.width + padding * 2, bbox.height + padding * 2);
-            group.position(bbox.x - padding, bbox.y - padding);
-          }
-        }
-      });
-    };
-    */
-
-    return graph.value
+    return graph
   } catch (error) {
     console.error('Failed to initialize graph:', error)
     throw error
@@ -2057,43 +1918,11 @@ const initGraph = async () => {
 // 添加分组数据计算属性
 const groups = ref([])
 
-// 添加统计数据的响应式变量
-const containerCount = ref(0)
-const switchCount = ref(0)
-const groupCount = ref(0)
-
-// 添加更新统计数据的函数
-const updateCounts = () => {
-  if (!graph) return
-  
-  const nodes = graph.value?.getNodes() || []
-  containerCount.value = nodes.filter(node => node.getData()?.type === 'container').length
-  switchCount.value = nodes.filter(node => node.getData()?.type === 'switch').length
-  groupCount.value = nodes.filter(node => node.getData()?.type === 'group').length
-}
-
-// 添加历史记录相关的变量
-const history = reactive({
-  past: [] as any[],
-  future: [] as any[]
-})
-
-// 添加保存历史记录的函数
-const saveToHistory = () => {
-  if (!graph) return
-  
-  const currentState = getData()
-  if (currentState) {
-    history.past.push(currentState)
-    history.future = []
-  }
-}
-
 // 添加更新分组的函数
 const updateGroups = () => {
   if (!graph) return
   
-  const allNodes = graph.value.getNodes()
+  const allNodes = graph.getNodes()
   const groupNodes = allNodes.filter(node => node.getData()?.type === 'group')
   
   groups.value = groupNodes.map(group => {
@@ -2114,17 +1943,17 @@ const updateGroups = () => {
 const handleGroupNodeClick = (groupId: string, nodeId: string) => {
   if (!graph) return
   
-  const node = graph.value.getCellById(nodeId)
+  const node = graph.getCellById(nodeId)
   if (node) {
     // 定位到节点
-    graph.value.scrollToCell(node)
+    graph.scrollToCell(node)
     
     // 选中节点
-    graph.value.cleanSelection()
-    graph.value.select(node)
+    graph.cleanSelection()
+    graph.select(node)
     
     // 高亮显示
-    graph.value.getNodes().forEach(n => {
+    graph.getNodes().forEach(n => {
       if (n.getData()?.type !== 'group') {
         n.setAttrs({
           body: {
@@ -2220,7 +2049,7 @@ const handlePaste = () => {
           if (!config) return null
 
           // 创建新节点
-          return graph.value.addNode({
+          return graph.addNode({
             ...config,
             x: element.position.x + dx,
             y: element.position.y + dy,
@@ -2240,16 +2069,22 @@ const handlePaste = () => {
       const edges = copiedElements.filter((cell: any) => cell.type === 'edge')
       edges.forEach((edge: any) => {
         // 创建新的边
-        graph.value.addEdge({
-          ...defaultEdgeConfig,
+        graph.addEdge({
           source: edge.source,
           target: edge.target,
+          attrs: edge.attrs,
           data: edge.data,
+          router: {
+            name: 'normal'
+          },
+          connector: {
+            name: 'normal'
+          }
         })
       })
       
-      graph.value.resetSelection()
-      graph.value.select(newCells)
+      graph.resetSelection()
+      graph.select(newCells)
     }
     
     ElMessage.success('已粘贴元素')
@@ -2353,16 +2188,16 @@ const setupGraphListeners = () => {
 
   // 为每个事件添加监听器
   events.forEach(event => {
-    graph.value.on(event, () => {
+    graph.on(event, () => {
       // 直接保存状态，不使用防抖
       saveToHistory()
     })
   })
 
   // 更新统计数据的监听器
-  graph.value.on('cell:added', updateCounts)
-  graph.value.on('cell:removed', updateCounts)
-  graph.value.on('node:change:data', updateCounts)
+  graph.on('cell:added', updateCounts)
+  graph.on('cell:removed', updateCounts)
+  graph.on('node:change:data', updateCounts)
 }
 </script>
 
