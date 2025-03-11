@@ -142,6 +142,9 @@
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
+// 定义可触发的事件
+const emit = defineEmits(['save'])
+
 import { ref, computed, onMounted, onUnmounted, watchEffect, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
