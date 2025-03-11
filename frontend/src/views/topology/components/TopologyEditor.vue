@@ -1560,7 +1560,8 @@ const initGraph = async () => {
                 attrs: {
                   line: {
                     stroke: '#1890ff',
-                    strokeWidth: 2
+                    strokeWidth: 2,
+                    targetMarker: null // 移除箭头
                   }
                 }
               })
@@ -1793,7 +1794,7 @@ const initGraph = async () => {
               stroke: '#333',
               strokeWidth: 1,
               strokeDasharray: '',  // 使用空字符串表示实线
-              targetMarker: null
+              targetMarker: null    // 移除箭头
             }
           })
         }
