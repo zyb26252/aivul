@@ -1,10 +1,13 @@
 window.APP_CONFIG = {
-  // API 服务器地址，部署时可修改
-  API_URL: 'http://aivul.love:8000',
-  // API 请求超时时间（毫秒）
+  // API 地址配置
+  API_URL: 'http://8.210.223.197:8000',
+  
+  // API 请求配置
   API_TIMEOUT: 30000,
-  // 是否启用请求缓存
   ENABLE_CACHE: true,
-  // 请求失败重试次数
-  MAX_RETRIES: 3
+  MAX_RETRIES: 3,
+  
+  // 应用配置
+  appTitle: 'AI VUL',
+  appDescription: 'AI驱动的网络靶场自动化构建引擎'
 } 
