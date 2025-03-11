@@ -947,8 +947,8 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-@import '@/styles/common.scss';
+<style lang="scss">
+@use '@/styles/common.scss' as *;
 
 .page-container {
   padding: var(--spacing-large);

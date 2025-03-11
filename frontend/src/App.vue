@@ -23,8 +23,8 @@ watch(() => [route.path, locale.value], updateTitle, { immediate: true })
   </div>
 </template>
 
-<style>
-@import '@/styles/common.scss';
+<style lang="scss">
+@use '@/styles/common.scss' as *;
 
 #app {
   width: 100%;
