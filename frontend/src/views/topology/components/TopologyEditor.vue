@@ -244,9 +244,13 @@ const groupName = ref('')
 
 const nodeConfig: Record<string, NodeConfig> = {
   container: {
-    width: 80,
-    height: 80,
+    width: 50,
+    height: 65,
     markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
       {
         tagName: 'image',
         selector: 'icon',
@@ -257,11 +261,19 @@ const nodeConfig: Record<string, NodeConfig> = {
       },
     ],
     attrs: {
+      body: {
+        width: 50,
+        height: 65,
+        stroke: 'none',
+        fill: 'transparent',
+        rx: 4,
+        ry: 4,
+      },
       icon: {
-        width: 40,
-        height: 40,
-        x: 58,
-        y: 50,
+        width: 32,
+        height: 32,
+        x: 9,
+        y: 5,
         'xlink:href': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
       },
       label: {
@@ -269,9 +281,9 @@ const nodeConfig: Record<string, NodeConfig> = {
         fill: '#333',
         fontSize: 12,
         textAnchor: 'middle',
-        textVerticalAnchor: 'bottom',
-        x: 40,
-        y: 70,
+        textVerticalAnchor: 'middle',
+        x: 0,
+        y: 20,
       },
     },
     ports: {
@@ -283,7 +295,7 @@ const nodeConfig: Record<string, NodeConfig> = {
               r: 4,
               magnet: true,
               stroke: '#5F95FF',
-              strokeWidth: 1,
+              strokeWidth: 0,
               fill: '#fff',
               style: {
                 visibility: 'hidden',
@@ -318,9 +330,13 @@ const nodeConfig: Record<string, NodeConfig> = {
     },
   },
   switch: {
-    width: 80,
-    height: 80,
+    width: 50,
+    height: 65,
     markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
       {
         tagName: 'image',
         selector: 'icon',
@@ -331,11 +347,19 @@ const nodeConfig: Record<string, NodeConfig> = {
       },
     ],
     attrs: {
+      body: {
+        width: 50,
+        height: 65,
+        stroke: 'none',
+        fill: 'transparent',
+        rx: 4,
+        ry: 4,
+      },
       icon: {
-        width: 40,
-        height: 40,
-        x: 58,
-        y: 50,
+        width: 32,
+        height: 32,
+        x: 9,
+        y: 5,
         'xlink:href': 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg=='
       },
       label: {
@@ -343,9 +367,9 @@ const nodeConfig: Record<string, NodeConfig> = {
         fill: '#333',
         fontSize: 12,
         textAnchor: 'middle',
-        textVerticalAnchor: 'bottom',
-        x: 40,
-        y: 70,
+        textVerticalAnchor: 'middle',
+        x: 0,
+        y: 20,
       },
     },
     ports: {
@@ -372,7 +396,7 @@ const nodeConfig: Record<string, NodeConfig> = {
               r: 4,
               magnet: true,
               stroke: '#5F95FF',
-              strokeWidth: 1,
+              strokeWidth: 0,
               fill: '#fff',
               style: {
                 visibility: 'hidden',
@@ -1267,8 +1291,8 @@ const initGraph = async () => {
             try {
               const edge = graph.value?.addEdge({
                 ...defaultEdgeConfig,
-                source: sourceNode.value,
-                target: node,
+                source: sourceNode.value.id,
+                target: node.id,
                 data: {
                   type: 'edge',
                   properties: {}
@@ -1330,13 +1354,14 @@ const initGraph = async () => {
         }
       } else {
         // 清除所有节点的高亮效果
-        graph.value?.getNodes().forEach(n => {
-          if (n.getData()?.type !== 'group') {
-            n.setAttrs({
+        graph.value?.getNodes().forEach(node => {
+          if (node.getData()?.type !== 'group') {
+            node.setAttrs({
               body: {
-                ...n.getAttrs().body,
+                ...node.getAttrs().body,
                 stroke: 'none',
-                strokeWidth: 0
+                strokeWidth: 0,
+                strokeDasharray: '',
               }
             })
           }
@@ -1373,14 +1398,14 @@ const initGraph = async () => {
           }
         })
         
-        // 设置当前节点的高亮效果
+        // 设置当前节点的高亮效果 - 移除边框样式
         if (node.getData()?.type !== 'group') {
           node.setAttrs({
             body: {
               ...node.getAttrs().body,
-              stroke: '#1890ff',
-              strokeWidth: 2,
-              strokeDasharray: '5 5'
+              stroke: 'none',
+              strokeWidth: 0,
+              strokeDasharray: '',
             }
           })
         }
