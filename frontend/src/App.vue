@@ -1,10 +1,34 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { watch } from 'vue'
+import { watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const { t, locale } = useI18n()
 const route = useRoute()
+
+// 初始化语言设置
+const initLanguage = () => {
+  const savedLanguage = localStorage.getItem('language')
+  if (savedLanguage) {
+    locale.value = savedLanguage
+  } else {
+    // 如果没有保存的语言设置，尝试使用浏览器语言
+    const browserLang = navigator.language
+    if (browserLang.startsWith('zh')) {
+      locale.value = browserLang === 'zh-TW' ? 'zh-TW' : 'zh'
+    } else if (browserLang.startsWith('ja')) {
+      locale.value = 'ja'
+    } else {
+      locale.value = 'en'
+    }
+    localStorage.setItem('language', locale.value)
+  }
+}
+
+// 在组件挂载时初始化语言
+onMounted(() => {
+  initLanguage()
+})
 
 // 更新页面标题
 const updateTitle = () => {

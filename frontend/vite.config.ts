@@ -47,22 +47,15 @@ export default defineConfig({
     target: 'es2015',
     minify: 'esbuild',
     cssCodeSplit: true,
-    sourcemap: true,
+    sourcemap: false,
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('element-plus')) {
-              return 'element-plus-vendor'
-            }
-            if (id.includes('vue') || id.includes('pinia')) {
-              return 'vue-vendor'
-            }
-            if (id.includes('@antv')) {
-              return 'antv-vendor'
-            }
-            return 'vendor'
-          }
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus'],
+          'antv': ['@antv/x6', '@antv/x6-vue-shape'],
+          'i18n': ['vue-i18n']
         }
       }
     },
