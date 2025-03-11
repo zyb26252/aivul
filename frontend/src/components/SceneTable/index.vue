@@ -31,9 +31,16 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="nodeCount" :label="$t('table.nodeCount')" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" type="info">{{ row.nodeCount }}</el-tag>
+      <el-table-column
+        prop="nodeCount"
+        :label="$t('scene.nodeCount')"
+        align="center"
+        width="150px"
+      >
+        <template #default="scope">
+          <el-tag type="success" effect="light">
+            {{ getActualNodeCount(scope.row) }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="createdAt" :label="$t('table.createdAt')" width="180">
@@ -93,10 +100,10 @@ import { getScenes, deleteScene } from '@/api/scene'
 import TableSkeleton from '@/components/TableSkeleton.vue'
 
 // 容器图标 base64
-const containerIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxwYXRoIGQ9Ik04MzIgNjRIMTkyYy0xNy43IDAtMzIgMTQuMy0zMiAzMnY4MzJjMCAxNy43IDE0LjMgMzIgMzIgMzJoNjQwYzE3LjcgMCAzMi0xNC4zIDMyLTMyVjk2YzAtMTcuNy0xNC4zLTMyLTMyLTMyem0tNDAgODI0SDIzMlY2ODdoOTcuOWMxMS42IDMyLjggMzIgNjIuMyA1OS4xIDg0LjcgMzQuNSAyOC41IDc4LjIgNDQuMyAxMjMgNDQuM3M4OC41LTE1LjcgMTIzLTQ0LjNjMjcuMS0yMi40IDQ3LjUtNTEuOSA1OS4xLTg0LjdINzkydi02M0g2NDMuNmwtNS4yIDI0LjdDNjI2LjQgNzA4LjUgNTczLjIgNzUyIDUxMiA3NTJzLTExNC40LTQzLjUtMTI2LjUtMTAzLjNsLTUuMi0yNC43SDIzMlYxMzZoNTYwdjc1MnoiIGZpbGw9IiMxODkwZmYiLz48cGF0aCBkPSJNMzIwIDM0MWgzODRjNC40IDAgOC0zLjYgOC04di00OGMwLTQuNC0zLjYtOC04LThIMzIwYy00LjQgMC04IDMuNi04IDh2NDhjMCA0LjQgMy42IDggOCA4em0wIDE2MGgzODRjNC40IDAgOC0zLjYgOC04di00OGMwLTQuNC0zLjYtOC04LThIMzIwYy00LjQgMC04IDMuNi04IDh2NDhjMCA0LjQgMy42IDggOCA4eiIgZmlsbD0iIzE4OTBmZiIvPjwvc3ZnPg=='
+const containerIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
 
 // 交换机图标 base64
-const switchIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxwYXRoIGQ9Ik04ODAgMTEySDE0NGMtMTcuNyAwLTMyIDE0LjMtMzIgMzJ2NzM2YzAgMTcuNyAxNC4zIDMyIDMyIDMyaDczNmMxNy43IDAgMzItMTQuMyAzMi0zMlYxNDRjMC0xNy43LTE0LjMtMzItMzItMzJ6TTUxMiA4MDBjLTg4LjQgMC0xNjAtNzEuNi0xNjAtMTYwczcxLjYtMTYwIDE2MC0xNjAgMTYwIDcxLjYgMTYwIDE2MC03MS42IDE2MC0xNjAgMTYwek01MTIgNTQ0Yy01My4wMiAwLTk2IDQyLjk4LTk2IDk2czQyLjk4IDk2IDk2IDk2IDk2LTQyLjk4IDk2LTk2LTQyLjk4LTk2LTk2LTk2eiIgZmlsbD0iIzEzYzJjMiIvPjwvc3ZnPg=='
+const switchIcon = 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg=='
 
 const props = defineProps<{
   loading: boolean
@@ -109,6 +116,29 @@ const previewContainer = ref<HTMLElement>()
 const graphInstances = new Map<number, any>()
 
 const { t } = useI18n()
+
+// 计算实际节点数量（不包含分组节点）
+const getActualNodeCount = (scene: Scene) => {
+  if (!scene.topology) return 0;
+  
+  try {
+    const topologyData = typeof scene.topology === 'string' 
+      ? JSON.parse(scene.topology) 
+      : scene.topology;
+      
+    const nodes = topologyData.nodes || [];
+    
+    // 过滤掉类型为group的节点
+    const nonGroupNodes = nodes.filter(node => node.type !== 'group');
+    
+    console.log(`[节点计数] 场景ID: ${scene.id}, 名称: ${scene.name}, 总节点: ${nodes.length}, 非分组节点: ${nonGroupNodes.length}`);
+    
+    return nonGroupNodes.length;
+  } catch (error) {
+    console.error('计算节点数量时出错:', error);
+    return 0;
+  }
+}
 
 const updateThumbnail = async (scene: Scene) => {
   await new Promise(resolve => setTimeout(resolve, 100))
@@ -133,7 +163,21 @@ const updateThumbnail = async (scene: Scene) => {
         background: {
           color: '#F8F9FA',
         },
-        grid: false,
+        grid: {
+          visible: true,
+          type: 'doubleMesh',
+          args: [
+            {
+              color: '#EBEEF5',
+              thickness: 0.5
+            },
+            {
+              color: '#DCDFE6',
+              thickness: 0.5,
+              factor: 4
+            }
+          ]
+        },
         interacting: false,
         connecting: false,
         mousewheel: false,
@@ -159,20 +203,32 @@ const updateThumbnail = async (scene: Scene) => {
 
     const nodes = topologyData.nodes || []
     const edges = topologyData.edges || []
+    const groups = topologyData.groups || []
+    
+    console.log(`[预览] 场景ID: ${scene.id}, 名称: ${scene.name}`)
+    console.log(`[预览] 原始节点数量: ${nodes.length}, 边数量: ${edges.length}, 分组数量: ${groups.length}`)
+    
+    // 找出所有独立节点和分组节点 (顶级节点)
+    const topLevelNodes = nodes.filter(node => !node.data?.parent || node.type === 'group')
+    console.log(`[预览] 顶级节点数量: ${topLevelNodes.length}`)
     
     // 用于跟踪实际渲染的节点ID
     const renderedNodeIds = new Set()
     
-    // 先渲染节点
-    nodes.forEach((node: any) => {
-      // 处理分组节点
-      if (node.type === 'group') {
+    // 先渲染分组节点，确保在最底层
+    nodes
+      .filter(node => node.type === 'group')
+      .forEach(node => {
+        // 获取这个分组的子节点
+        const childNodes = nodes.filter(n => n.data?.parent === node.id)
+        
+        // 创建精确匹配编辑器的分组节点
         graph.addNode({
           id: node.id,
           x: node.x,
           y: node.y,
-          width: 120,
-          height: 80,
+          width: node.attrs?.width || 200,
+          height: node.attrs?.height || 100,
           shape: 'rect',
           markup: [
             {
@@ -197,136 +253,162 @@ const updateThumbnail = async (scene: Scene) => {
             },
             label: {
               text: node.data?.name || '分组',
-              fontSize: 12,
+              fontSize: 8, // 缩略图中使用更小的字体
               fill: '#1890ff',
-              refX: 0.5,
-              refY: 0.5,
-              textAnchor: 'middle',
-              textVerticalAnchor: 'middle',
+              refX: 8,   // 靠左上角，与编辑器一致
+              refY: 8,
+              textAnchor: 'start',
+              textVerticalAnchor: 'top',
             },
           },
-          zIndex: 1 // 分组应该在底层
+          zIndex: 0
         })
-        // 记录已渲染的节点ID
+        
         renderedNodeIds.add(node.id)
-        return
-      }
-      
-      // 跳过有父节点的节点，避免重复渲染
-      if (node.data?.parent) {
-        return
-      }
-      
-      graph.addNode({
-        id: node.id,
-        x: node.x,
-        y: node.y,
-        width: 40,
-        height: 60,
-        shape: 'rect',
-        markup: [
-          {
-            tagName: 'rect',
-            selector: 'body',
-          },
-          {
-            tagName: 'image',
-            selector: 'image',
-          },
-          {
-            tagName: 'text',
-            selector: 'label',
-          },
-        ],
-        attrs: {
-          body: {
-            fill: '#fff',
-            stroke: 'none',
-            refWidth: '100%',
-            refHeight: '100%',
-          },
-          image: {
-            'xlink:href': node.type === 'container' 
-              ? containerIcon
-              : switchIcon,
-            width: 32,
-            height: 32,
-            x: 4,
-            y: 4,
-          },
-          label: {
-            text: node.type === 'container' ? '容器' : '交换机',
-            fontSize: 12,
-            fill: '#333',
-            refX: 0.5,
-            refY: 0.8,
-            textAnchor: 'middle',
-            textVerticalAnchor: 'middle',
-          },
-        },
-        zIndex: 2
       })
-      // 记录已渲染的节点ID
-      renderedNodeIds.add(node.id)
-    })
+    
+    // 然后渲染非分组、没有父节点的独立节点
+    nodes
+      .filter(node => node.type !== 'group' && !node.data?.parent)
+      .forEach(node => {
+        graph.addNode({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          width: 30,  // 缩略图中使用更小的尺寸
+          height: 40,
+          shape: 'rect',
+          markup: [
+            {
+              tagName: 'rect',
+              selector: 'body',
+            },
+            {
+              tagName: 'image',
+              selector: 'image',
+            },
+            {
+              tagName: 'text',
+              selector: 'label',
+            },
+          ],
+          attrs: {
+            body: {
+              fill: 'none',
+              stroke: 'none',
+              refWidth: '100%',
+              refHeight: '100%',
+            },
+            image: {
+              'xlink:href': node.type === 'container' 
+                ? containerIcon
+                : switchIcon,
+              width: 24,
+              height: 24,
+              x: 3,
+              y: 0,
+            },
+            label: {
+              text: node.type === 'container' ? '容器' : '交换机',
+              fontSize: 7,
+              fill: '#333',
+              refX: 0.5,
+              refY: 0.95,
+              textAnchor: 'middle',
+              textVerticalAnchor: 'top',
+            },
+          },
+          zIndex: 1
+        })
+        
+        renderedNodeIds.add(node.id)
+      })
+
+    console.log(`[预览] 实际渲染节点数量: ${renderedNodeIds.size}`)
 
     // 添加边的渲染
+    let renderedEdgeCount = 0
     edges.forEach((edge: any) => {
-      // 只渲染连接到已渲染节点的边
-      if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
-        return
-      }
-      
-      graph.addEdge({
-        source: {
-          cell: edge.source,
-          anchor: {
-            name: 'center',
-            args: {
-              dx: 0,
-              dy: 0
-            }
-          }
-        },
-        target: {
-          cell: edge.target,
-          anchor: {
-            name: 'center',
-            args: {
-              dx: 0,
-              dy: 0
-            }
-          }
-        },
-        attrs: {
-          line: {
-            stroke: edge.attrs?.line?.stroke || '#333333',
-            strokeWidth: edge.attrs?.line?.strokeWidth || 1,
-            strokeDasharray: edge.attrs?.line?.strokeDasharray || '',
-            targetMarker: null,
-            pointerEvents: 'none'
+      try {
+        // 确保源节点和目标节点存在
+        if (!edge.source || !edge.target) {
+          console.warn(`[预览] 跳过无效边，缺少源节点或目标节点ID: ${JSON.stringify(edge)}`)
+          return
+        }
+        
+        // 验证源节点和目标节点是否已渲染
+        if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
+          console.warn(`[预览] 跳过边 ${edge.id || '未知'}: 连接节点未渲染 (源: ${edge.source}, 目标: ${edge.target})`)
+          return
+        }
+        
+        // 进一步检查源节点和目标节点是否真的存在于图中
+        const sourceNode = graph.getCellById(edge.source)
+        const targetNode = graph.getCellById(edge.target)
+        
+        if (!sourceNode || !targetNode) {
+          console.warn(`[预览] 跳过边 ${edge.id || '未知'}: 无法在图中找到节点 (源: ${edge.source} ${sourceNode ? '存在' : '不存在'}, 目标: ${edge.target} ${targetNode ? '存在' : '不存在'})`)
+          return
+        }
+        
+        // 从原始数据中提取边的样式
+        const lineStyle = edge.attrs?.line || {}
+        const router = edge.data?.router || { name: 'orth', args: { padding: 10, direction: 'H' } }
+        const connector = edge.data?.connector || { name: 'rounded', args: { radius: 5 } }
+        
+        // 创建和原始边完全相同样式的边
+        graph.addEdge({
+          source: {
+            cell: edge.source,
+            anchor: 'center',
           },
-        },
-        router: {
-          name: 'orth',
-          args: {
-            padding: 20,
-            direction: 'H'
-          }
-        },
-        connector: {
-          name: edge.connector || 'rounded',
-          args: {
-            radius: 8
-          }
-        },
-        zIndex: 1
-      })
+          target: {
+            cell: edge.target,
+            anchor: 'center',
+          },
+          attrs: {
+            line: {
+              stroke: lineStyle.stroke || '#333333',
+              strokeWidth: Math.max(1, (lineStyle.strokeWidth || 1) * 0.5), // 缩小线宽比例
+              strokeDasharray: lineStyle.strokeDasharray || '',
+              targetMarker: null,
+            },
+          },
+          router: router,
+          connector: connector,
+          zIndex: 2
+        })
+        
+        renderedEdgeCount++;
+      } catch (error) {
+        console.error(`[预览] 添加边时发生错误:`, error)
+      }
     })
 
-    if (nodes.length > 0) {
-      graph.zoomToFit({ padding: 10 })
-      graph.centerContent()
+    // 应用适当的缩放和居中
+    if (renderedNodeIds.size > 0) {
+      // 等待元素渲染完成
+      setTimeout(() => {
+        // 计算适当的缩放比例
+        const scaleFactor = 0.85; // 留出一些边距
+        
+        // 应用缩放和居中
+        graph.zoomToFit({
+          padding: 2,
+          maxScale: 0.8,
+          minScale: 0.1, // 允许更小的缩放比例，确保所有内容可见
+          scaleGrid: 0.1,
+          useContentBox: true
+        })
+        graph.centerContent()
+        
+        // 获取当前缩放
+        const currentScale = graph.zoom();
+        if (currentScale > 0.8) {
+          // 如果缩放太大，减小它
+          graph.zoom(-0.2);
+        }
+      }, 50)
     }
   } catch (error) {
     console.error('更新缩略图时出错:', error)
@@ -378,7 +460,21 @@ const handlePreview = (scene: Scene) => {
       background: {
         color: '#F8F9FA',
       },
-      grid: false,
+      grid: {
+        visible: true,
+        type: 'doubleMesh',
+        args: [
+          {
+            color: '#EBEEF5',
+            thickness: 1
+          },
+          {
+            color: '#DCDFE6',
+            thickness: 1,
+            factor: 4
+          }
+        ]
+      },
       interacting: false,
       connecting: false,
       mousewheel: false,
@@ -394,20 +490,25 @@ const handlePreview = (scene: Scene) => {
 
     const nodes = topologyData.nodes || []
     const edges = topologyData.edges || []
+    const groups = topologyData.groups || []
+    
+    console.log(`[预览对话框] 场景ID: ${scene.id}, 名称: ${scene.name}`)
+    console.log(`[预览对话框] 原始节点数量: ${nodes.length}, 边数量: ${edges.length}, 分组数量: ${groups.length}`)
     
     // 用于跟踪实际渲染的节点ID
     const renderedNodeIds = new Set()
     
-    // 渲染节点
-    nodes.forEach((node: any) => {
-      // 处理分组节点
-      if (node.type === 'group') {
+    // 先渲染分组节点
+    nodes
+      .filter(node => node.type === 'group')
+      .forEach(node => {
+        // 完全复制原始分组节点的属性
         graph.addNode({
           id: node.id,
           x: node.x,
           y: node.y,
-          width: 120,
-          height: 80,
+          width: node.attrs?.width || 200,
+          height: node.attrs?.height || 100,
           shape: 'rect',
           markup: [
             {
@@ -420,6 +521,7 @@ const handlePreview = (scene: Scene) => {
             },
           ],
           attrs: {
+            ...node.attrs,
             body: {
               fill: 'rgba(24, 144, 255, 0.1)',
               stroke: '#1890ff',
@@ -429,139 +531,158 @@ const handlePreview = (scene: Scene) => {
               ry: 8,
               refWidth: '100%',
               refHeight: '100%',
+              ...node.attrs?.body
             },
             label: {
               text: node.data?.name || '分组',
               fontSize: 12,
               fill: '#1890ff',
-              refX: 0.5,
-              refY: 0.5,
-              textAnchor: 'middle',
-              textVerticalAnchor: 'middle',
+              refX: 8,
+              refY: 8,
+              textAnchor: 'start',
+              textVerticalAnchor: 'top',
+              ...node.attrs?.label
             },
           },
-          zIndex: 1 // 分组应该在底层
+          zIndex: 0
         })
-        // 记录已渲染的节点ID
+        
         renderedNodeIds.add(node.id)
-        return
-      }
-      
-      // 跳过有父节点的节点，避免重复渲染
-      if (node.data?.parent) {
-        return
-      }
-      
-      graph.addNode({
-        id: node.id,
-        x: node.x,
-        y: node.y,
-        width: 40,
-        height: 60,
-        shape: 'rect',
-        markup: [
-          {
-            tagName: 'rect',
-            selector: 'body',
-          },
-          {
-            tagName: 'image',
-            selector: 'image',
-          },
-          {
-            tagName: 'text',
-            selector: 'label',
-          },
-        ],
-        attrs: {
-          body: {
-            fill: '#fff',
-            stroke: 'none',
-            refWidth: '100%',
-            refHeight: '100%',
-          },
-          image: {
-            'xlink:href': node.type === 'container' 
-              ? containerIcon
-              : switchIcon,
-            width: 32,
-            height: 32,
-            x: 4,
-            y: 4,
-          },
-          label: {
-            text: node.type === 'container' ? '容器' : '交换机',
-            fontSize: 12,
-            fill: '#333',
-            refX: 0.5,
-            refY: 0.8,
-            textAnchor: 'middle',
-            textVerticalAnchor: 'middle',
-          },
-        },
-        zIndex: 2
       })
-      // 记录已渲染的节点ID
-      renderedNodeIds.add(node.id)
-    })
+    
+    // 渲染非分组、没有父节点的独立节点
+    nodes
+      .filter(node => node.type !== 'group' && !node.data?.parent)
+      .forEach(node => {
+        // 完全复制原始节点的属性
+        graph.addNode({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          width: 40,
+          height: 60,
+          shape: 'rect',
+          markup: [
+            {
+              tagName: 'rect',
+              selector: 'body',
+            },
+            {
+              tagName: 'image',
+              selector: 'image',
+            },
+            {
+              tagName: 'text',
+              selector: 'label',
+            },
+          ],
+          attrs: {
+            ...node.attrs,
+            body: {
+              fill: 'none',
+              stroke: 'none',
+              refWidth: '100%',
+              refHeight: '100%',
+              ...node.attrs?.body
+            },
+            image: {
+              'xlink:href': node.type === 'container' 
+                ? containerIcon
+                : switchIcon,
+              width: 40,
+              height: 40,
+              x: 0,
+              y: 0,
+              ...node.attrs?.image
+            },
+            label: {
+              text: node.type === 'container' ? '容器' : '交换机',
+              fontSize: 12,
+              fill: '#333',
+              refX: 0.5,
+              refY: 0.85,
+              textAnchor: 'middle',
+              textVerticalAnchor: 'top',
+              ...node.attrs?.label
+            },
+          },
+          zIndex: 1
+        })
+        
+        renderedNodeIds.add(node.id)
+      })
 
-    // 渲染边
+    // 渲染边，完全保留原始样式
     edges.forEach((edge: any) => {
-      // 只渲染连接到已渲染节点的边
-      if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
-        return
-      }
-      
-      graph.addEdge({
-        source: {
-          cell: edge.source,
-          anchor: {
-            name: 'center',
-            args: {
-              dx: 0,
-              dy: 0
-            }
-          }
-        },
-        target: {
-          cell: edge.target,
-          anchor: {
-            name: 'center',
-            args: {
-              dx: 0,
-              dy: 0
-            }
-          }
-        },
-        attrs: {
-          line: {
-            stroke: edge.attrs?.line?.stroke || '#333333',
-            strokeWidth: edge.attrs?.line?.strokeWidth || 1,
-            strokeDasharray: edge.attrs?.line?.strokeDasharray || '',
-            targetMarker: null,
-            pointerEvents: 'none'
+      try {
+        // 确保源节点和目标节点都存在
+        if (!edge.source || !edge.target) {
+          console.warn(`[预览对话框] 跳过无效边，缺少源节点或目标节点ID: ${JSON.stringify(edge)}`)
+          return
+        }
+        
+        // 验证源节点和目标节点是否已渲染
+        if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
+          console.warn(`[预览对话框] 跳过边 ${edge.id || '未知'}: 连接节点未渲染 (源: ${edge.source}, 目标: ${edge.target})`)
+          return
+        }
+        
+        // 进一步检查源节点和目标节点是否真的存在于图中
+        const sourceNode = graph.getCellById(edge.source)
+        const targetNode = graph.getCellById(edge.target)
+        
+        if (!sourceNode || !targetNode) {
+          console.warn(`[预览对话框] 跳过边 ${edge.id || '未知'}: 无法在图中找到节点 (源: ${edge.source} ${sourceNode ? '存在' : '不存在'}, 目标: ${edge.target} ${targetNode ? '存在' : '不存在'})`)
+          return
+        }
+        
+        // 尽可能保留原始边的所有属性
+        graph.addEdge({
+          id: edge.id,
+          source: {
+            cell: edge.source,
+            anchor: 'center',
           },
-        },
-        router: {
-          name: 'orth',
-          args: {
-            padding: 20,
-            direction: 'H'
-          }
-        },
-        connector: {
-          name: edge.connector || 'rounded',
-          args: {
-            radius: 8
-          }
-        },
-        zIndex: 1
-      })
+          target: {
+            cell: edge.target,
+            anchor: 'center',
+          },
+          attrs: {
+            ...edge.attrs,
+            line: {
+              ...edge.attrs?.line,
+              targetMarker: null,
+            }
+          },
+          router: edge.data?.router || {
+            name: 'orth',
+            args: {
+              padding: 20,
+              direction: 'H'
+            }
+          },
+          connector: edge.data?.connector || {
+            name: 'rounded',
+            args: {
+              radius: 8
+            }
+          },
+          zIndex: 2
+        })
+      } catch (error) {
+        console.error(`[预览对话框] 添加边时发生错误:`, error)
+      }
     })
 
-    if (nodes.length > 0) {
-      graph.zoomToFit({ padding: 20 })
-      graph.centerContent()
+    // 适当缩放并居中
+    if (renderedNodeIds.size > 0) {
+      setTimeout(() => {
+        graph.zoomToFit({ 
+          padding: 20,
+          maxScale: 1.2
+        })
+        graph.centerContent()
+      }, 50)
     }
   })
 }
@@ -625,18 +746,23 @@ const emit = defineEmits<{
 .topology-thumbnail {
   width: 180px;
   height: 100px;
-  background: var(--bg-lighter);
+  background: var(--el-bg-color-page);
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid var(--border-light);
-  border-radius: var(--border-radius-base);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
   cursor: pointer;
-  transition: var(--transition-smooth);
+  transition: all 0.3s ease;
+  position: relative;
   
   &:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-base);
-    border-color: var(--primary-color);
+    transform: scale(1.02);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary-light-5);
+  }
+  
+  &:active {
+    transform: scale(0.98);
   }
   
   .thumbnail-container {
