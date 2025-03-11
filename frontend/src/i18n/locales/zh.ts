@@ -173,6 +173,8 @@ export default {
           delete: '删除分组',
           name: '分组名称',
           namePlaceholder: '请输入分组名称',
+          description: '描述',
+          descriptionPlaceholder: '请输入分组描述',
           color: '分组颜色',
           colorPlaceholder: '请选择分组颜色',
           addNode: '添加节点到分组',
@@ -259,9 +261,9 @@ export default {
         width: '线条宽度',
         pattern: '线条样式',
         styles: {
-          straight: '直线',
-          polyline: '折线',
-          curve: '曲线'
+          normal: '直线',
+          rounded: '折线',
+          smooth: '曲线'
         },
         patterns: {
           solid: '实线',

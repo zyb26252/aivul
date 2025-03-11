@@ -150,11 +150,16 @@ import {
   FullScreen, 
   Connection, 
   Delete,
-  Box,  // 容器图标
-  Switch,  // 交换机图标
-  Folder  // 分组图标
+  Box,
+  Switch,
+  Folder
 } from '@element-plus/icons-vue'
-import { Graph, Cell } from '@antv/x6'
+import { Graph } from '@antv/x6'
+import { Cell, Node as X6Node, Edge as X6Edge } from '@antv/x6/lib/model'
+import { CellView } from '@antv/x6/lib/view/cell'
+import { Model } from '@antv/x6/lib/model/model'
+import { Collection } from '@antv/x6/lib/model/collection'
+import { Properties } from '@antv/x6/lib/types'
 import '@antv/x6-vue-shape'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
@@ -180,6 +185,27 @@ interface NodeData {
 // 定义边数据接口
 interface EdgeData {
   properties: Record<string, any>
+  router?: {
+    name: string
+    args?: {
+      padding?: number
+      direction?: string
+    }
+  }
+  connector?: {
+    name: string
+    args?: {
+      radius?: number
+    }
+  }
+  customStyle?: boolean
+  customAttrs?: {
+    line?: {
+      stroke?: string
+      strokeWidth?: number
+      strokeDasharray?: string
+    }
+  }
 }
 
 // 定义分组数据接口
@@ -197,14 +223,14 @@ interface TopologyData {
     x: number
     y: number
     data: NodeData
-    attrs: Record<string, any>
+    attrs: CellAttrs
   }>
   edges: Array<{
     id: string
     source: string
     target: string
     data: EdgeData
-    attrs: Record<string, any>
+    attrs: CellAttrs
   }>
   groups: GroupData[]
 }
@@ -347,12 +373,29 @@ const getData = (): TopologyData => {
   const edges = graph.getEdges().map(edge => {
     const sourceId = (edge as any).getSourceCell()?.id || ''
     const targetId = (edge as any).getTargetCell()?.id || ''
+    const edgeData = edge.getData() as EdgeData
+    const attrs = edge.getAttrs()
+    
+    // 保存边的路由器和连接器配置
+    const router = edge.getRouter()
+    const connector = edge.getConnector()
+    
     return {
       id: edge.id,
       source: sourceId,
       target: targetId,
-      data: edge.getData() as EdgeData,
-      attrs: edge.getAttrs()
+      data: {
+        ...edgeData,
+        router: router ? {
+          name: router.name,
+          args: router.args
+        } : undefined,
+        connector: connector ? {
+          name: connector.name,
+          args: connector.args
+        } : undefined
+      },
+      attrs: attrs
     }
   })
 
@@ -448,26 +491,25 @@ const setData = (data: TopologyData) => {
   // 最后添加边
   data.edges.forEach(edgeData => {
     if (edgeData.source && edgeData.target && graph) {
-      graph.addEdge({
+      const edge = graph.addEdge({
         id: edgeData.id,
         source: edgeData.source,
         target: edgeData.target,
         data: edgeData.data,
-        router: {
-          name: 'orth',
-          args: {
-            padding: 10,
-            direction: 'H'
-          }
+        attrs: edgeData.attrs,
+        // 使用保存的路由器和连接器配置
+        router: edgeData.data?.router || {
+          name: 'normal'
         },
-        connector: {
-          name: 'rounded',
-          args: {
-            radius: 8
-          }
-        },
-        attrs: edgeData.attrs
+        connector: edgeData.data?.connector || {
+          name: 'normal'
+        }
       })
+      
+      // 如果有自定义样式，应用它
+      if (edgeData.data?.customStyle && edgeData.data?.customAttrs) {
+        edge.setAttrs(edgeData.data.customAttrs)
+      }
     }
   })
 
@@ -674,8 +716,8 @@ const nodeConfig: Record<string, NodeConfig> = {
         fill: '#333',
         refX: 0.5,
         refY: 0.85,
-        textAnchor: 'middle',
-        textVerticalAnchor: 'top',
+        textAnchor: 'middle' as any,
+        textVerticalAnchor: 'top' as any,
         y: 0,
       }
     },
@@ -1009,29 +1051,47 @@ const toggleConnecting = () => {
 const handleEdgeUpdate = (edge: any) => {
   if (!graph) return
 
-  const target = graph.getCellById(edge.id)
+  const target = graph.getCellById(edge.id) as X6Edge
   if (target) {
-    // 保存边的原始样式和属性
+    // 保存边的样式信息
     const customAttrs = {
-      ...edge.attrs
+      line: {
+        stroke: edge.attrs?.line?.stroke || '#1890ff',
+        strokeWidth: edge.attrs?.line?.strokeWidth || 2,
+        strokeDasharray: edge.attrs?.line?.strokeDasharray || ''
+      }
     }
     
     // 应用新的样式
     target.setAttrs(customAttrs)
-    target.setConnector(edge.connector)
     
-    // 保存边的样式信息到数据中，作为永久设置
+    // 保存路由器和连接器配置
+    const routerConfig = {
+      name: edge.connector === 'rounded' ? 'orth' : 'normal',
+      args: edge.connector === 'rounded' ? {
+        padding: 20,
+        direction: 'H'
+      } : undefined
+    }
+    
+    const connectorConfig = {
+      name: edge.connector || 'normal',
+      args: edge.connector === 'rounded' ? {
+        radius: 8
+      } : undefined
+    }
+    
+    // 设置路由器和连接器
+    target.setRouter(routerConfig)
+    target.setConnector(connectorConfig)
+    
+    // 保存完整的边数据
     target.setData({
       ...target.getData(),
-      attrs: customAttrs,
-      customStyle: true, // 标记此边有自定义样式
-      customAttrs: customAttrs, // 保存完整的自定义属性
-      // 提取主要样式信息以便于后续使用
-      style: {
-        stroke: customAttrs.line?.stroke || '#1890ff',
-        strokeWidth: customAttrs.line?.strokeWidth || 2,
-        strokeDasharray: customAttrs.line?.strokeDasharray || ''
-      }
+      router: routerConfig,
+      connector: connectorConfig,
+      customStyle: true,
+      customAttrs: customAttrs
     })
   }
 }
@@ -1336,6 +1396,40 @@ const initGraph = async () => {
           return null
         }
       },
+      connecting: {
+        enabled: true,
+        connectionPoint: {
+          name: 'boundary'
+        },
+        connector: {
+          name: 'normal'
+        },
+        router: {
+          name: 'normal'
+        },
+        validateConnection({ sourceView, targetView }) {
+          if (!sourceView || !targetView) return false
+          const sourceNode = sourceView.cell as X6Node
+          const targetNode = targetView.cell as X6Node
+          return sourceNode.id !== targetNode.id
+        },
+        createEdge() {
+          return new X6Edge({
+            attrs: {
+              line: {
+                stroke: '#1890ff',
+                strokeWidth: 2
+              }
+            },
+            router: {
+              name: 'normal'
+            },
+            connector: {
+              name: 'normal'
+            }
+          })
+        }
+      },
     })
     console.log('Graph instance created:', graph)
 
@@ -1455,31 +1549,33 @@ const initGraph = async () => {
         } else {
           if (sourceNode.value !== node) {
             try {
-              graph?.addEdge({
+              const edge = graph?.addEdge({
                 source: sourceNode.value,
                 target: node,
-                router: {
+                attrs: {
+                  line: {
+                    stroke: '#1890ff',
+                    strokeWidth: 2
+                  }
+                }
+              })
+
+              if (edge) {
+                edge.setRouter({
                   name: 'orth',
                   args: {
-                    padding: 10,
+                    padding: 20,
                     direction: 'H'
                   }
-                },
-                connector: {
+                })
+                edge.setConnector({
                   name: 'rounded',
                   args: {
                     radius: 8
                   }
-                },
-                attrs: {
-                  line: {
-                    stroke: '#333',
-                    strokeWidth: 1,
-                    strokeDasharray: '',  // 确保默认为实线
-                    targetMarker: null
-                  }
-                }
-              })
+                })
+              }
+
               ElMessage.success('连线创建成功')
             } catch (error) {
               ElMessage.error('无法创建连线')
@@ -1975,30 +2071,19 @@ const handlePaste = () => {
           attrs: edge.attrs,
           data: edge.data,
           router: {
-            name: 'orth',
-            args: {
-              padding: 10,
-              direction: 'H'
-            }
+            name: 'normal'
           },
           connector: {
-            name: 'rounded',
-            args: {
-              radius: 8
-            }
+            name: 'normal'
           }
         })
       })
       
-      // 选中新创建的元素
-      const nodes = newCells.filter((cell: any) => cell.type === 'node')
-      if (nodes.length > 0) {
-        graph.resetSelection()
-        graph.select(nodes)
-      }
-      
-      ElMessage.success('已粘贴元素')
+      graph.resetSelection()
+      graph.select(newCells)
     }
+    
+    ElMessage.success('已粘贴元素')
   } catch (error) {
     console.error('粘贴失败:', error)
     ElMessage.error('粘贴失败')

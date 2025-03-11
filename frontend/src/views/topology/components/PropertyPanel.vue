@@ -95,9 +95,9 @@
             v-model="edgeFormData.connector" 
             @change="handleEdgeStyleChange"
           >
-            <el-option :label="t('scene.topology.edge.styles.straight')" value="normal" />
-            <el-option :label="t('scene.topology.edge.styles.polyline')" value="smooth" />
-            <el-option :label="t('scene.topology.edge.styles.curve')" value="rounded" />
+            <el-option :label="t('scene.topology.edge.styles.normal')" value="normal" />
+            <el-option :label="t('scene.topology.edge.styles.rounded')" value="rounded" />
+            <el-option :label="t('scene.topology.edge.styles.smooth')" value="smooth" />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('scene.topology.edge.color')">
@@ -330,15 +330,17 @@ const handleEdgeStyleChange = () => {
   if (!props.selectedEdge) return
 
   const updatedEdge = {
-    ...props.selectedEdge,
+    id: props.selectedEdge.id,
     connector: edgeFormData.value.connector,
     attrs: {
-      ...props.selectedEdge.attrs,
       line: {
-        ...props.selectedEdge.attrs?.line,
         stroke: edgeFormData.value.stroke,
         strokeWidth: edgeFormData.value.strokeWidth,
-        strokeDasharray: edgeFormData.value.strokeDasharray === 'none' ? '' : edgeFormData.value.strokeDasharray
+        strokeDasharray: edgeFormData.value.strokeDasharray === 'none' ? '' : edgeFormData.value.strokeDasharray,
+        targetMarker: {
+          name: 'classic',
+          size: 8
+        }
       }
     }
   }
