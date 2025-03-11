@@ -117,6 +117,7 @@ export default {
     title: 'シーン管理',
     searchPlaceholder: 'シーン名または説明を検索',
     addButton: 'シーンを追加',
+    nodeCount: 'ノード数',
     form: {
       addTitle: 'シーンを追加',
       editTitle: 'シーンを編集',

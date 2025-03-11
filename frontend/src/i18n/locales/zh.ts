@@ -123,6 +123,7 @@ export default {
     title: '场景管理',
     searchPlaceholder: '搜索场景名称或描述',
     addButton: '添加场景',
+    nodeCount: '节点数量',
     form: {
       addTitle: '添加场景',
       editTitle: '编辑场景',

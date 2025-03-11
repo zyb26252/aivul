@@ -187,7 +187,7 @@ const updateThumbnail = async (scene: Scene) => {
           passive: true
         },
         zIndex: {
-          node: 2,
+          node: 10,
           edge: 1
         }
       })
@@ -261,7 +261,7 @@ const updateThumbnail = async (scene: Scene) => {
               textVerticalAnchor: 'top',
             },
           },
-          zIndex: 0
+          zIndex: 2
         })
         
         renderedNodeIds.add(node.id)
@@ -318,7 +318,7 @@ const updateThumbnail = async (scene: Scene) => {
               textVerticalAnchor: 'top',
             },
           },
-          zIndex: 1
+          zIndex: 10
         })
         
         renderedNodeIds.add(node.id)
@@ -376,7 +376,7 @@ const updateThumbnail = async (scene: Scene) => {
           },
           router: router,
           connector: connector,
-          zIndex: 2
+          zIndex: 1
         })
         
         renderedEdgeCount++;
@@ -479,7 +479,7 @@ const handlePreview = (scene: Scene) => {
       connecting: false,
       mousewheel: false,
       zIndex: {
-        node: 2,
+        node: 10,
         edge: 1
       }
     })
@@ -544,7 +544,7 @@ const handlePreview = (scene: Scene) => {
               ...node.attrs?.label
             },
           },
-          zIndex: 0
+          zIndex: 2
         })
         
         renderedNodeIds.add(node.id)
@@ -606,7 +606,7 @@ const handlePreview = (scene: Scene) => {
               ...node.attrs?.label
             },
           },
-          zIndex: 1
+          zIndex: 10
         })
         
         renderedNodeIds.add(node.id)
@@ -667,7 +667,7 @@ const handlePreview = (scene: Scene) => {
               radius: 8
             }
           },
-          zIndex: 2
+          zIndex: 1
         })
       } catch (error) {
         console.error(`[预览对话框] 添加边时发生错误:`, error)

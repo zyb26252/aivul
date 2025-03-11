@@ -117,6 +117,7 @@ export default {
     title: '場景管理',
     searchPlaceholder: '搜索場景名稱或描述',
     addButton: '添加場景',
+    nodeCount: '節點數量',
     form: {
       addTitle: '添加場景',
       editTitle: '編輯場景',

@@ -302,7 +302,8 @@ export default {
         noTargetsFound: 'No targets found',
         select: 'Select'
       }
-    }
+    },
+    nodeCount: 'Node Count'
   },
   images: {
     searchPlaceholder: 'Search image name',
