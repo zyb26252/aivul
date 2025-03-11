@@ -1,14 +1,24 @@
 <template>
   <div class="element-panel">
-    <div
-      v-for="element in elements"
-      :key="element.type"
-      class="element-item"
-      draggable="true"
-      @dragstart="handleDragStart($event, element)"
+    <div 
+      class="element-item" 
+      draggable="true" 
+      @dragstart="handleDragStart('container')"
     >
-      <el-image :src="element.icon" class="element-icon" />
-      <span class="element-name">{{ element.name }}</span>
+      <div class="element-icon">
+        <img :src="containerIcon" alt="容器" />
+      </div>
+      <div class="element-label">{{ t('scene.topology.node.types.container') }}</div>
+    </div>
+    <div 
+      class="element-item" 
+      draggable="true" 
+      @dragstart="handleDragStart('switch')"
+    >
+      <div class="element-icon">
+        <img :src="switchIcon" alt="交换机" />
+      </div>
+      <div class="element-label">{{ t('scene.topology.node.types.switch') }}</div>
     </div>
   </div>
 </template>
@@ -18,64 +28,69 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-interface Element {
-  type: string
-  name: string
-  icon: string
-}
+// 使用与节点相同的容器图标
+const containerIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
 
-const elements: Element[] = [
-  {
-    type: 'container',
-    name: t('scene.topology.node.types.container'),
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxwYXRoIGQ9Ik04MzIgNjRIMTkyYy0xNy43IDAtMzIgMTQuMy0zMiAzMnY4MzJjMCAxNy43IDE0LjMgMzIgMzIgMzJoNjQwYzE3LjcgMCAzMi0xNC4zIDMyLTMyVjk2YzAtMTcuNy0xNC4zLTMyLTMyLTMyem0tNDAgODI0SDIzMlY2ODdoOTcuOWMxMS42IDMyLjggMzIgNjIuMyA1OS4xIDg0LjcgMzQuNSAyOC41IDc4LjIgNDQuMyAxMjMgNDQuM3M4OC41LTE1LjcgMTIzLTQ0LjNjMjcuMS0yMi40IDQ3LjUtNTEuOSA1OS4xLTg0LjdINzkydi02M0g2NDMuNmwtNS4yIDI0LjdDNjI2LjQgNzA4LjUgNTczLjIgNzUyIDUxMiA3NTJzLTExNC40LTQzLjUtMTI2LjUtMTAzLjNsLTUuMi0yNC43SDIzMlYxMzZoNTYwdjc1MnoiIGZpbGw9IiMxODkwZmYiLz48cGF0aCBkPSJNMzIwIDM0MWgzODRjNC40IDAgOC0zLjYgOC04di00OGMwLTQuNC0zLjYtOC04LThIMzIwYy00LjQgMC04IDMuNi04IDh2NDhjMCA0LjQgMy42IDggOCA4em0wIDE2MGgzODRjNC40IDAgOC0zLjYgOC04di00OGMwLTQuNC0zLjYtOC04LThIMzIwYy00LjQgMC04IDMuNi04IDh2NDhjMCA0LjQgMy42IDggOCA4eiIgZmlsbD0iIzE4OTBmZiIvPjwvc3ZnPg=='
-  },
-  {
-    type: 'switch',
-    name: t('scene.topology.node.types.switch'),
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxwYXRoIGQ9Ik04ODAgMTEySDE0NGMtMTcuNyAwLTMyIDE0LjMtMzIgMzJ2NzM2YzAgMTcuNyAxNC4zIDMyIDMyIDMyaDczNmMxNy43IDAgMzItMTQuMyAzMi0zMlYxNDRjMC0xNy43LTE0LjMtMzItMzItMzJ6TTUxMiA4MDBjLTg4LjQgMC0xNjAtNzEuNi0xNjAtMTYwczcxLjYtMTYwIDE2MC0xNjAgMTYwIDcxLjYgMTYwIDE2MC03MS42IDE2MC0xNjAgMTYwek01MTIgNTQ0Yy01My4wMiAwLTk2IDQyLjk4LTk2IDk2czQyLjk4IDk2IDk2IDk2IDk2LTQyLjk4IDk2LTk2LTQyLjk4LTk2LTk2LTk2eiIgZmlsbD0iIzEzYzJjMiIvPjwvc3ZnPg=='
-  }
-]
+// 使用与节点相同的交换机图标
+const switchIcon = 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgIHZpZXdCb3g9IjAgMCAzNiAzNiIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+bmV0d29yay1zd2l0Y2gtbGluZTwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMzMuOTEsMTguNDcsMzAuNzgsOC40MUEyLDIsMCwwLDAsMjguODcsN0g3LjEzQTIsMiwwLDAsMCw1LjIyLDguNDFMMi4wOSwxOC40OGEyLDIsMCwwLDAtLjA5LjU5VjI3YTIsMiwwLDAsMCwyLDJIMzJhMiwyLDAsMCwwLDItMlYxOS4wNkEyLDIsMCwwLDAsMzMuOTEsMTguNDdaTTMyLDI3SDRWMTkuMDZMNy4xMyw5SDI4Ljg3TDMyLDE5LjA2WiIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTEiPjwvcGF0aD48cmVjdCB4PSI3LjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMiI+PC9yZWN0PjxyZWN0IHg9IjEyLjEyIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtMyI+PC9yZWN0PjxyZWN0IHg9IjE3LjExIiB5PSIyMiIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIzIiBjbGFzcz0iY2xyLWktb3V0bGluZSBjbHItaS1vdXRsaW5lLXBhdGgtNCI+PC9yZWN0PjxyZWN0IHg9IjIyLjEiIHk9IjIyIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjMiIGNsYXNzPSJjbHItaS1vdXRsaW5lIGNsci1pLW91dGxpbmUtcGF0aC01Ij48L3JlY3Q+PHJlY3QgeD0iMjcuMSIgeT0iMjIiIHdpZHRoPSIxLjgiIGhlaWdodD0iMyIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTYiPjwvcmVjdD48cmVjdCB4PSI2LjIzIiB5PSIxOCIgd2lkdGg9IjIzLjY5IiBoZWlnaHQ9IjEuNCIgY2xhc3M9ImNsci1pLW91dGxpbmUgY2xyLWktb3V0bGluZS1wYXRoLTciPjwvcmVjdD4KICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgZmlsbC1vcGFjaXR5PSIwIi8+Cjwvc3ZnPg=='
 
-const handleDragStart = (e: DragEvent, element: Element) => {
-  if (e.dataTransfer) {
-    e.dataTransfer.setData('element', JSON.stringify(element))
-    e.dataTransfer.effectAllowed = 'copy'
+// 处理拖拽开始事件
+const handleDragStart = (type: string) => {
+  const element = {
+    type,
+    id: `${type}_${Date.now()}`
   }
+  event?.dataTransfer?.setData('element', JSON.stringify(element))
 }
 </script>
 
 <style lang="scss" scoped>
 .element-panel {
-  flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
   .element-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 8px;
+    padding: 16px;
     border: 1px solid var(--el-border-color-light);
-    border-radius: 4px;
-    cursor: move;
-    user-select: none;
-    margin-bottom: 8px;
-    transition: all 0.3s;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.2s ease;
+    background-color: var(--el-bg-color-page);
 
     &:hover {
-      border-color: var(--el-color-primary);
-      background-color: var(--el-color-primary-light-9);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &:active {
+      cursor: grabbing;
     }
 
     .element-icon {
-      width: 24px;
-      height: 24px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
     }
 
-    .element-name {
+    .element-label {
       font-size: 14px;
-      color: var(--el-text-color-primary);
+      color: var(--el-text-color-regular);
+      margin-top: 4px;
     }
   }
 }

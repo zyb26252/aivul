@@ -160,8 +160,63 @@ const updateThumbnail = async (scene: Scene) => {
     const nodes = topologyData.nodes || []
     const edges = topologyData.edges || []
     
+    // 用于跟踪实际渲染的节点ID
+    const renderedNodeIds = new Set()
+    
     // 先渲染节点
     nodes.forEach((node: any) => {
+      // 处理分组节点
+      if (node.type === 'group') {
+        graph.addNode({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          width: 120,
+          height: 80,
+          shape: 'rect',
+          markup: [
+            {
+              tagName: 'rect',
+              selector: 'body',
+            },
+            {
+              tagName: 'text',
+              selector: 'label',
+            },
+          ],
+          attrs: {
+            body: {
+              fill: 'rgba(24, 144, 255, 0.1)',
+              stroke: '#1890ff',
+              strokeWidth: 1,
+              strokeDasharray: '5 5',
+              rx: 8,
+              ry: 8,
+              refWidth: '100%',
+              refHeight: '100%',
+            },
+            label: {
+              text: node.data?.name || '分组',
+              fontSize: 12,
+              fill: '#1890ff',
+              refX: 0.5,
+              refY: 0.5,
+              textAnchor: 'middle',
+              textVerticalAnchor: 'middle',
+            },
+          },
+          zIndex: 1 // 分组应该在底层
+        })
+        // 记录已渲染的节点ID
+        renderedNodeIds.add(node.id)
+        return
+      }
+      
+      // 跳过有父节点的节点，避免重复渲染
+      if (node.data?.parent) {
+        return
+      }
+      
       graph.addNode({
         id: node.id,
         x: node.x,
@@ -211,10 +266,17 @@ const updateThumbnail = async (scene: Scene) => {
         },
         zIndex: 2
       })
+      // 记录已渲染的节点ID
+      renderedNodeIds.add(node.id)
     })
 
     // 添加边的渲染
     edges.forEach((edge: any) => {
+      // 只渲染连接到已渲染节点的边
+      if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
+        return
+      }
+      
       graph.addEdge({
         source: {
           cell: edge.source,
@@ -333,8 +395,63 @@ const handlePreview = (scene: Scene) => {
     const nodes = topologyData.nodes || []
     const edges = topologyData.edges || []
     
+    // 用于跟踪实际渲染的节点ID
+    const renderedNodeIds = new Set()
+    
     // 渲染节点
     nodes.forEach((node: any) => {
+      // 处理分组节点
+      if (node.type === 'group') {
+        graph.addNode({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          width: 120,
+          height: 80,
+          shape: 'rect',
+          markup: [
+            {
+              tagName: 'rect',
+              selector: 'body',
+            },
+            {
+              tagName: 'text',
+              selector: 'label',
+            },
+          ],
+          attrs: {
+            body: {
+              fill: 'rgba(24, 144, 255, 0.1)',
+              stroke: '#1890ff',
+              strokeWidth: 1,
+              strokeDasharray: '5 5',
+              rx: 8,
+              ry: 8,
+              refWidth: '100%',
+              refHeight: '100%',
+            },
+            label: {
+              text: node.data?.name || '分组',
+              fontSize: 12,
+              fill: '#1890ff',
+              refX: 0.5,
+              refY: 0.5,
+              textAnchor: 'middle',
+              textVerticalAnchor: 'middle',
+            },
+          },
+          zIndex: 1 // 分组应该在底层
+        })
+        // 记录已渲染的节点ID
+        renderedNodeIds.add(node.id)
+        return
+      }
+      
+      // 跳过有父节点的节点，避免重复渲染
+      if (node.data?.parent) {
+        return
+      }
+      
       graph.addNode({
         id: node.id,
         x: node.x,
@@ -384,10 +501,17 @@ const handlePreview = (scene: Scene) => {
         },
         zIndex: 2
       })
+      // 记录已渲染的节点ID
+      renderedNodeIds.add(node.id)
     })
 
     // 渲染边
     edges.forEach((edge: any) => {
+      // 只渲染连接到已渲染节点的边
+      if (!renderedNodeIds.has(edge.source) || !renderedNodeIds.has(edge.target)) {
+        return
+      }
+      
       graph.addEdge({
         source: {
           cell: edge.source,
