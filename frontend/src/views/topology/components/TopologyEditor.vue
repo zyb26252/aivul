@@ -1422,7 +1422,8 @@ const initGraph = async () => {
             attrs: {
               line: {
                 stroke: '#1890ff',
-                strokeWidth: 2
+                strokeWidth: 2,
+                targetMarker: null // 移除箭头
               }
             },
             router: {
