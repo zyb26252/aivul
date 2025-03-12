@@ -29,7 +29,21 @@ export default {
     reset: 'リセット',
     save: '保存',
     none: 'なし',
-    noDescription: '説明なし'
+    noDescription: '説明なし',
+    profile: 'プロフィール',
+    changePassword: {
+      title: 'パスワード変更',
+      oldPassword: '現在のパスワード',
+      newPassword: '新しいパスワード',
+      confirmPassword: 'パスワード確認',
+      oldPasswordPlaceholder: '現在のパスワードを入力してください',
+      newPasswordPlaceholder: '新しいパスワードを入力してください',
+      confirmPasswordPlaceholder: '新しいパスワードを再入力してください',
+      success: 'パスワードが正常に変更されました',
+      failed: 'パスワードの変更に失敗しました',
+      passwordNotMatch: '二つのパスワードが一致しません',
+      oldPasswordError: '現在のパスワードが正しくありません'
+    }
   },
   menu: {
     home: 'ホーム',
@@ -469,4 +483,4 @@ export default {
       viewLogs: 'ログを表示'
     }
   }
-} 
+}

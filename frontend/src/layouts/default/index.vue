@@ -82,6 +82,7 @@
             <div class="divider"></div>
             <el-icon><User /></el-icon>
             <span>{{ userStore.userInfo?.username }}</span>
+            <el-button link @click="showPasswordDialog = true">{{ $t('common.profile') }}</el-button>
             <el-button link @click="handleLogout">{{ $t('common.logout') }}</el-button>
           </div>
         </div>
@@ -91,6 +92,51 @@
         <router-view></router-view>
       </el-main>
     </el-container>
+
+    <!-- 修改密码对话框 -->
+    <el-dialog
+      v-model="showPasswordDialog"
+      :title="$t('common.changePassword.title')"
+      width="500px"
+    >
+      <el-form
+        ref="passwordFormRef"
+        :model="passwordForm"
+        :rules="passwordRules"
+        label-width="160px"
+      >
+        <el-form-item :label="$t('common.changePassword.oldPassword')" prop="old_password">
+          <el-input
+            v-model="passwordForm.old_password"
+            type="password"
+            show-password
+            :placeholder="$t('common.changePassword.oldPasswordPlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('common.changePassword.newPassword')" prop="new_password">
+          <el-input
+            v-model="passwordForm.new_password"
+            type="password"
+            show-password
+            :placeholder="$t('common.changePassword.newPasswordPlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('common.changePassword.confirmPassword')" prop="confirm_password">
+          <el-input
+            v-model="passwordForm.confirm_password"
+            type="password"
+            show-password
+            :placeholder="$t('common.changePassword.confirmPasswordPlaceholder')"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showPasswordDialog = false">{{ $t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="handleChangePassword">{{ $t('common.confirm') }}</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
@@ -108,15 +154,17 @@ import {
   ChatRound
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { FormInstance } from 'element-plus'
+import { changePassword } from '@/api/auth'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
 // 语言切换功能
-const { locale } = useI18n();
+const { locale, t: $t } = useI18n();
 const currentLocale = ref(locale.value);
 
 const changeLanguage = (value: string) => {
@@ -124,6 +172,73 @@ const changeLanguage = (value: string) => {
   currentLocale.value = value;
   localStorage.setItem('language', value); // 保存语言设置
 };
+
+// 密码修改相关
+const showPasswordDialog = ref(false)
+const passwordFormRef = ref<FormInstance>()
+const passwordForm = ref({
+  old_password: '',
+  new_password: '',
+  confirm_password: ''
+})
+
+// 监听对话框打开和关闭，重置表单
+watch(showPasswordDialog, (val) => {
+  // 无论是打开还是关闭对话框，都重置表单
+  passwordForm.value = {
+    old_password: '',
+    new_password: '',
+    confirm_password: ''
+  }
+  // 重置表单的校验结果
+  if (passwordFormRef.value) {
+    passwordFormRef.value.resetFields()
+  }
+})
+
+const validateConfirmPassword = (rule: any, value: string, callback: any) => {
+  if (value === '') {
+    callback(new Error($t('common.changePassword.confirmPasswordPlaceholder')))
+  } else if (value !== passwordForm.value.new_password) {
+    callback(new Error($t('common.changePassword.passwordNotMatch')))
+  } else {
+    callback()
+  }
+}
+
+const passwordRules = computed(() => ({
+  old_password: [
+    { required: true, message: $t('common.changePassword.oldPasswordPlaceholder'), trigger: 'blur' }
+  ],
+  new_password: [
+    { required: true, message: $t('common.changePassword.newPasswordPlaceholder'), trigger: 'blur' },
+    { min: 6, message: $t('common.lengthLimit', { min: 6, max: 20 }), trigger: 'blur' }
+  ],
+  confirm_password: [
+    { required: true, validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+}))
+
+const handleChangePassword = async () => {
+  if (!passwordFormRef.value) return
+  
+  await passwordFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        await changePassword(passwordForm.value)
+        ElMessage.success('密码修改成功')
+        showPasswordDialog.value = false
+        passwordForm.value = {
+          old_password: '',
+          new_password: '',
+          confirm_password: ''
+        }
+      } catch (error: any) {
+        ElMessage.error(error.message || '密码修改失败')
+      }
+    }
+  })
+}
 
 // 初始化时获取用户信息
 onMounted(async () => {
@@ -275,4 +390,4 @@ const handleLogout = () => {
   background-color: var(--el-bg-color-page);
   overflow: hidden;
 }
-</style> 
+</style>

@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
   // API 地址配置
-  API_URL: 'https://aivul.love:8000',
+  API_URL: 'http://8.210.223.197:9000/',
   
   // API 请求配置
   API_TIMEOUT: 30000,

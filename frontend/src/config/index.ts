@@ -11,13 +11,11 @@ declare global {
 // 环境特定的配置
 const envConfig: Record<string, EnvConfig> = {
   development: {
-    API_BASE_URL: import.meta.env.VITE_API_URL || 'http://aivul.love:8000',
     API_TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 5000,
     DEV_PORT: 3000,
     DEV_HOST: '0.0.0.0'
   },
   production: {
-    API_BASE_URL: 'https://aivul.love:8000',
     API_TIMEOUT: 30000
   }
 }
@@ -36,7 +34,7 @@ const getRuntimeConfig = (): Partial<RuntimeConfig> | null => {
 
 // API 配置
 export const API_CONFIG: ApiConfig = {
-  BASE_URL: (isProduction && getRuntimeConfig()?.API_URL) || currentEnvConfig.API_BASE_URL.replace(/\/+$/, ''),
+  BASE_URL: (window as any).CONFIG?.API_URL || '',
   VERSION: 'v1',
   get PATH() {
     return `/api/${this.VERSION}`
@@ -102,4 +100,4 @@ if (ENV_CONFIG.IS_DEV) {
   console.log('API Config:', API_CONFIG)
   console.log('App Config:', APP_CONFIG)
   console.log('Dev Config:', DEV_CONFIG)
-} 
+}

@@ -7,6 +7,8 @@ from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.api import deps
 from app.schemas.user import User, UserCreate, Token
+from app.schemas.msg import Msg
+from app.schemas.auth import PasswordChange
 from app.models.user import User as UserModel
 import logging
 
@@ -114,4 +116,23 @@ async def read_users_me(current_user: UserModel = Depends(deps.get_current_user)
         email=current_user.email,
         is_active=current_user.is_active,
         role=current_user.role
-    ) 
+    )
+
+@router.post("/change-password", response_model=Msg)
+def change_password(
+    *,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+    password_in: PasswordChange,
+):
+    """
+    修改密码
+    """
+    if not verify_password(password_in.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="原密码错误")
+        
+    current_user.hashed_password = get_password_hash(password_in.new_password)
+    db.add(current_user)
+    db.commit()
+    
+    return {"msg": "密码修改成功"}

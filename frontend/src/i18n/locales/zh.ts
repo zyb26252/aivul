@@ -29,7 +29,21 @@ export default {
     reset: '重置',
     save: '保存',
     none: '无',
-    noDescription: '无描述'
+    noDescription: '无描述',
+    profile: '个人资料',
+    changePassword: {
+      title: '修改密码',
+      oldPassword: '原密码',
+      newPassword: '新密码',
+      confirmPassword: '确认密码',
+      oldPasswordPlaceholder: '请输入原密码',
+      newPasswordPlaceholder: '请输入新密码',
+      confirmPasswordPlaceholder: '请再次输入新密码',
+      success: '密码修改成功',
+      failed: '密码修改失败',
+      passwordNotMatch: '两次输入的密码不一致',
+      oldPasswordError: '原密码错误'
+    }
   },
   menu: {
     home: '首页',
@@ -466,4 +480,4 @@ export default {
       viewLogs: '查看日志'
     }
   }
-} 
+}

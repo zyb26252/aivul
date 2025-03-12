@@ -65,6 +65,15 @@ const router = createRouter({
             title: 'topology',
             requiresAuth: true
           }
+        },
+        {
+          path: '/profile',
+          name: 'Profile',
+          component: () => import('@/views/user/Profile.vue'),
+          meta: {
+            title: '个人中心',
+            requiresAuth: true
+          }
         }
       ]
     }
@@ -90,4 +99,4 @@ router.beforeEach((to, from, next) => {
   }
 })
 
-export default router 
+export default router

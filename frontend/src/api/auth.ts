@@ -45,4 +45,18 @@ export const getUserInfo = () => {
     url: getApiUrl('/auth/me'),
     method: 'get'
   })
-} 
+}
+
+export interface PasswordChangeData {
+  old_password: string
+  new_password: string
+  confirm_password: string
+}
+
+export const changePassword = (data: PasswordChangeData) => {
+  return request({
+    url: getApiUrl('/auth/change-password'),
+    method: 'post',
+    data
+  })
+}

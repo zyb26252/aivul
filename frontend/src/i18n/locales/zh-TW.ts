@@ -29,7 +29,21 @@ export default {
     reset: '重置',
     save: '保存',
     none: '無',
-    noDescription: '無描述'
+    noDescription: '無描述',
+    profile: '個人資料',
+    changePassword: {
+      title: '修改密碼',
+      oldPassword: '原密碼',
+      newPassword: '新密碼',
+      confirmPassword: '確認密碼',
+      oldPasswordPlaceholder: '請輸入原密碼',
+      newPasswordPlaceholder: '請輸入新密碼',
+      confirmPasswordPlaceholder: '請再次輸入新密碼',
+      success: '密碼修改成功',
+      failed: '密碼修改失敗',
+      passwordNotMatch: '兩次輸入的密碼不一致',
+      oldPasswordError: '原密碼錯誤'
+    }
   },
   menu: {
     home: '首頁',
@@ -476,4 +490,4 @@ export default {
       viewLogs: '查看日誌'
     }
   }
-} 
+}

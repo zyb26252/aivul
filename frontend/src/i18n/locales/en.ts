@@ -29,7 +29,21 @@ export default {
     reset: 'Reset',
     save: 'Save',
     none: 'None',
-    noDescription: 'No description'
+    noDescription: 'No description',
+    profile: 'Profile',
+    changePassword: {
+      title: 'Change Password',
+      oldPassword: 'Old Password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm Password',
+      oldPasswordPlaceholder: 'Please enter old password',
+      newPasswordPlaceholder: 'Please enter new password',
+      confirmPasswordPlaceholder: 'Please confirm new password',
+      success: 'Password changed successfully',
+      failed: 'Failed to change password',
+      passwordNotMatch: 'The two passwords do not match',
+      oldPasswordError: 'Old password is incorrect'
+    }
   },
   menu: {
     home: 'Home',
@@ -465,4 +479,4 @@ export default {
       viewLogs: 'View Logs'
     }
   }
-} 
+}
