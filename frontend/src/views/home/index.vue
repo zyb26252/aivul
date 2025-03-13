@@ -21,10 +21,6 @@
           </div>
         </div>
         <div class="quick-actions">
-          <el-button type="primary" @click="router.push('/scenes/create')">
-            <el-icon><Plus /></el-icon>
-            {{ $t('home.quickStart.createScene') }}
-          </el-button>
           <el-button @click="router.push('/images')">
             <el-icon><Picture /></el-icon>
             {{ $t('home.quickStart.manageImages') }}
@@ -955,7 +951,7 @@ const getTrendInfo = (value: number) => {
       }
 
       .chart-container {
-        height: 180px;    // 调整图表高度
+        height: 150px;    // 调整图表高度
         width: 100%;
         transition: opacity 0.3s ease;
       }

@@ -170,7 +170,7 @@
                   :value="item.id"
                 >
                   <div class="image-option">
-                    <span>{{ item.name }}</span>
+                    <span>{{ item.name }}:{{ item.version }}</span>
                     <el-tag size="small" class="architecture-tag">{{ item.architecture }}</el-tag>
                   </div>
                 </el-option>
@@ -1247,4 +1247,4 @@ onMounted(() => {
     padding: var(--spacing-base);
   }
 }
-</style> 
+</style>
