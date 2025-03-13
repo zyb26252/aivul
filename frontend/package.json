@@ -17,6 +17,7 @@
     "echarts": "^5.6.0",
     "element-plus": "^2.3.8",
     "github-markdown-css": "5.2.0",
+    "monaco-editor": "^0.45.0",
     "pinia": "^2.1.4",
     "showdown": "2.1.0",
     "@types/showdown": "^2.0.6",

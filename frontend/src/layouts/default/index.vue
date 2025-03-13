@@ -89,7 +89,11 @@
       </el-header>
       
       <el-main>
-        <router-view></router-view>
+        <router-view v-slot="{ Component }">
+          <keep-alive :include="['Editor']">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
 
@@ -257,7 +261,6 @@ const handleLogout = () => {
   router.push('/login')
 }
 </script>
-
 <style lang="scss" scoped>
 .layout {
   height: 100vh;

@@ -7,6 +7,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import * as monaco from 'monaco-editor'
 
 const props = defineProps<{
   modelValue: string
@@ -22,30 +23,10 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement>()
 let editor: any = undefined
-let monaco: any = undefined
 
 // 加载 Monaco Editor
 const loadMonaco = () => {
-  return new Promise((resolve) => {
-    if (window.monaco) {
-      resolve(window.monaco)
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js'
-    script.onload = () => {
-      // @ts-ignore
-      window.require.config({
-        paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }
-      })
-      // @ts-ignore
-      window.require(['vs/editor/editor.main'], () => {
-        resolve(window.monaco)
-      })
-    }
-    document.body.appendChild(script)
-  })
+  return Promise.resolve(monaco)
 }
 
 // 获取编辑器配置
@@ -67,7 +48,7 @@ const getEditorOptions = () => {
 const initMonaco = async () => {
   if (!editorContainer.value) return
 
-  monaco = await loadMonaco()
+  await loadMonaco()
 
   // 注册 Dockerfile 语法高亮
   monaco.languages.register({ id: 'dockerfile' })
@@ -175,4 +156,4 @@ declare global {
     require: any
   }
 }
-</script> 
+</script>
