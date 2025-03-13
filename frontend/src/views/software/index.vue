@@ -305,6 +305,7 @@ import type { FormInstance } from 'element-plus'
 import { getSoftware, createSoftware, updateSoftware, deleteSoftware } from '@/api/software'
 import type { Software } from '@/types/software'
 import TableSkeleton from '@/components/TableSkeleton.vue'
+import { useI18n } from 'vue-i18n'
 
 const loading = ref(false)
 const softwareList = ref<Software[]>([])
@@ -470,16 +471,26 @@ const handleEdit = (row: Software) => {
 }
 
 // 删除软件
-const handleDelete = async (row: Software) => {
+const { t } = useI18n()
+const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm($t('software.messages.deleteConfirm'), $t('common.tips'), {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      t('software.messages.deleteConfirm'),
+      t('common.warning'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning'
+      }
+    )
+    // 执行删除的API调用
     await deleteSoftware(row.id)
-    ElMessage.success($t('software.messages.deleteSuccess'))
-    await fetchSoftware()
+    ElMessage.success(t('common.deleteSuccess'))
+    fetchSoftwareList()
   } catch (error) {
-    // 用户取消删除或删除失败
+    if (error !== 'cancel') {
+      ElMessage.error(t('common.deleteFailed'))
+    }
   }
 }
 
@@ -847,4 +858,4 @@ onMounted(() => {
     padding: var(--spacing-base);
   }
 }
-</style> 
+</style>
