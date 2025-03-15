@@ -121,6 +121,18 @@
         </el-table-column>
       </el-table>
 
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="totalCount"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+
       <div v-if="selectedRows.length > 0" class="batch-operation">
         <span class="selected-count">{{ t('common.selected') }} {{ selectedRows.length }} {{ t('common.items') }}</span>
         <el-button type="danger" @click="handleBatchDelete">{{ t('common.batchDelete') }}</el-button>
@@ -421,6 +433,12 @@ const dockerfileFormRef = ref<FormInstance>()
 const searchQuery = ref('')
 const selectedRows = ref<Target[]>([])
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalCount = ref(0)
+const hasNextPage = ref(false)
+
 // 添加查看 Dockerfile 相关的状态
 const dockerfileDialogVisible = ref(false)
 const currentDockerfile = ref('')
@@ -453,8 +471,24 @@ const rules = {
 const fetchTargets = async () => {
   loading.value = true
   try {
-    const data = await getTargets()
-    targets.value = data.map(target => ({
+    const params = new URLSearchParams()
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value)
+    }
+    
+    // 添加分页参数
+    params.append('skip', ((currentPage.value - 1) * pageSize.value).toString())
+    params.append('limit', (pageSize.value + 1).toString()) // 多请求一条数据，用于判断是否有下一页
+    
+    const data = await getTargets(params)
+    
+    // 判断是否有下一页
+    hasNextPage.value = data.length > pageSize.value
+    
+    // 如果返回的数据超过了页大小，则截取前pageSize条数据
+    const displayData = hasNextPage.value ? data.slice(0, pageSize.value) : data
+    
+    targets.value = displayData.map(target => ({
       ...target,
       ports: target.software_list?.reduce((acc: number[], software) => {
         if (software.ports) {
@@ -463,6 +497,26 @@ const fetchTargets = async () => {
         return acc
       }, []).sort((a, b) => a - b) || []
     }))
+    
+    // 计算总数
+    // 如果当前页是第一页，且返回的数据量小于页大小，则总数就是返回的数据量
+    if (currentPage.value === 1 && data.length < pageSize.value + 1) {
+      totalCount.value = data.length
+    } 
+    // 如果有下一页，则总数至少是当前页的数据加上下一页的一条数据
+    else if (hasNextPage.value) {
+      totalCount.value = Math.max(totalCount.value, currentPage.value * pageSize.value + 1)
+    } 
+    // 如果没有下一页，且不是第一页，则总数是前面所有页的数据量加上当前页的数据量
+    else if (!hasNextPage.value && currentPage.value > 1) {
+      totalCount.value = (currentPage.value - 1) * pageSize.value + data.length
+    }
+    
+    // 如果当前页没有数据，但不是第一页，回到上一页
+    if (data.length === 0 && currentPage.value > 1) {
+      currentPage.value--
+      await fetchTargets()
+    }
   } finally {
     loading.value = false
   }
@@ -831,16 +885,13 @@ const checkSoftwareCompatibility = async () => {
 
 // 根据搜索关键词过滤靶标列表
 const filteredTargets = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return targets.value
-  return targets.value.filter(target => 
-    target.name.toLowerCase().includes(query)
-  )
+  return targets.value
 })
 
 // 处理搜索输入
 const handleSearch = () => {
-  // 这里可以添加防抖逻辑如果需要
+  currentPage.value = 1 // 重置到第一页
+  fetchTargets()
 }
 
 // 处理表格选择变化
@@ -959,6 +1010,19 @@ const handleSaveDockerfile = async () => {
   } catch (error) {
     ElMessage.error('保存 Dockerfile 失败')
   }
+}
+
+// 处理页大小变化
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  currentPage.value = 1 // 重置到第一页
+  fetchTargets()
+}
+
+// 处理页码变化
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
+  fetchTargets()
 }
 
 onMounted(() => {
@@ -1188,6 +1252,12 @@ onMounted(() => {
   .architecture-tag {
     flex-shrink: 0;
   }
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 // 响应式布局

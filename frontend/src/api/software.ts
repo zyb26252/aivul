@@ -2,10 +2,14 @@ import request from '@/utils/request'
 import { getApiUrl } from '@/utils/request'
 import type { Software, SoftwareCreate, SoftwareUpdate } from '@/types/software'
 
-export const getSoftware = () => {
+export const getSoftware = (params?: URLSearchParams) => {
+  // 如果没有传入params，创建一个新的URLSearchParams对象
+  const queryParams = params || new URLSearchParams()
+  
   return request<Software[]>({
     url: getApiUrl('/software'),
-    method: 'get'
+    method: 'get',
+    params: queryParams
   })
 }
 

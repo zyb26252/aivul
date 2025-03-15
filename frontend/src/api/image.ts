@@ -3,10 +3,12 @@ import { getApiUrl } from '@/utils/request'
 import type { Image, ImageCreate, ImageUpdate } from '@/types/image'
 
 export const getImages = (params?: URLSearchParams) => {
+  const queryParams = params || new URLSearchParams()
+  
   return request<Image[]>({
     url: getApiUrl('/images'),
     method: 'get',
-    params
+    params: queryParams
   })
 }
 

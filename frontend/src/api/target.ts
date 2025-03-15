@@ -2,10 +2,14 @@ import request from '@/utils/request'
 import { getApiUrl } from '@/utils/request'
 import type { Target } from '@/types/target'
 
-export const getTargets = () => {
+export const getTargets = (params?: URLSearchParams) => {
+  // 如果没有传入params，创建一个新的URLSearchParams对象
+  const queryParams = params || new URLSearchParams()
+  
   return request<Target[]>({
     url: getApiUrl('/targets'),
-    method: 'get'
+    method: 'get',
+    params: queryParams
   })
 }
 

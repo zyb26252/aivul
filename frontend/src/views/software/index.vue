@@ -96,6 +96,18 @@
             </el-table-column>
           </el-table>
 
+          <div class="pagination-container">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+
           <div v-if="selectedRows.length > 0" class="batch-operation">
             <span class="selected-count">{{ $t('common.selected') }} {{ selectedRows.length }} {{ $t('common.items') }}</span>
             <el-button type="danger" @click="handleBatchDelete">
@@ -317,6 +329,12 @@ const searchQuery = ref('')
 const selectedArchitecture = ref('')
 const selectedRows = ref<Software[]>([])
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalCount = ref(0)
+const hasNextPage = ref(false)
+
 const form = ref({
   id: 0,
   name: '',
@@ -429,7 +447,38 @@ const fetchSoftware = async () => {
     if (selectedArchitecture.value) {
       params.append('architecture', selectedArchitecture.value)
     }
-    softwareList.value = await getSoftware(params)
+    
+    // 添加分页参数
+    params.append('skip', ((currentPage.value - 1) * pageSize.value).toString())
+    params.append('limit', (pageSize.value + 1).toString()) // 多请求一条数据，用于判断是否有下一页
+    
+    const response = await getSoftware(params)
+    
+    // 判断是否有下一页
+    hasNextPage.value = response.length > pageSize.value
+    
+    // 如果返回的数据超过了页大小，则截取前pageSize条数据
+    softwareList.value = hasNextPage.value ? response.slice(0, pageSize.value) : response
+    
+    // 计算总数
+    // 如果当前页是第一页，且返回的数据量小于页大小，则总数就是返回的数据量
+    if (currentPage.value === 1 && response.length < pageSize.value + 1) {
+      totalCount.value = response.length
+    } 
+    // 如果有下一页，则总数至少是当前页的数据加上下一页的一条数据
+    else if (hasNextPage.value) {
+      totalCount.value = Math.max(totalCount.value, currentPage.value * pageSize.value + 1)
+    } 
+    // 如果没有下一页，且不是第一页，则总数是前面所有页的数据量加上当前页的数据量
+    else if (!hasNextPage.value && currentPage.value > 1) {
+      totalCount.value = (currentPage.value - 1) * pageSize.value + response.length
+    }
+    
+    // 如果当前页没有数据，但不是第一页，回到上一页
+    if (response.length === 0 && currentPage.value > 1) {
+      currentPage.value--
+      await fetchSoftware()
+    }
   } catch (error) {
     ElMessage.error('获取软件列表失败')
   } finally {
@@ -437,8 +486,22 @@ const fetchSoftware = async () => {
   }
 }
 
+// 处理页大小变化
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  currentPage.value = 1 // 重置到第一页
+  fetchSoftware()
+}
+
+// 处理页码变化
+const handleCurrentChange = (val: number) => {
+  currentPage.value = val
+  fetchSoftware()
+}
+
 // 处理搜索和筛选
 const handleSearch = () => {
+  currentPage.value = 1 // 重置到第一页
   fetchSoftware()
 }
 
@@ -486,7 +549,7 @@ const handleDelete = async (row) => {
     // 执行删除的API调用
     await deleteSoftware(row.id)
     ElMessage.success(t('common.deleteSuccess'))
-    fetchSoftwareList()
+    fetchSoftware()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(t('common.deleteFailed'))
@@ -539,22 +602,7 @@ const handleDetail = (row: Software) => {
 
 // 根据搜索和架构筛选软件列表
 const filteredSoftwareList = computed(() => {
-  let result = softwareList.value
-  
-  const query = searchQuery.value.trim().toLowerCase()
-  if (query) {
-    result = result.filter(software => 
-      software.name.toLowerCase().includes(query)
-    )
-  }
-  
-  if (selectedArchitecture.value) {
-    result = result.filter(software => 
-      software.architecture === selectedArchitecture.value
-    )
-  }
-  
-  return result
+  return softwareList.value
 })
 
 // 处理表格选择变化
@@ -568,23 +616,23 @@ const handleBatchDelete = async () => {
   
   try {
     await ElMessageBox.confirm(
-      $t('software.messages.batchDeleteConfirm', { count: selectedRows.value.length }), 
-      $t('common.batchDelete'), 
+      t('software.messages.batchDeleteConfirm', { count: selectedRows.value.length }), 
+      t('common.batchDelete'), 
       {
         type: 'warning',
-        confirmButtonText: $t('common.confirm'),
-        cancelButtonText: $t('common.cancel')
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel')
       }
     )
     
     loading.value = true
     try {
       await Promise.all(selectedRows.value.map(row => deleteSoftware(row.id)))
-      ElMessage.success($t('software.messages.batchDeleteSuccess'))
+      ElMessage.success(t('software.messages.batchDeleteSuccess'))
       await fetchSoftware()
       selectedRows.value = []
     } catch (error) {
-      ElMessage.error($t('software.messages.batchDeleteFailed'))
+      ElMessage.error(t('software.messages.batchDeleteFailed'))
     } finally {
       loading.value = false
     }
@@ -857,5 +905,11 @@ onMounted(() => {
   .dialog-form {
     padding: var(--spacing-base);
   }
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
