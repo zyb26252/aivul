@@ -163,6 +163,7 @@ import { Properties } from '@antv/x6/lib/types'
 import '@antv/x6-vue-shape'
 import ElementPanel from './ElementPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
+import { initGroupFeatures } from './GroupUtils'
 
 // 替换导入的容器图标为base64编码
 const containerIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCmFyaWEtbGFiZWw9IkRvY2tlciIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiNmZmYiLz48cGF0aCBzdHJva2U9IiMwNjZkYTUiIHN0cm9rZS13aWR0aD0iMzgiIGQ9Ik0yOTYgMjI2aDQybS05MiAwaDQybS05MSAwaDQybS05MSAwaDQxbS05MSAwaDQybTgtNDZoNDFtOCAwaDQybTcgMGg0Mm0tNDItNDZoNDIiLz48cGF0aCBmaWxsPSIjMDY2ZGE1IiBkPSJtNDcyIDIyOHMtMTgtMTctNTUtMTFjLTQtMjktMzUtNDYtMzUtNDZzLTI5IDM1LTggNzRjLTYgMy0xNiA3LTMxIDdINjhjLTUgMTktNSAxNDUgMTMzIDE0NSA5OSAwIDE3My00NiAyMDgtMTMwIDUyIDQgNjMtMzkgNjMtMzkiLz48L3N2Zz4='
@@ -1321,7 +1322,7 @@ const initGraph = async () => {
       },
       // 交互行为配置
       interacting: {
-        // 节点是否可移动（分组节点不可移动）
+        // 节点是否可移动（分组节点不可移动，选中的分区也不可移动）
         nodeMovable: (view) => {
           const cell = view.cell
           const data = cell.getData?.()
@@ -1329,6 +1330,21 @@ const initGraph = async () => {
           if (data && data.type === 'group') {
             return false
           }
+          
+          // 检查节点是否属于选中的分区
+          if (data && data.parent) {
+            // 如果节点有父分区，且该分区被选中，则禁止移动
+            const selectedCellIds = selectedCells.value.map(cell => cell.id)
+            if (selectedCellIds.includes(data.parent)) {
+              return false
+            }
+          }
+          
+          // 检查当前节点是否是被选中的分组节点
+          if (data && data.type === 'group' && selectedCells.value.some(c => c.id === cell.id)) {
+            return false
+          }
+          
           return true
         },
         edgeMovable: false,      // 边不可移动
@@ -1404,6 +1420,23 @@ const initGraph = async () => {
               height: 0
             }
           }
+          
+          // 检查节点是否属于选中的分区
+          const data = cell.getData?.()
+          if (data && data.parent) {
+            // 如果节点有父分区，且该分区被选中，则阻止移动
+            const selectedCellIds = selectedCells.value.map(c => c.id)
+            if (selectedCellIds.includes(data.parent)) {
+              const pos = cell.getPosition()
+              return {
+                x: pos.x,
+                y: pos.y,
+                width: 0,
+                height: 0
+              }
+            }
+          }
+          
           return null
         }
       },
@@ -1445,6 +1478,9 @@ const initGraph = async () => {
     })
     console.log('Graph instance created:', graph)
 
+    // 初始化分组功能
+    initGroupFeatures(graph, selectedCells)
+
     // 监听窗口大小变化
     window.addEventListener('resize', () => {
       if (graph && container.value) {
@@ -1468,6 +1504,17 @@ const initGraph = async () => {
                 stroke: 'none',
                 strokeWidth: 0
               }
+            })
+          } else {
+            // 确保分组节点不可移动
+            node.setProp('draggable', false)
+            node.setProp('movable', false)
+            
+            // 更新数据标记
+            node.setData({
+              ...node.getData(),
+              movable: false,
+              preventDrag: true
             })
           }
         })
@@ -1542,6 +1589,18 @@ const initGraph = async () => {
               strokeWidth: 2,
               strokeDasharray: '5 5'
             }
+          })
+          
+          // 确保分组节点不可移动
+          cell.setProp('draggable', false)
+          cell.setProp('movable', false)
+          
+          // 更新数据标记
+          cell.setData({
+            ...cell.getData(),
+            movable: false,
+            preventDrag: true,
+            selected: true
           })
           
           selectedEdge.value = null
@@ -1685,6 +1744,18 @@ const initGraph = async () => {
               strokeWidth: 2,
               strokeDasharray: '5 5'
             }
+          })
+        } else {
+          // 如果是分组节点，确保它不能被移动
+          node.setProp('draggable', false)
+          node.setProp('movable', false)
+          
+          // 更新数据标记
+          node.setData({
+            ...node.getData(),
+            movable: false,
+            preventDrag: true,
+            selected: true
           })
         }
         
@@ -2211,6 +2282,9 @@ const handleRedo = () => {
 // 修改图形监听器设置
 const setupGraphListeners = () => {
   if (!graph) return
+
+  // 初始化分组功能
+  initGroupFeatures(graph, selectedCells)
 
   // 监听所有可能改变状态的事件
   const events = [
