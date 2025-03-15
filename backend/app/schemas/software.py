@@ -10,7 +10,7 @@ class SoftwareBase(BaseModel):
     os_type: str
     install_command: str
     start_command: List[str]
-    ports: List[int]
+    ports: Optional[List[int]] = []
 
 class SoftwareCreate(SoftwareBase):
     pass

@@ -44,35 +44,49 @@ export const updateGroupBoundaryById = (graph, groupId) => {
     size: { width: newWidth, height: newHeight }
   });
   
+  // 确保层级关系正确
+  group.setZIndex(0);
+  children.forEach(child => {
+    child.setZIndex(1);
+  });
+  
   console.log(`更新了分组[${groupId}]的边界, 包含${children.length}个子节点`);
+};
+
+// 禁用所有分组节点的移动功能
+export const disableGroupMovement = (graph) => {
+  if (!graph) return;
+  const groupNodes = graph.getNodes().filter(node => node.getData()?.type === 'group');
+  groupNodes.forEach(group => {
+    // 设置不可移动属性
+    group.setProp('draggable', false);
+    group.setProp('movable', false);
+    
+    // 添加数据标记
+    group.setData({
+      ...group.getData(),
+      movable: false,
+      preventDrag: true
+    });
+    
+    // 设置分组节点的Z轴位置
+    group.setZIndex(0);
+    
+    // 获取分组内的所有子节点
+    const children = graph.getNodes().filter(node => node.getData()?.parent === group.id);
+    // 确保子节点在分组上方
+    children.forEach(child => {
+      child.setZIndex(1);
+    });
+  });
 };
 
 // 设置分组相关的事件监听
 export const setupGroupEvents = (graph, selectedCells) => {
   if (!graph) return;
   
-  // 禁用所有分组节点的移动功能
-  const disableGroupMovement = () => {
-    const groupNodes = graph.getNodes().filter(node => node.getData()?.type === 'group');
-    groupNodes.forEach(group => {
-      // 设置不可移动属性
-      group.setProp('draggable', false);
-      group.setProp('movable', false);
-      
-      // 添加数据标记
-      group.setData({
-        ...group.getData(),
-        movable: false,
-        preventDrag: true
-      });
-      
-      // 设置分组节点的Z轴位置
-      group.setZIndex(0);
-    });
-  };
-  
   // 初始禁用所有分组节点的移动
-  disableGroupMovement();
+  disableGroupMovement(graph);
   
   // 监听节点拖动开始事件
   graph.on('node:dragstart', ({ node }) => {
@@ -141,7 +155,7 @@ export const setupGroupEvents = (graph, selectedCells) => {
     setTimeout(() => {
       updateAllGroups(graph);
       // 确保所有分组节点不可移动
-      disableGroupMovement();
+      disableGroupMovement(graph);
     }, 100);
   });
   
@@ -189,7 +203,7 @@ export const setupGroupEvents = (graph, selectedCells) => {
     setTimeout(() => {
       updateAllGroups(graph);
       // 确保所有分组节点不可移动
-      disableGroupMovement();
+      disableGroupMovement(graph);
     }, 100);
   });
   
@@ -240,7 +254,41 @@ export const setupGroupEvents = (graph, selectedCells) => {
       
       // 保存原始位置
       node._originalPosition = { ...node.getPosition() };
+    } else {
+      // 如果是普通节点，检查是否需要添加到分组
+      setTimeout(() => {
+        const nodePos = node.getPosition();
+        const nodeBBox = node.getBBox();
+        
+        // 检查是否落在某个分组内
+        const groups = graph.getNodes().filter(n => n.getData()?.type === 'group');
+        for (const group of groups) {
+          const groupBBox = group.getBBox();
+          
+          if (groupBBox.containsRect(nodeBBox) || groupBBox.containsPoint(nodePos)) {
+            // 设置父子关系
+            node.setData({
+              ...node.getData(),
+              parent: group.id
+            });
+            
+            // 确保层级关系正确
+            group.setZIndex(0);
+            node.setZIndex(1);
+            
+            // 调整分组大小
+            updateGroupBoundaryById(graph, group.id);
+            break;
+          }
+        }
+      }, 50);
     }
+    
+    // 更新所有分组
+    setTimeout(() => {
+      updateAllGroups(graph);
+      disableGroupMovement(graph);
+    }, 100);
   });
   
   // 添加对分组节点的点击事件处理
@@ -262,7 +310,7 @@ export const setupGroupEvents = (graph, selectedCells) => {
   // 监听选择变化事件
   graph.on('selection:changed', ({ selected }) => {
     // 确保所有分组节点不可移动
-    disableGroupMovement();
+    disableGroupMovement(graph);
     
     // 特别处理被选中的分组节点
     if (selected && selected.length > 0) {
@@ -295,5 +343,6 @@ export const initGroupFeatures = (graph, selectedCells) => {
   // 初始更新所有分组
   setTimeout(() => {
     updateAllGroups(graph);
+    disableGroupMovement(graph);
   }, 200);
 }; 

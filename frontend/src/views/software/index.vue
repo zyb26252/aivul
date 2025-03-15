@@ -362,8 +362,7 @@ const rules = {
     { required: true, message: '请输入安装命令', trigger: 'blur' }
   ],
   ports: [
-    { required: true, message: '请至少添加一个端口', trigger: 'change' },
-    { type: 'array', min: 1, message: '请至少添加一个端口', trigger: 'change' }
+    { required: false, type: 'array' }
   ],
   start_command: [
     { required: true, message: '请输入启动命令', trigger: 'change' },

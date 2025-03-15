@@ -31,7 +31,7 @@ class Software(Base):
     os_type = Column(String(50), nullable=False)
     install_command = Column(Text, nullable=False)
     start_command = Column(JSONEncodedList, nullable=False)
-    ports = Column(JSONEncodedList, nullable=False)
+    ports = Column(JSONEncodedList, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"))
