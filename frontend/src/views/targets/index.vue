@@ -188,6 +188,9 @@
                 </el-option>
               </el-option-group>
             </el-select>
+            <div v-if="selectedImage" class="selected-image-info">
+              <el-text class="text-sm">{{ selectedImage.name }}:{{ selectedImage.version }}</el-text>
+            </div>
           </el-form-item>
           <el-form-item :label="t('table.software')" prop="software_ids">
             <el-select
@@ -718,6 +721,12 @@ const selectedArchitecture = computed(() => {
   if (!form.value.base_image_id) return ''
   const selectedImage = images.value.find(img => img.id === form.value.base_image_id)
   return selectedImage?.architecture || ''
+})
+
+// 当前选中的镜像
+const selectedImage = computed(() => {
+  if (!form.value.base_image_id) return null
+  return images.value.find(img => img.id === form.value.base_image_id) || null
 })
 
 // 根据架构过滤软件列表
@@ -1316,5 +1325,109 @@ onMounted(() => {
   .dockerfile-footer {
     padding: var(--spacing-base);
   }
+}
+</style>
+
+<style scoped>
+.targets-container {
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  display: flex;
+  gap: 10px;
+}
+
+.table-card {
+  margin-bottom: 20px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.image-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.software-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.architecture-tag {
+  margin-left: 8px;
+}
+
+.port-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.port-tag {
+  margin-right: 4px;
+}
+
+.ports-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.form-tips {
+  margin-top: 4px;
+  color: #909399;
+}
+
+.compatibility-check {
+  margin-top: 8px;
+}
+
+.dockerfile-container {
+  display: flex;
+  gap: 20px;
+  height: 400px;
+}
+
+.dockerfile-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dockerfile-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.editor-wrapper {
+  flex: 1;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.selected-image-info {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  border-left: 3px solid #409eff;
 }
 </style>
